@@ -1,0 +1,306 @@
+package usecases
+
+import (
+	"context"
+	"errors"
+
+	"github.com/google/uuid"
+	"github.com/yourusername/arc/backend/internal/models"
+	"github.com/yourusername/arc/backend/internal/repositories"
+)
+
+type MenuUseCase struct {
+	productRepo          repositories.ProductRepository
+	techCardRepo         repositories.TechCardRepository
+	ingredientRepo       repositories.IngredientRepository
+	categoryRepo         repositories.CategoryRepository
+	ingredientCategoryRepo repositories.IngredientCategoryRepository
+	warehouseRepo        repositories.WarehouseRepository
+}
+
+func NewMenuUseCase(
+	productRepo repositories.ProductRepository,
+	techCardRepo repositories.TechCardRepository,
+	ingredientRepo repositories.IngredientRepository,
+	categoryRepo repositories.CategoryRepository,
+	ingredientCategoryRepo repositories.IngredientCategoryRepository,
+	warehouseRepo repositories.WarehouseRepository,
+) *MenuUseCase {
+	return &MenuUseCase{
+		productRepo:           productRepo,
+		techCardRepo:          techCardRepo,
+		ingredientRepo:        ingredientRepo,
+		categoryRepo:          categoryRepo,
+		ingredientCategoryRepo: ingredientCategoryRepo,
+		warehouseRepo:         warehouseRepo,
+	}
+}
+
+// CreateProduct создает товар и автоматически добавляет его в остатки с количеством 0
+func (uc *MenuUseCase) CreateProduct(ctx context.Context, product *models.Product, warehouseID, establishmentID uuid.UUID) error {
+	product.EstablishmentID = establishmentID
+	product.CalculatePrice()
+
+	if err := uc.productRepo.Create(ctx, product); err != nil {
+		return err
+	}
+
+	// Автоматически создаем запись в остатках с количеством 0
+	unit := "шт" // по умолчанию штуки, если весовой товар - может быть кг, л и т.д.
+	if product.IsWeighted {
+		unit = "кг" // для весового товара по умолчанию килограммы
+	}
+
+	stock := &models.Stock{
+		WarehouseID: warehouseID,
+		ProductID:   &product.ID,
+		Quantity:    0, // Начальное количество = 0
+		Unit:        unit,
+	}
+
+	if err := uc.warehouseRepo.CreateStock(ctx, stock); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// UpdateProduct обновляет товар
+func (uc *MenuUseCase) UpdateProduct(ctx context.Context, product *models.Product) error {
+	// Пересчитываем цену при обновлении
+	product.CalculatePrice()
+	return uc.productRepo.Update(ctx, product)
+}
+
+// DeleteProduct удаляет товар (soft delete), только если он принадлежит заведению
+func (uc *MenuUseCase) DeleteProduct(ctx context.Context, id uuid.UUID, establishmentID uuid.UUID) error {
+	if _, err := uc.productRepo.GetByID(ctx, id, &establishmentID); err != nil {
+		return err
+	}
+	return uc.productRepo.Delete(ctx, id)
+}
+
+// GetProducts возвращает список товаров с фильтрацией
+func (uc *MenuUseCase) GetProducts(ctx context.Context, filter *repositories.ProductFilter) ([]*models.Product, error) {
+	return uc.productRepo.List(ctx, filter)
+}
+
+// GetProductByID возвращает товар по ID (с проверкой заведения)
+func (uc *MenuUseCase) GetProductByID(ctx context.Context, id uuid.UUID, establishmentID uuid.UUID) (*models.Product, error) {
+	return uc.productRepo.GetByID(ctx, id, &establishmentID)
+}
+
+// CreateTechCard создает тех-карту
+func (uc *MenuUseCase) CreateTechCard(ctx context.Context, techCard *models.TechCard, warehouseID, establishmentID uuid.UUID) error {
+	techCard.EstablishmentID = establishmentID
+	if len(techCard.Ingredients) > 0 {
+		cost, err := uc.CalculateTechCardCost(ctx, techCard, warehouseID, establishmentID)
+		if err == nil {
+			techCard.CostPrice = cost
+		}
+	}
+	techCard.CalculatePrice()
+	return uc.techCardRepo.Create(ctx, techCard)
+}
+
+// UpdateTechCard обновляет тех-карту (проверка заведения через techCard.EstablishmentID при GetByID перед вызовом)
+func (uc *MenuUseCase) UpdateTechCard(ctx context.Context, techCard *models.TechCard, warehouseID, establishmentID uuid.UUID) error {
+	if len(techCard.Ingredients) > 0 {
+		cost, err := uc.CalculateTechCardCost(ctx, techCard, warehouseID, establishmentID)
+		if err == nil {
+			techCard.CostPrice = cost
+		}
+	}
+	techCard.CalculatePrice()
+	return uc.techCardRepo.Update(ctx, techCard)
+}
+
+// DeleteTechCard удаляет тех-карту (soft delete)
+func (uc *MenuUseCase) DeleteTechCard(ctx context.Context, id uuid.UUID, establishmentID uuid.UUID) error {
+	if _, err := uc.techCardRepo.GetByID(ctx, id, &establishmentID); err != nil {
+		return err
+	}
+	return uc.techCardRepo.Delete(ctx, id)
+}
+
+// GetTechCards возвращает список тех-карт с фильтрацией
+func (uc *MenuUseCase) GetTechCards(ctx context.Context, filter *repositories.TechCardFilter) ([]*models.TechCard, error) {
+	return uc.techCardRepo.List(ctx, filter)
+}
+
+// GetTechCardByID возвращает тех-карту по ID
+func (uc *MenuUseCase) GetTechCardByID(ctx context.Context, id uuid.UUID, establishmentID uuid.UUID) (*models.TechCard, error) {
+	return uc.techCardRepo.GetByID(ctx, id, &establishmentID)
+}
+
+// CreateIngredient создает ингредиент и автоматически создает остатки на складе
+func (uc *MenuUseCase) CreateIngredient(ctx context.Context, ingredient *models.Ingredient, warehouseID uuid.UUID, quantity float64, pricePerUnit float64, establishmentID uuid.UUID) error {
+	ingredient.EstablishmentID = establishmentID
+	if !ingredient.ValidateUnit() {
+		return errors.New("invalid unit, must be one of: шт, л, кг")
+	}
+
+	if err := uc.ingredientRepo.Create(ctx, ingredient); err != nil {
+		return err
+	}
+
+	// Если указаны количество и склад, создаем остатки с ценой
+	if quantity > 0 && warehouseID != uuid.Nil {
+		stock := &models.Stock{
+			WarehouseID:  warehouseID,
+			IngredientID: &ingredient.ID,
+			Quantity:     quantity,
+			Unit:         ingredient.Unit,
+			PricePerUnit: pricePerUnit, // Сохраняем цену за единицу
+		}
+
+		if err := uc.warehouseRepo.CreateStock(ctx, stock); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// UpdateIngredient обновляет ингредиент
+func (uc *MenuUseCase) UpdateIngredient(ctx context.Context, ingredient *models.Ingredient) error {
+	// Валидация единицы измерения
+	if !ingredient.ValidateUnit() {
+		return errors.New("invalid unit, must be one of: шт, л, кг")
+	}
+	return uc.ingredientRepo.Update(ctx, ingredient)
+}
+
+// DeleteIngredient удаляет ингредиент (soft delete)
+func (uc *MenuUseCase) DeleteIngredient(ctx context.Context, id uuid.UUID, establishmentID uuid.UUID) error {
+	if _, err := uc.ingredientRepo.GetByID(ctx, id, &establishmentID); err != nil {
+		return err
+	}
+	return uc.ingredientRepo.Delete(ctx, id)
+}
+
+// GetIngredients возвращает список ингредиентов с фильтрацией
+func (uc *MenuUseCase) GetIngredients(ctx context.Context, filter *repositories.IngredientFilter) ([]*models.Ingredient, error) {
+	return uc.ingredientRepo.List(ctx, filter)
+}
+
+// GetIngredientByID возвращает ингредиент по ID
+func (uc *MenuUseCase) GetIngredientByID(ctx context.Context, id uuid.UUID, establishmentID uuid.UUID) (*models.Ingredient, error) {
+	return uc.ingredientRepo.GetByID(ctx, id, &establishmentID)
+}
+
+// CalculateTechCardCost рассчитывает себестоимость тех-карты на основе ингредиентов
+func (uc *MenuUseCase) CalculateTechCardCost(ctx context.Context, techCard *models.TechCard, warehouseID, establishmentID uuid.UUID) (float64, error) {
+	var totalCost float64
+
+	for _, ingredient := range techCard.Ingredients {
+		stock, err := uc.warehouseRepo.GetStockByIngredientAndWarehouse(ctx, ingredient.IngredientID, warehouseID)
+		if err != nil {
+			return 0, err
+		}
+		if stock == nil {
+			continue
+		}
+
+		// Проверяем существование ингредиента
+		_, err = uc.ingredientRepo.GetByID(ctx, ingredient.IngredientID, &establishmentID)
+		if err != nil {
+			return 0, err
+		}
+
+		// Рассчитываем стоимость ингредиента
+		// Нужно получить цену за единицу из последней поставки или из остатков
+		// Пока используем упрощенный вариант - берем среднюю цену из остатков
+		// В реальности нужно брать цену из последней поставки
+		
+		// Получаем все остатки ингредиента для расчета средней цены (заготовка для будущей логики)
+		_, err = uc.warehouseRepo.GetStockByIngredientID(ctx, ingredient.IngredientID)
+		if err != nil {
+			return 0, err
+		}
+
+		// Пока используем упрощенный расчет
+		// В реальности нужно получать цену из SupplyItem последней поставки
+		// Для упрощения будем считать, что цена хранится в отдельной таблице или в SupplyItem
+		
+		// Конвертируем количество ингредиента в нужную единицу измерения
+		ingredientQuantity := ingredient.Quantity
+		ingredientUnit := ingredient.Unit
+		stockUnit := stock.Unit
+
+		// Если единицы измерения разные, нужно конвертировать
+		// Упрощенная конвертация (в реальности нужна более сложная логика)
+		if ingredientUnit != stockUnit {
+			// Конвертация между кг, л, шт
+			// Для упрощения считаем, что конвертация уже выполнена
+		}
+
+		// Получаем цену за единицу из остатков (Stock)
+		pricePerUnit := stock.PricePerUnit
+		
+		// Рассчитываем стоимость с учетом потерь при приготовлении
+		// Пока не учитываем потери, но можно добавить позже
+		ingredientCost := ingredientQuantity * pricePerUnit
+		totalCost += ingredientCost
+	}
+
+	return totalCost, nil
+}
+
+// ——— Categories (для товаров и тех-карт) ———
+
+func (uc *MenuUseCase) GetCategories(ctx context.Context, filter *repositories.CategoryFilter) ([]*models.Category, error) {
+	return uc.categoryRepo.List(ctx, filter)
+}
+
+func (uc *MenuUseCase) GetCategoryByID(ctx context.Context, id uuid.UUID, establishmentID uuid.UUID) (*models.Category, error) {
+	return uc.categoryRepo.GetByID(ctx, id, &establishmentID)
+}
+
+func (uc *MenuUseCase) CreateCategory(ctx context.Context, category *models.Category, establishmentID uuid.UUID) error {
+	category.EstablishmentID = establishmentID
+	return uc.categoryRepo.Create(ctx, category)
+}
+
+func (uc *MenuUseCase) UpdateCategory(ctx context.Context, category *models.Category, establishmentID uuid.UUID) error {
+	if _, err := uc.categoryRepo.GetByID(ctx, category.ID, &establishmentID); err != nil {
+		return err
+	}
+	return uc.categoryRepo.Update(ctx, category)
+}
+
+func (uc *MenuUseCase) DeleteCategory(ctx context.Context, id uuid.UUID, establishmentID uuid.UUID) error {
+	if _, err := uc.categoryRepo.GetByID(ctx, id, &establishmentID); err != nil {
+		return err
+	}
+	return uc.categoryRepo.Delete(ctx, id)
+}
+
+// ——— IngredientCategories (для ингредиентов) ———
+
+func (uc *MenuUseCase) GetIngredientCategories(ctx context.Context, filter *repositories.IngredientCategoryFilter) ([]*models.IngredientCategory, error) {
+	return uc.ingredientCategoryRepo.List(ctx, filter)
+}
+
+func (uc *MenuUseCase) GetIngredientCategoryByID(ctx context.Context, id uuid.UUID, establishmentID uuid.UUID) (*models.IngredientCategory, error) {
+	return uc.ingredientCategoryRepo.GetByID(ctx, id, &establishmentID)
+}
+
+func (uc *MenuUseCase) CreateIngredientCategory(ctx context.Context, c *models.IngredientCategory, establishmentID uuid.UUID) error {
+	c.EstablishmentID = establishmentID
+	return uc.ingredientCategoryRepo.Create(ctx, c)
+}
+
+func (uc *MenuUseCase) UpdateIngredientCategory(ctx context.Context, c *models.IngredientCategory, establishmentID uuid.UUID) error {
+	if _, err := uc.ingredientCategoryRepo.GetByID(ctx, c.ID, &establishmentID); err != nil {
+		return err
+	}
+	return uc.ingredientCategoryRepo.Update(ctx, c)
+}
+
+func (uc *MenuUseCase) DeleteIngredientCategory(ctx context.Context, id uuid.UUID, establishmentID uuid.UUID) error {
+	if _, err := uc.ingredientCategoryRepo.GetByID(ctx, id, &establishmentID); err != nil {
+		return err
+	}
+	return uc.ingredientCategoryRepo.Delete(ctx, id)
+}

@@ -19,22 +19,6 @@ vendor/
 # Go workspace file
 go.work
 
-# Environment variables
-.env
-.env.local
-.env.*.local
-
-# IDE
-.idea/
-.vscode/
-*.swp
-*.swo
-*~
-
-# OS
-.DS_Store
-Thumbs.db
-
 # Logs
 *.log
 logs/
@@ -42,6 +26,3 @@ logs/
 # Database
 *.db
 *.sqlite
-
-# Docker
-docker-compose.override.yml

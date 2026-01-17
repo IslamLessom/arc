@@ -1,0 +1,817 @@
+package handlers
+
+import (
+	"net/http"
+	"time"
+
+	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
+	"go.uber.org/zap"
+
+	"github.com/yourusername/arc/backend/internal/models"
+	"github.com/yourusername/arc/backend/internal/repositories"
+	"github.com/yourusername/arc/backend/internal/usecases"
+)
+
+type WarehouseHandler struct {
+	usecase *usecases.WarehouseUseCase
+	logger  *zap.Logger
+}
+
+func NewWarehouseHandler(usecase *usecases.WarehouseUseCase, logger *zap.Logger) *WarehouseHandler {
+	return &WarehouseHandler{
+		usecase: usecase,
+		logger:  logger,
+	}
+}
+
+// ——— Warehouses CRUD ———
+
+type CreateWarehouseRequest struct {
+	Name    string `json:"name" binding:"required"`
+	Address string `json:"address"`
+}
+
+type UpdateWarehouseRequest struct {
+	Name    *string `json:"name,omitempty"`
+	Address *string `json:"address,omitempty"`
+	Active  *bool   `json:"active,omitempty"`
+}
+
+// ListWarehouses возвращает список складов
+// @Summary Получить список складов
+// @Description Возвращает список складов заведения
+// @Tags warehouse
+// @Produce json
+// @Security Bearer
+// @Success 200 {object} map[string]interface{}
+// @Failure 403 {object} map[string]string
+// @Failure 500 {object} map[string]string
+// @Router /warehouses [get]
+func (h *WarehouseHandler) ListWarehouses(c *gin.Context) {
+	estID, err := getEstablishmentID(c)
+	if err != nil {
+		c.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
+		return
+	}
+	list, err := h.usecase.ListWarehouses(c.Request.Context(), estID)
+	if err != nil {
+		h.logger.Error("Failed to list warehouses", zap.Error(err))
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to list warehouses"})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"data": list})
+}
+
+// GetWarehouse возвращает склад по ID
+// @Summary Получить склад по ID
+// @Description Возвращает склад по ID
+// @Tags warehouse
+// @Produce json
+// @Security Bearer
+// @Param id path string true "ID склада"
+// @Success 200 {object} map[string]interface{}
+// @Failure 400 {object} map[string]string
+// @Failure 403 {object} map[string]string
+// @Failure 404 {object} map[string]string
+// @Router /warehouses/{id} [get]
+func (h *WarehouseHandler) GetWarehouse(c *gin.Context) {
+	estID, err := getEstablishmentID(c)
+	if err != nil {
+		c.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
+		return
+	}
+	id, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id"})
+		return
+	}
+	w, err := h.usecase.GetWarehouse(c.Request.Context(), id, estID)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "warehouse not found"})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"data": w})
+}
+
+// CreateWarehouse создает новый склад
+// @Summary Создать склад
+// @Description Создает новый склад
+// @Tags warehouse
+// @Accept json
+// @Produce json
+// @Security Bearer
+// @Param request body CreateWarehouseRequest true "Данные склада"
+// @Success 201 {object} map[string]interface{}
+// @Failure 400 {object} map[string]string
+// @Failure 403 {object} map[string]string
+// @Failure 500 {object} map[string]string
+// @Router /warehouses [post]
+func (h *WarehouseHandler) CreateWarehouse(c *gin.Context) {
+	estID, err := getEstablishmentID(c)
+	if err != nil {
+		c.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
+		return
+	}
+	var req CreateWarehouseRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	w := &models.Warehouse{Name: req.Name, Address: req.Address, Active: true}
+	if err := h.usecase.CreateWarehouse(c.Request.Context(), w, estID); err != nil {
+		h.logger.Error("Failed to create warehouse", zap.Error(err))
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to create warehouse"})
+		return
+	}
+	c.JSON(http.StatusCreated, gin.H{"data": w})
+}
+
+// UpdateWarehouse обновляет склад
+// @Summary Обновить склад
+// @Description Обновляет данные склада
+// @Tags warehouse
+// @Accept json
+// @Produce json
+// @Security Bearer
+// @Param id path string true "ID склада"
+// @Param request body UpdateWarehouseRequest true "Данные для обновления"
+// @Success 200 {object} map[string]interface{}
+// @Failure 400 {object} map[string]string
+// @Failure 403 {object} map[string]string
+// @Failure 404 {object} map[string]string
+// @Failure 500 {object} map[string]string
+// @Router /warehouses/{id} [put]
+func (h *WarehouseHandler) UpdateWarehouse(c *gin.Context) {
+	estID, err := getEstablishmentID(c)
+	if err != nil {
+		c.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
+		return
+	}
+	id, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id"})
+		return
+	}
+	w, err := h.usecase.GetWarehouse(c.Request.Context(), id, estID)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "warehouse not found"})
+		return
+	}
+	var req UpdateWarehouseRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	if req.Name != nil {
+		w.Name = *req.Name
+	}
+	if req.Address != nil {
+		w.Address = *req.Address
+	}
+	if req.Active != nil {
+		w.Active = *req.Active
+	}
+	if err := h.usecase.UpdateWarehouse(c.Request.Context(), w, estID); err != nil {
+		h.logger.Error("Failed to update warehouse", zap.Error(err))
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to update warehouse"})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"data": w})
+}
+
+// DeleteWarehouse удаляет склад
+// @Summary Удалить склад
+// @Description Удаляет склад по ID
+// @Tags warehouse
+// @Produce json
+// @Security Bearer
+// @Param id path string true "ID склада"
+// @Success 200 {object} map[string]string
+// @Failure 400 {object} map[string]string
+// @Failure 403 {object} map[string]string
+// @Failure 500 {object} map[string]string
+// @Router /warehouses/{id} [delete]
+func (h *WarehouseHandler) DeleteWarehouse(c *gin.Context) {
+	estID, err := getEstablishmentID(c)
+	if err != nil {
+		c.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
+		return
+	}
+	id, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id"})
+		return
+	}
+	if err := h.usecase.DeleteWarehouse(c.Request.Context(), id, estID); err != nil {
+		h.logger.Error("Failed to delete warehouse", zap.Error(err))
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to delete warehouse"})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"message": "warehouse deleted"})
+}
+
+// ——— Stock ———
+
+// GetStock возвращает остатки на складе
+// @Summary Получить остатки на складе
+// @Description Возвращает остатки на складе с возможностью фильтрации
+// @Tags warehouse
+// @Produce json
+// @Security Bearer
+// @Param warehouse_id query string false "ID склада"
+// @Param search query string false "Поиск"
+// @Param type query string false "Тип (ingredient или product)"
+// @Param category_id query string false "ID категории"
+// @Success 200 {object} map[string]interface{}
+// @Failure 403 {object} map[string]string
+// @Failure 500 {object} map[string]string
+// @Router /warehouse/stock [get]
+func (h *WarehouseHandler) GetStock(c *gin.Context) {
+	estID, err := getEstablishmentID(c)
+	if err != nil {
+		c.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
+		return
+	}
+
+	filter := &repositories.StockFilter{}
+	if s := c.Query("warehouse_id"); s != "" {
+		if id, e := uuid.Parse(s); e == nil {
+			filter.WarehouseID = &id
+		}
+	}
+	if search := c.Query("search"); search != "" {
+		filter.Search = &search
+	}
+	if itemType := c.Query("type"); itemType != "" {
+		filter.Type = &itemType // "ingredient" или "product"
+	}
+	if categoryID := c.Query("category_id"); categoryID != "" {
+		if id, e := uuid.Parse(categoryID); e == nil {
+			filter.CategoryID = &id
+		}
+	}
+
+	list, err := h.usecase.GetStock(c.Request.Context(), estID, filter)
+	if err != nil {
+		h.logger.Error("Failed to get stock", zap.Error(err))
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to get stock"})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"data": list})
+}
+
+// UpdateStockLimit обновляет минимальный остаток
+// @Summary Обновить минимальный остаток
+// @Description Обновляет минимальный остаток для позиции на складе
+// @Tags warehouse
+// @Accept json
+// @Produce json
+// @Security Bearer
+// @Param id path string true "ID остатка"
+// @Param request body object true "Данные для обновления" SchemaExample({"limit": 10})
+// @Success 200 {object} map[string]string
+// @Failure 400 {object} map[string]string
+// @Failure 403 {object} map[string]string
+// @Failure 500 {object} map[string]string
+// @Router /warehouse/stock/{id}/limit [put]
+func (h *WarehouseHandler) UpdateStockLimit(c *gin.Context) {
+	estID, err := getEstablishmentID(c)
+	if err != nil {
+		c.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
+		return
+	}
+
+	id, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id"})
+		return
+	}
+
+	var req struct {
+		Limit float64 `json:"limit" binding:"required,gte=0"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	if err := h.usecase.UpdateStockLimit(c.Request.Context(), id, req.Limit, estID); err != nil {
+		h.logger.Error("Failed to update stock limit", zap.Error(err))
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "stock limit updated"})
+}
+
+// ——— Supply ———
+
+type SupplyItemRequest struct {
+	IngredientID *string  `json:"ingredient_id,omitempty" binding:"omitempty,uuid"`
+	ProductID    *string  `json:"product_id,omitempty" binding:"omitempty,uuid"`
+	Quantity     float64  `json:"quantity" binding:"required,gt=0"`
+	Unit         string   `json:"unit" binding:"required"`
+	PricePerUnit float64  `json:"price_per_unit"` // Цена за единицу измерения
+	TotalAmount  float64  `json:"total_amount"`   // Общая сумма позиции
+}
+
+type CreateSupplyRequest struct {
+	WarehouseID     string              `json:"warehouse_id" binding:"required,uuid"`     // Склад
+	SupplierID      string              `json:"supplier_id" binding:"required,uuid"`      // Поставщик
+	DeliveryDateTime string             `json:"delivery_date_time" binding:"required"`    // Дата и время поставки (RFC3339)
+	Status          string              `json:"status"`                                    // pending, completed
+	Comment         string              `json:"comment"`                                   // Комментарий
+	Items           []SupplyItemRequest `json:"items" binding:"required,min=1"`
+}
+
+// CreateSupply создает новую поставку
+// @Summary Создать поставку
+// @Description Создает новую поставку на склад
+// @Tags warehouse
+// @Accept json
+// @Produce json
+// @Security Bearer
+// @Param request body CreateSupplyRequest true "Данные поставки"
+// @Success 201 {object} map[string]interface{}
+// @Failure 400 {object} map[string]string
+// @Failure 403 {object} map[string]string
+// @Failure 500 {object} map[string]string
+// @Router /warehouse/supplies [post]
+func (h *WarehouseHandler) CreateSupply(c *gin.Context) {
+	estID, err := getEstablishmentID(c)
+	if err != nil {
+		c.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
+		return
+	}
+	var req CreateSupplyRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	whID, _ := uuid.Parse(req.WarehouseID)
+	supID, _ := uuid.Parse(req.SupplierID)
+	status := req.Status
+	if status == "" {
+		status = "completed"
+	}
+
+	// Парсим дату и время поставки
+	deliveryDateTime, err := time.Parse(time.RFC3339, req.DeliveryDateTime)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid delivery_date_time format, expected RFC3339"})
+		return
+	}
+
+	items := make([]models.SupplyItem, 0, len(req.Items))
+	for _, it := range req.Items {
+		var ingID, prodID *uuid.UUID
+		if it.IngredientID != nil && *it.IngredientID != "" {
+			if id, e := uuid.Parse(*it.IngredientID); e == nil {
+				ingID = &id
+			}
+		}
+		if it.ProductID != nil && *it.ProductID != "" {
+			if id, e := uuid.Parse(*it.ProductID); e == nil {
+				prodID = &id
+			}
+		}
+		if ingID == nil && prodID == nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "each item must have ingredient_id or product_id"})
+			return
+		}
+		// Если передан только total_amount, вычисляем price_per_unit
+		// Если передан только price_per_unit, вычисляем total_amount
+		pricePerUnit := it.PricePerUnit
+		totalAmount := it.TotalAmount
+		if pricePerUnit == 0 && totalAmount > 0 && it.Quantity > 0 {
+			pricePerUnit = totalAmount / it.Quantity
+		} else if totalAmount == 0 && pricePerUnit > 0 && it.Quantity > 0 {
+			totalAmount = pricePerUnit * it.Quantity
+		}
+
+		items = append(items, models.SupplyItem{
+			IngredientID: ingID,
+			ProductID:   prodID,
+			Quantity:    it.Quantity,
+			Unit:        it.Unit,
+			PricePerUnit: pricePerUnit,
+			TotalAmount:  totalAmount,
+		})
+	}
+
+	supply := &models.Supply{
+		WarehouseID:     whID,
+		SupplierID:      supID,
+		DeliveryDateTime: deliveryDateTime,
+		Status:          status,
+		Comment:         req.Comment,
+		Items:           items,
+	}
+	if err := h.usecase.CreateSupply(c.Request.Context(), supply, estID); err != nil {
+		h.logger.Error("Failed to create supply", zap.Error(err))
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusCreated, gin.H{"data": supply})
+}
+
+// ——— WriteOff ———
+
+type WriteOffItemRequest struct {
+	IngredientID *string `json:"ingredient_id,omitempty" binding:"omitempty,uuid"`
+	ProductID    *string `json:"product_id,omitempty" binding:"omitempty,uuid"`
+	Quantity     float64 `json:"quantity" binding:"required,gt=0"`
+	Unit         string  `json:"unit" binding:"required"`
+	Details      string  `json:"details"` // Детали списания
+}
+
+type CreateWriteOffRequest struct {
+	WarehouseID     string              `json:"warehouse_id" binding:"required,uuid"`     // Склад
+	WriteOffDateTime string             `json:"write_off_date_time" binding:"required"`  // Дата и время списания (RFC3339)
+	Reason          string              `json:"reason"`                                     // Причина списания
+	Comment         string              `json:"comment"`                                    // Комментарий
+	Items           []WriteOffItemRequest `json:"items" binding:"required,min=1"`
+}
+
+// CreateWriteOff создает списание со склада
+// @Summary Создать списание
+// @Description Создает списание со склада
+// @Tags warehouse
+// @Accept json
+// @Produce json
+// @Security Bearer
+// @Param request body object true "Данные списания"
+// @Success 201 {object} map[string]interface{}
+// @Failure 400 {object} map[string]string
+// @Failure 403 {object} map[string]string
+// @Failure 500 {object} map[string]string
+// @Router /warehouse/write-offs [post]
+func (h *WarehouseHandler) CreateWriteOff(c *gin.Context) {
+	estID, err := getEstablishmentID(c)
+	if err != nil {
+		c.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
+		return
+	}
+	var req CreateWriteOffRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	whID, _ := uuid.Parse(req.WarehouseID)
+
+	// Парсим дату и время списания
+	writeOffDateTime, err := time.Parse(time.RFC3339, req.WriteOffDateTime)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid write_off_date_time format, expected RFC3339"})
+		return
+	}
+
+	items := make([]models.WriteOffItem, 0, len(req.Items))
+	for _, it := range req.Items {
+		var ingID, prodID *uuid.UUID
+		if it.IngredientID != nil && *it.IngredientID != "" {
+			if id, e := uuid.Parse(*it.IngredientID); e == nil {
+				ingID = &id
+			}
+		}
+		if it.ProductID != nil && *it.ProductID != "" {
+			if id, e := uuid.Parse(*it.ProductID); e == nil {
+				prodID = &id
+			}
+		}
+		if ingID == nil && prodID == nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "each item must have ingredient_id or product_id"})
+			return
+		}
+		items = append(items, models.WriteOffItem{
+			IngredientID: ingID,
+			ProductID:   prodID,
+			Quantity:    it.Quantity,
+			Unit:        it.Unit,
+			Details:     it.Details,
+		})
+	}
+
+	wo := &models.WriteOff{
+		WarehouseID:     whID,
+		WriteOffDateTime: writeOffDateTime,
+		Reason:          req.Reason,
+		Comment:         req.Comment,
+		Items:           items,
+	}
+	if err := h.usecase.CreateWriteOff(c.Request.Context(), wo, estID); err != nil {
+		h.logger.Error("Failed to create write-off", zap.Error(err))
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusCreated, gin.H{"data": wo})
+}
+
+// GetSuppliesByItem возвращает поставки по ингредиенту или товару
+// @Summary Получить поставки по позиции
+// @Description Возвращает список поставок по ингредиенту или товару
+// @Tags warehouse
+// @Produce json
+// @Security Bearer
+// @Param ingredient_id query string false "ID ингредиента"
+// @Param product_id query string false "ID товара"
+// @Success 200 {object} map[string]interface{}
+// @Failure 403 {object} map[string]string
+// @Failure 500 {object} map[string]string
+// @Router /warehouse/supplies [get]
+func (h *WarehouseHandler) GetSuppliesByItem(c *gin.Context) {
+	estID, err := getEstablishmentID(c)
+	if err != nil {
+		c.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
+		return
+	}
+
+	var ingredientID, productID *uuid.UUID
+	if ingID := c.Query("ingredient_id"); ingID != "" {
+		if id, e := uuid.Parse(ingID); e == nil {
+			ingredientID = &id
+		}
+	}
+	if prodID := c.Query("product_id"); prodID != "" {
+		if id, e := uuid.Parse(prodID); e == nil {
+			productID = &id
+		}
+	}
+
+	if ingredientID == nil && productID == nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "ingredient_id or product_id must be provided"})
+		return
+	}
+
+	supplies, err := h.usecase.GetSuppliesByIngredientOrProduct(c.Request.Context(), estID, ingredientID, productID)
+	if err != nil {
+		h.logger.Error("Failed to get supplies by item", zap.Error(err))
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"data": supplies})
+}
+
+// GetMovements возвращает движения по складу
+// @Summary Получить движения по складу
+// @Description Возвращает историю движений по складу
+// @Tags warehouse
+// @Produce json
+// @Security Bearer
+// @Param warehouse_id query string false "ID склада"
+// @Param start_date query string false "Начальная дата"
+// @Param end_date query string false "Конечная дата"
+// @Success 200 {object} map[string]interface{}
+// @Failure 403 {object} map[string]string
+// @Failure 500 {object} map[string]string
+// @Router /warehouse/movements [get]
+func (h *WarehouseHandler) GetMovements(c *gin.Context) {
+	estID, err := getEstablishmentID(c)
+	if err != nil {
+		c.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
+		return
+	}
+	var warehouseID *uuid.UUID
+	if s := c.Query("warehouse_id"); s != "" {
+		if id, e := uuid.Parse(s); e == nil {
+			warehouseID = &id
+		}
+	}
+	list, err := h.usecase.GetMovements(c.Request.Context(), estID, warehouseID)
+	if err != nil {
+		h.logger.Error("Failed to get movements", zap.Error(err))
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to get movements"})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"data": list})
+}
+
+// ——— Suppliers ———
+
+type CreateSupplierRequest struct {
+	Name           string `json:"name" binding:"required"`           // Имя
+	TaxpayerNumber string `json:"taxpayer_number"`                   // Номер налогоплательщика
+	Phone          string `json:"phone"`                             // Телефон
+	Address        string `json:"address"`                           // Адрес
+	Comment        string `json:"comment"`                           // Комментарий
+	Contact        string `json:"contact"`                           // Контактное лицо (опционально)
+	Email          string `json:"email"`                             // Email (опционально)
+}
+
+type UpdateSupplierRequest struct {
+	Name           *string `json:"name,omitempty"`
+	TaxpayerNumber *string `json:"taxpayer_number,omitempty"`
+	Phone          *string `json:"phone,omitempty"`
+	Address        *string `json:"address,omitempty"`
+	Comment        *string `json:"comment,omitempty"`
+	Contact        *string `json:"contact,omitempty"`
+	Email          *string `json:"email,omitempty"`
+	Active         *bool   `json:"active,omitempty"`
+}
+
+// ListSuppliers возвращает список поставщиков
+// @Summary Получить список поставщиков
+// @Description Возвращает список поставщиков заведения
+// @Tags warehouse
+// @Produce json
+// @Security Bearer
+// @Success 200 {object} map[string]interface{}
+// @Failure 403 {object} map[string]string
+// @Failure 500 {object} map[string]string
+// @Router /warehouse/suppliers [get]
+func (h *WarehouseHandler) ListSuppliers(c *gin.Context) {
+	estID, err := getEstablishmentID(c)
+	if err != nil {
+		c.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
+		return
+	}
+	filter := &repositories.SupplierFilter{EstablishmentID: &estID}
+	if s := c.Query("search"); s != "" {
+		filter.Search = &s
+	}
+	if a := c.Query("active"); a != "" {
+		active := a == "true"
+		filter.Active = &active
+	}
+	list, err := h.usecase.ListSuppliers(c.Request.Context(), filter)
+	if err != nil {
+		h.logger.Error("Failed to list suppliers", zap.Error(err))
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to list suppliers"})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"data": list})
+}
+
+// GetSupplier возвращает поставщика по ID
+// @Summary Получить поставщика по ID
+// @Description Возвращает поставщика по ID
+// @Tags warehouse
+// @Produce json
+// @Security Bearer
+// @Param id path string true "ID поставщика"
+// @Success 200 {object} map[string]interface{}
+// @Failure 400 {object} map[string]string
+// @Failure 403 {object} map[string]string
+// @Failure 404 {object} map[string]string
+// @Router /warehouse/suppliers/{id} [get]
+func (h *WarehouseHandler) GetSupplier(c *gin.Context) {
+	estID, err := getEstablishmentID(c)
+	if err != nil {
+		c.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
+		return
+	}
+	id, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id"})
+		return
+	}
+	s, err := h.usecase.GetSupplier(c.Request.Context(), id, estID)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "supplier not found"})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"data": s})
+}
+
+// CreateSupplier создает нового поставщика
+// @Summary Создать поставщика
+// @Description Создает нового поставщика
+// @Tags warehouse
+// @Accept json
+// @Produce json
+// @Security Bearer
+// @Param request body object true "Данные поставщика"
+// @Success 201 {object} map[string]interface{}
+// @Failure 400 {object} map[string]string
+// @Failure 403 {object} map[string]string
+// @Failure 500 {object} map[string]string
+// @Router /warehouse/suppliers [post]
+func (h *WarehouseHandler) CreateSupplier(c *gin.Context) {
+	estID, err := getEstablishmentID(c)
+	if err != nil {
+		c.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
+		return
+	}
+	var req CreateSupplierRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	s := &models.Supplier{
+		Name:           req.Name,
+		TaxpayerNumber: req.TaxpayerNumber,
+		Phone:          req.Phone,
+		Address:        req.Address,
+		Comment:        req.Comment,
+		Contact:        req.Contact,
+		Email:          req.Email,
+		Active:         true,
+	}
+	if err := h.usecase.CreateSupplier(c.Request.Context(), s, estID); err != nil {
+		h.logger.Error("Failed to create supplier", zap.Error(err))
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to create supplier"})
+		return
+	}
+	c.JSON(http.StatusCreated, gin.H{"data": s})
+}
+
+// UpdateSupplier обновляет поставщика
+// @Summary Обновить поставщика
+// @Description Обновляет данные поставщика
+// @Tags warehouse
+// @Accept json
+// @Produce json
+// @Security Bearer
+// @Param id path string true "ID поставщика"
+// @Param request body object true "Данные для обновления"
+// @Success 200 {object} map[string]interface{}
+// @Failure 400 {object} map[string]string
+// @Failure 403 {object} map[string]string
+// @Failure 404 {object} map[string]string
+// @Failure 500 {object} map[string]string
+// @Router /warehouse/suppliers/{id} [put]
+func (h *WarehouseHandler) UpdateSupplier(c *gin.Context) {
+	estID, err := getEstablishmentID(c)
+	if err != nil {
+		c.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
+		return
+	}
+	id, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id"})
+		return
+	}
+	s, err := h.usecase.GetSupplier(c.Request.Context(), id, estID)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "supplier not found"})
+		return
+	}
+	var req UpdateSupplierRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	if req.Name != nil {
+		s.Name = *req.Name
+	}
+	if req.TaxpayerNumber != nil {
+		s.TaxpayerNumber = *req.TaxpayerNumber
+	}
+	if req.Phone != nil {
+		s.Phone = *req.Phone
+	}
+	if req.Address != nil {
+		s.Address = *req.Address
+	}
+	if req.Comment != nil {
+		s.Comment = *req.Comment
+	}
+	if req.Contact != nil {
+		s.Contact = *req.Contact
+	}
+	if req.Email != nil {
+		s.Email = *req.Email
+	}
+	if req.Active != nil {
+		s.Active = *req.Active
+	}
+	if err := h.usecase.UpdateSupplier(c.Request.Context(), s, estID); err != nil {
+		h.logger.Error("Failed to update supplier", zap.Error(err))
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to update supplier"})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"data": s})
+}
+
+// DeleteSupplier удаляет поставщика
+// @Summary Удалить поставщика
+// @Description Удаляет поставщика по ID
+// @Tags warehouse
+// @Produce json
+// @Security Bearer
+// @Param id path string true "ID поставщика"
+// @Success 200 {object} map[string]string
+// @Failure 400 {object} map[string]string
+// @Failure 403 {object} map[string]string
+// @Failure 500 {object} map[string]string
+// @Router /warehouse/suppliers/{id} [delete]
+func (h *WarehouseHandler) DeleteSupplier(c *gin.Context) {
+	estID, err := getEstablishmentID(c)
+	if err != nil {
+		c.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
+		return
+	}
+	id, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id"})
+		return
+	}
+	if err := h.usecase.DeleteSupplier(c.Request.Context(), id, estID); err != nil {
+		h.logger.Error("Failed to delete supplier", zap.Error(err))
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to delete supplier"})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"message": "supplier deleted"})
+}

@@ -1,0 +1,112 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: arc_postgres
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-arc_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-arc_password}
+      POSTGRES_DB: ${POSTGRES_DB:-arc_db}
+    ports:
+      - "15432:5432"  # Внешний порт 15432, внутри контейнера 5432
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./backend/migrations:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U arc_user"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - arc_network
+
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: arc_prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./config/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+    networks:
+      - arc_network
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: arc_grafana
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_INSTALL_PLUGINS=grafana-piechart-panel
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./config/grafana/dashboards:/etc/grafana/provisioning/dashboards
+      - ./config/grafana/datasources:/etc/grafana/provisioning/datasources
+    depends_on:
+      - prometheus
+      - loki
+    networks:
+      - arc_network
+
+  loki:
+    image: grafana/loki:latest
+    container_name: arc_loki
+    ports:
+      - "3100:3100"
+    volumes:
+      - ./config/loki/loki-config.yml:/etc/loki/local-config.yaml
+      - loki_data:/loki
+    command: -config.file=/etc/loki/local-config.yaml
+    networks:
+      - arc_network
+
+  promtail:
+    image: grafana/promtail:latest
+    container_name: arc_promtail
+    volumes:
+      - ./config/promtail/promtail-config.yml:/etc/promtail/config.yml
+      - ./backend/logs:/var/log/app
+    command: -config.file=/etc/promtail/config.yml
+    depends_on:
+      - loki
+    networks:
+      - arc_network
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: arc_app
+    ports:
+      - "8080:8080"
+    environment:
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_USER=${POSTGRES_USER:-arc_user}
+      - DB_PASSWORD=${POSTGRES_PASSWORD:-arc_password}
+      - DB_NAME=${POSTGRES_DB:-arc_db}
+      - JWT_SECRET=${JWT_SECRET:-your-secret-key-change-in-production}
+      - APP_ENV=development
+    volumes:
+      - ./backend/logs:/app/logs
+    depends_on:
+      postgres:
+        condition: service_healthy
+      prometheus:
+        condition: service_started
+    networks:
+      - arc_network
+
+volumes:
+  postgres_data:
+  prometheus_data:
+  grafana_data:
+  loki_data:
+
+networks:
+  arc_network:
+    driver: bridge

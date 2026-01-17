@@ -1,0 +1,2562 @@
+definitions:
+  internal_handlers.AuthResponse:
+    properties:
+      access_token:
+        type: string
+      refresh_token:
+        type: string
+      user: {}
+    type: object
+  internal_handlers.CreateProductRequest:
+    properties:
+      barcode:
+        type: string
+      category_id:
+        description: UUID как строка
+        type: string
+      cost_price:
+        type: number
+      cover_image:
+        type: string
+      description:
+        type: string
+      exclude_from_discounts:
+        type: boolean
+      has_modifications:
+        type: boolean
+      is_weighted:
+        type: boolean
+      markup:
+        type: number
+      name:
+        type: string
+      price:
+        description: Можно задать напрямую, иначе вычисляется
+        type: number
+      warehouse_id:
+        description: UUID склада для создания остатков
+        type: string
+      workshop_id:
+        description: UUID как строка
+        type: string
+    required:
+    - category_id
+    - name
+    - warehouse_id
+    type: object
+  internal_handlers.CreateSupplyRequest:
+    properties:
+      comment:
+        description: Комментарий
+        type: string
+      delivery_date_time:
+        description: Дата и время поставки (RFC3339)
+        type: string
+      items:
+        items:
+          $ref: '#/definitions/internal_handlers.SupplyItemRequest'
+        minItems: 1
+        type: array
+      status:
+        description: pending, completed
+        type: string
+      supplier_id:
+        description: Поставщик
+        type: string
+      warehouse_id:
+        description: Склад
+        type: string
+    required:
+    - delivery_date_time
+    - items
+    - supplier_id
+    - warehouse_id
+    type: object
+  internal_handlers.CreateWarehouseRequest:
+    properties:
+      address:
+        type: string
+      name:
+        type: string
+    required:
+    - name
+    type: object
+  internal_handlers.LoginRequest:
+    properties:
+      email:
+        type: string
+      password:
+        type: string
+    required:
+    - email
+    - password
+    type: object
+  internal_handlers.RefreshRequest:
+    properties:
+      refresh_token:
+        type: string
+    required:
+    - refresh_token
+    type: object
+  internal_handlers.RegisterRequest:
+    properties:
+      email:
+        type: string
+      name:
+        type: string
+      password:
+        minLength: 6
+        type: string
+    required:
+    - email
+    - name
+    - password
+    type: object
+  internal_handlers.SubmitAnswersRequest:
+    properties:
+      answers:
+        additionalProperties: true
+        type: object
+    required:
+    - answers
+    type: object
+  internal_handlers.SupplyItemRequest:
+    properties:
+      ingredient_id:
+        type: string
+      price_per_unit:
+        description: Цена за единицу измерения
+        type: number
+      product_id:
+        type: string
+      quantity:
+        type: number
+      total_amount:
+        description: Общая сумма позиции
+        type: number
+      unit:
+        type: string
+    required:
+    - quantity
+    - unit
+    type: object
+  internal_handlers.UpdateEstablishmentRequest:
+    properties:
+      active:
+        type: boolean
+      address:
+        type: string
+      email:
+        type: string
+      has_seating_places:
+        type: boolean
+      name:
+        type: string
+      phone:
+        type: string
+      table_count:
+        type: integer
+      type:
+        type: string
+    type: object
+  internal_handlers.UpdateProductRequest:
+    properties:
+      active:
+        type: boolean
+      barcode:
+        type: string
+      category_id:
+        type: string
+      cost_price:
+        type: number
+      cover_image:
+        type: string
+      description:
+        type: string
+      exclude_from_discounts:
+        type: boolean
+      has_modifications:
+        type: boolean
+      is_weighted:
+        type: boolean
+      markup:
+        type: number
+      name:
+        type: string
+      price:
+        type: number
+      workshop_id:
+        type: string
+    type: object
+  internal_handlers.UpdateWarehouseRequest:
+    properties:
+      active:
+        type: boolean
+      address:
+        type: string
+      name:
+        type: string
+    type: object
+info:
+  contact: {}
+paths:
+  /auth/login:
+    post:
+      consumes:
+      - application/json
+      description: Аутентифицирует пользователя и возвращает токены доступа
+      parameters:
+      - description: Данные для входа
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/internal_handlers.LoginRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_handlers.AuthResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Вход в систему
+      tags:
+      - auth
+  /auth/logout:
+    post:
+      description: Добавляет токен доступа в черный список
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - Bearer: []
+      summary: Выход из системы
+      tags:
+      - auth
+  /auth/onboarding/questions:
+    get:
+      description: Возвращает все активные вопросы опросника, отсортированные по шагам
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Получить вопросы опросника
+      tags:
+      - onboarding
+  /auth/onboarding/response:
+    get:
+      description: Возвращает сохраненные ответы пользователя на опросник
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - Bearer: []
+      summary: Получить ответы пользователя
+      tags:
+      - onboarding
+  /auth/onboarding/submit:
+    post:
+      consumes:
+      - application/json
+      description: Обрабатывает ответы пользователя, создает заведение и настраивает
+        систему
+      parameters:
+      - description: Ответы на вопросы опросника
+        in: body
+        name: answers
+        required: true
+        schema:
+          $ref: '#/definitions/internal_handlers.SubmitAnswersRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - Bearer: []
+      summary: Отправить ответы опросника
+      tags:
+      - onboarding
+  /auth/refresh:
+    post:
+      consumes:
+      - application/json
+      description: Обновляет access token используя refresh token
+      parameters:
+      - description: Refresh token
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/internal_handlers.RefreshRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_handlers.AuthResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Обновление токена
+      tags:
+      - auth
+  /auth/register:
+    post:
+      consumes:
+      - application/json
+      description: Регистрирует нового пользователя и возвращает токены доступа
+      parameters:
+      - description: Данные для регистрации
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/internal_handlers.RegisterRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/internal_handlers.AuthResponse'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Регистрация нового пользователя
+      tags:
+      - auth
+  /establishments:
+    get:
+      description: Возвращает заведения пользователя (обычно 0 или 1 элемент)
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - Bearer: []
+      summary: Получить список заведений
+      tags:
+      - establishments
+    post:
+      consumes:
+      - application/json
+      description: Заведение создаётся при прохождении onboarding, этот endpoint не
+        используется
+      produces:
+      - application/json
+      responses:
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - Bearer: []
+      summary: Создать заведение (не используется)
+      tags:
+      - establishments
+  /establishments/{id}:
+    delete:
+      description: Удаление заведения не разрешено
+      parameters:
+      - description: ID заведения
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - Bearer: []
+      summary: Удалить заведение (не разрешено)
+      tags:
+      - establishments
+    get:
+      description: Возвращает заведение по ID (доступ только к своему заведению)
+      parameters:
+      - description: ID заведения
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - Bearer: []
+      summary: Получить заведение по ID
+      tags:
+      - establishments
+    put:
+      consumes:
+      - application/json
+      description: Обновляет заведение (доступ только к своему заведению)
+      parameters:
+      - description: ID заведения
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Данные для обновления
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/internal_handlers.UpdateEstablishmentRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - Bearer: []
+      summary: Обновить заведение
+      tags:
+      - establishments
+  /finance/cash-flow:
+    get:
+      description: Возвращает отчет о движении денежных средств
+      parameters:
+      - description: Начальная дата
+        in: query
+        name: start_date
+        type: string
+      - description: Конечная дата
+        in: query
+        name: end_date
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - Bearer: []
+      summary: Получить отчет о движении денежных средств
+      tags:
+      - finance
+  /finance/pnl:
+    get:
+      description: Возвращает отчет о прибылях и убытках
+      parameters:
+      - description: Начальная дата
+        in: query
+        name: start_date
+        type: string
+      - description: Конечная дата
+        in: query
+        name: end_date
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - Bearer: []
+      summary: Получить отчет P&L
+      tags:
+      - finance
+  /finance/shifts:
+    get:
+      description: Возвращает список смен
+      parameters:
+      - description: Начальная дата
+        in: query
+        name: start_date
+        type: string
+      - description: Конечная дата
+        in: query
+        name: end_date
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - Bearer: []
+      summary: Получить смены
+      tags:
+      - finance
+  /finance/transactions:
+    get:
+      description: Возвращает список финансовых транзакций
+      parameters:
+      - description: Начальная дата
+        in: query
+        name: start_date
+        type: string
+      - description: Конечная дата
+        in: query
+        name: end_date
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - Bearer: []
+      summary: Получить транзакции
+      tags:
+      - finance
+  /menu/categories:
+    get:
+      description: Возвращает список категорий для товаров и тех-карт
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - Bearer: []
+      summary: Получить список категорий
+      tags:
+      - menu
+    post:
+      consumes:
+      - application/json
+      description: Создает новую категорию для товаров и тех-карт
+      parameters:
+      - description: Данные категории
+        in: body
+        name: request
+        required: true
+        schema:
+          type: object
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - Bearer: []
+      summary: Создать категорию
+      tags:
+      - menu
+  /menu/categories/{id}:
+    delete:
+      description: Удаляет категорию по ID
+      parameters:
+      - description: ID категории
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - Bearer: []
+      summary: Удалить категорию
+      tags:
+      - menu
+    get:
+      description: Возвращает категорию по ID
+      parameters:
+      - description: ID категории
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - Bearer: []
+      summary: Получить категорию по ID
+      tags:
+      - menu
+    put:
+      consumes:
+      - application/json
+      description: Обновляет данные категории
+      parameters:
+      - description: ID категории
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Данные для обновления
+        in: body
+        name: request
+        required: true
+        schema:
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - Bearer: []
+      summary: Обновить категорию
+      tags:
+      - menu
+  /menu/ingredient-categories:
+    get:
+      description: Возвращает список категорий ингредиентов
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - Bearer: []
+      summary: Получить список категорий ингредиентов
+      tags:
+      - menu
+    post:
+      consumes:
+      - application/json
+      description: Создает новую категорию ингредиентов
+      parameters:
+      - description: Данные категории
+        in: body
+        name: request
+        required: true
+        schema:
+          type: object
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - Bearer: []
+      summary: Создать категорию ингредиентов
+      tags:
+      - menu
+  /menu/ingredient-categories/{id}:
+    delete:
+      description: Удаляет категорию ингредиентов по ID
+      parameters:
+      - description: ID категории
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - Bearer: []
+      summary: Удалить категорию ингредиентов
+      tags:
+      - menu
+    get:
+      description: Возвращает категорию ингредиентов по ID
+      parameters:
+      - description: ID категории
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - Bearer: []
+      summary: Получить категорию ингредиентов по ID
+      tags:
+      - menu
+    put:
+      consumes:
+      - application/json
+      description: Обновляет данные категории ингредиентов
+      parameters:
+      - description: ID категории
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Данные для обновления
+        in: body
+        name: request
+        required: true
+        schema:
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - Bearer: []
+      summary: Обновить категорию ингредиентов
+      tags:
+      - menu
+  /menu/ingredients:
+    post:
+      consumes:
+      - application/json
+      description: Создает новый ингредиент и автоматически создает остатки на складе
+      parameters:
+      - description: Данные ингредиента
+        in: body
+        name: request
+        required: true
+        schema:
+          type: object
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - Bearer: []
+      summary: Создать ингредиент
+      tags:
+      - menu
+  /menu/ingredients/{id}:
+    delete:
+      description: Удаляет ингредиент по ID
+      parameters:
+      - description: ID ингредиента
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - Bearer: []
+      summary: Удалить ингредиент
+      tags:
+      - menu
+    get:
+      description: Возвращает ингредиент по ID
+      parameters:
+      - description: ID ингредиента
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - Bearer: []
+      summary: Получить ингредиент по ID
+      tags:
+      - menu
+    put:
+      consumes:
+      - application/json
+      description: Обновляет данные ингредиента
+      parameters:
+      - description: ID ингредиента
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Данные для обновления
+        in: body
+        name: request
+        required: true
+        schema:
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - Bearer: []
+      summary: Обновить ингредиент
+      tags:
+      - menu
+  /menu/products:
+    get:
+      description: Возвращает список товаров с возможностью фильтрации по категории,
+        цеху, поиску и активности
+      parameters:
+      - description: ID категории
+        in: query
+        name: category_id
+        type: string
+      - description: ID цеха
+        in: query
+        name: workshop_id
+        type: string
+      - description: Поиск по названию
+        in: query
+        name: search
+        type: string
+      - description: Фильтр по активности
+        in: query
+        name: active
+        type: boolean
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - Bearer: []
+      summary: Получить список товаров
+      tags:
+      - menu
+    post:
+      consumes:
+      - application/json
+      description: Создает новый товар и автоматически создает остатки на складе
+      parameters:
+      - description: Данные товара
+        in: body
+        name: product
+        required: true
+        schema:
+          $ref: '#/definitions/internal_handlers.CreateProductRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - Bearer: []
+      summary: Создать товар
+      tags:
+      - menu
+  /menu/products/{id}:
+    delete:
+      description: Удаляет товар по ID
+      parameters:
+      - description: ID товара
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - Bearer: []
+      summary: Удалить товар
+      tags:
+      - menu
+    get:
+      description: Возвращает товар по ID
+      parameters:
+      - description: ID товара
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - Bearer: []
+      summary: Получить товар по ID
+      tags:
+      - menu
+    put:
+      consumes:
+      - application/json
+      description: Обновляет данные товара
+      parameters:
+      - description: ID товара
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Данные для обновления
+        in: body
+        name: product
+        required: true
+        schema:
+          $ref: '#/definitions/internal_handlers.UpdateProductRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - Bearer: []
+      summary: Обновить товар
+      tags:
+      - menu
+  /menu/tech-cards:
+    get:
+      description: Возвращает список тех-карт с фильтрацией
+      parameters:
+      - description: ID категории
+        in: query
+        name: category_id
+        type: string
+      - description: ID цеха
+        in: query
+        name: workshop_id
+        type: string
+      - description: Поиск по названию
+        in: query
+        name: search
+        type: string
+      - description: Фильтр по активности
+        in: query
+        name: active
+        type: boolean
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - Bearer: []
+      summary: Получить список тех-карт
+      tags:
+      - menu
+    post:
+      consumes:
+      - application/json
+      description: Создает новую тех-карту
+      parameters:
+      - description: Данные тех-карты
+        in: body
+        name: request
+        required: true
+        schema:
+          type: object
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - Bearer: []
+      summary: Создать тех-карту
+      tags:
+      - menu
+  /menu/tech-cards/{id}:
+    delete:
+      description: Удаляет тех-карту по ID
+      parameters:
+      - description: ID тех-карты
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - Bearer: []
+      summary: Удалить тех-карту
+      tags:
+      - menu
+    get:
+      description: Возвращает тех-карту по ID
+      parameters:
+      - description: ID тех-карты
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - Bearer: []
+      summary: Получить тех-карту по ID
+      tags:
+      - menu
+    put:
+      consumes:
+      - application/json
+      description: Обновляет данные тех-карты
+      parameters:
+      - description: ID тех-карты
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Данные для обновления
+        in: body
+        name: request
+        required: true
+        schema:
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - Bearer: []
+      summary: Обновить тех-карту
+      tags:
+      - menu
+  /orders:
+    get:
+      description: Возвращает список заказов
+      parameters:
+      - description: Начальная дата
+        in: query
+        name: start_date
+        type: string
+      - description: Конечная дата
+        in: query
+        name: end_date
+        type: string
+      - description: Статус заказа
+        in: query
+        name: status
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - Bearer: []
+      summary: Получить список заказов
+      tags:
+      - orders
+    post:
+      consumes:
+      - application/json
+      description: Создает новый заказ
+      parameters:
+      - description: Данные заказа
+        in: body
+        name: request
+        required: true
+        schema:
+          type: object
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - Bearer: []
+      summary: Создать заказ
+      tags:
+      - orders
+  /orders/{id}:
+    get:
+      description: Возвращает заказ по ID
+      parameters:
+      - description: ID заказа
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - Bearer: []
+      summary: Получить заказ по ID
+      tags:
+      - orders
+    put:
+      consumes:
+      - application/json
+      description: Обновляет данные заказа
+      parameters:
+      - description: ID заказа
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Данные для обновления
+        in: body
+        name: request
+        required: true
+        schema:
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - Bearer: []
+      summary: Обновить заказ
+      tags:
+      - orders
+  /orders/{id}/pay:
+    post:
+      description: Оплачивает заказ
+      parameters:
+      - description: ID заказа
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Данные оплаты
+        in: body
+        name: request
+        schema:
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - Bearer: []
+      summary: Оплатить заказ
+      tags:
+      - orders
+  /statistics/abc-analysis:
+    get:
+      description: Возвращает ABC анализ товаров
+      parameters:
+      - description: Начальная дата
+        in: query
+        name: start_date
+        type: string
+      - description: Конечная дата
+        in: query
+        name: end_date
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - Bearer: []
+      summary: Получить ABC анализ
+      tags:
+      - statistics
+  /statistics/products:
+    get:
+      description: Возвращает статистику по товарам
+      parameters:
+      - description: Начальная дата
+        in: query
+        name: start_date
+        type: string
+      - description: Конечная дата
+        in: query
+        name: end_date
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - Bearer: []
+      summary: Получить статистику по товарам
+      tags:
+      - statistics
+  /statistics/sales:
+    get:
+      description: Возвращает статистику продаж
+      parameters:
+      - description: Начальная дата
+        in: query
+        name: start_date
+        type: string
+      - description: Конечная дата
+        in: query
+        name: end_date
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - Bearer: []
+      summary: Получить статистику продаж
+      tags:
+      - statistics
+  /warehouse/movements:
+    get:
+      description: Возвращает историю движений по складу
+      parameters:
+      - description: ID склада
+        in: query
+        name: warehouse_id
+        type: string
+      - description: Начальная дата
+        in: query
+        name: start_date
+        type: string
+      - description: Конечная дата
+        in: query
+        name: end_date
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - Bearer: []
+      summary: Получить движения по складу
+      tags:
+      - warehouse
+  /warehouse/stock:
+    get:
+      description: Возвращает остатки на складе с возможностью фильтрации
+      parameters:
+      - description: ID склада
+        in: query
+        name: warehouse_id
+        type: string
+      - description: Поиск
+        in: query
+        name: search
+        type: string
+      - description: Тип (ingredient или product)
+        in: query
+        name: type
+        type: string
+      - description: ID категории
+        in: query
+        name: category_id
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - Bearer: []
+      summary: Получить остатки на складе
+      tags:
+      - warehouse
+  /warehouse/stock/{id}/limit:
+    put:
+      consumes:
+      - application/json
+      description: Обновляет минимальный остаток для позиции на складе
+      parameters:
+      - description: ID остатка
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Данные для обновления
+        in: body
+        name: request
+        required: true
+        schema:
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - Bearer: []
+      summary: Обновить минимальный остаток
+      tags:
+      - warehouse
+  /warehouse/suppliers:
+    get:
+      description: Возвращает список поставщиков заведения
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - Bearer: []
+      summary: Получить список поставщиков
+      tags:
+      - warehouse
+    post:
+      consumes:
+      - application/json
+      description: Создает нового поставщика
+      parameters:
+      - description: Данные поставщика
+        in: body
+        name: request
+        required: true
+        schema:
+          type: object
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - Bearer: []
+      summary: Создать поставщика
+      tags:
+      - warehouse
+  /warehouse/suppliers/{id}:
+    delete:
+      description: Удаляет поставщика по ID
+      parameters:
+      - description: ID поставщика
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - Bearer: []
+      summary: Удалить поставщика
+      tags:
+      - warehouse
+    get:
+      description: Возвращает поставщика по ID
+      parameters:
+      - description: ID поставщика
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - Bearer: []
+      summary: Получить поставщика по ID
+      tags:
+      - warehouse
+    put:
+      consumes:
+      - application/json
+      description: Обновляет данные поставщика
+      parameters:
+      - description: ID поставщика
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Данные для обновления
+        in: body
+        name: request
+        required: true
+        schema:
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - Bearer: []
+      summary: Обновить поставщика
+      tags:
+      - warehouse
+  /warehouse/supplies:
+    get:
+      description: Возвращает список поставок по ингредиенту или товару
+      parameters:
+      - description: ID ингредиента
+        in: query
+        name: ingredient_id
+        type: string
+      - description: ID товара
+        in: query
+        name: product_id
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - Bearer: []
+      summary: Получить поставки по позиции
+      tags:
+      - warehouse
+    post:
+      consumes:
+      - application/json
+      description: Создает новую поставку на склад
+      parameters:
+      - description: Данные поставки
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/internal_handlers.CreateSupplyRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - Bearer: []
+      summary: Создать поставку
+      tags:
+      - warehouse
+  /warehouse/write-offs:
+    post:
+      consumes:
+      - application/json
+      description: Создает списание со склада
+      parameters:
+      - description: Данные списания
+        in: body
+        name: request
+        required: true
+        schema:
+          type: object
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - Bearer: []
+      summary: Создать списание
+      tags:
+      - warehouse
+  /warehouses:
+    get:
+      description: Возвращает список складов заведения
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - Bearer: []
+      summary: Получить список складов
+      tags:
+      - warehouse
+    post:
+      consumes:
+      - application/json
+      description: Создает новый склад
+      parameters:
+      - description: Данные склада
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/internal_handlers.CreateWarehouseRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - Bearer: []
+      summary: Создать склад
+      tags:
+      - warehouse
+  /warehouses/{id}:
+    delete:
+      description: Удаляет склад по ID
+      parameters:
+      - description: ID склада
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - Bearer: []
+      summary: Удалить склад
+      tags:
+      - warehouse
+    get:
+      description: Возвращает склад по ID
+      parameters:
+      - description: ID склада
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - Bearer: []
+      summary: Получить склад по ID
+      tags:
+      - warehouse
+    put:
+      consumes:
+      - application/json
+      description: Обновляет данные склада
+      parameters:
+      - description: ID склада
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Данные для обновления
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/internal_handlers.UpdateWarehouseRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - Bearer: []
+      summary: Обновить склад
+      tags:
+      - warehouse
+swagger: "2.0"
