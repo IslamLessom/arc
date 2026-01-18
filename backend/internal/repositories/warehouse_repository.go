@@ -39,7 +39,9 @@ type WarehouseRepository interface {
 	// Supply & WriteOff
 	CreateSupply(ctx context.Context, supply *models.Supply) error
 	GetSuppliesByIngredientOrProduct(ctx context.Context, establishmentID uuid.UUID, ingredientID *uuid.UUID, productID *uuid.UUID) ([]*models.Supply, error)
+	GetSuppliesByWarehouse(ctx context.Context, establishmentID uuid.UUID, warehouseID *uuid.UUID) ([]*models.Supply, error)
 	CreateWriteOff(ctx context.Context, writeOff *models.WriteOff) error
+	GetWriteOffsByWarehouse(ctx context.Context, establishmentID uuid.UUID, warehouseID *uuid.UUID) ([]*models.WriteOff, error)
 }
 
 type warehouseRepository struct {
@@ -191,17 +193,30 @@ func (r *warehouseRepository) UpdateStockLimit(ctx context.Context, id uuid.UUID
 
 func (r *warehouseRepository) CreateSupply(ctx context.Context, supply *models.Supply) error {
 	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		// Сохраняем Items во временную переменную и очищаем supply.Items
+		// чтобы GORM не пытался создать их автоматически
+		items := supply.Items
+		supply.Items = nil
+		
+		// Создаем Supply без Items
 		if err := tx.Create(supply).Error; err != nil {
 			return err
 		}
-		for i := range supply.Items {
-			supply.Items[i].SupplyID = supply.ID
-		}
-		if len(supply.Items) > 0 {
-			if err := tx.Create(&supply.Items).Error; err != nil {
+		
+		// Теперь создаем элементы по одному с явно установленными UUID
+		for i := range items {
+			items[i].SupplyID = supply.ID
+			// UUID уже должен быть сгенерирован в handler, но на всякий случай проверяем
+			if items[i].ID == uuid.Nil {
+				items[i].ID = uuid.New()
+			}
+			if err := tx.Create(&items[i]).Error; err != nil {
 				return err
 			}
 		}
+		
+		// Восстанавливаем Items для возврата
+		supply.Items = items
 		return nil
 	})
 }
@@ -243,19 +258,69 @@ func (r *warehouseRepository) GetSuppliesByIngredientOrProduct(ctx context.Conte
 	return supplies, err
 }
 
+func (r *warehouseRepository) GetSuppliesByWarehouse(ctx context.Context, establishmentID uuid.UUID, warehouseID *uuid.UUID) ([]*models.Supply, error) {
+	query := r.db.WithContext(ctx).
+		Model(&models.Supply{}).
+		Preload("Warehouse").
+		Preload("Supplier").
+		Preload("Items.Ingredient").
+		Preload("Items.Product").
+		Joins("JOIN warehouses ON supplies.warehouse_id = warehouses.id").
+		Where("warehouses.establishment_id = ?", establishmentID)
+	
+	if warehouseID != nil {
+		query = query.Where("supplies.warehouse_id = ?", *warehouseID)
+	}
+	
+	var supplies []*models.Supply
+	err := query.Order("supplies.delivery_date_time DESC").Find(&supplies).Error
+	return supplies, err
+}
+
 func (r *warehouseRepository) CreateWriteOff(ctx context.Context, writeOff *models.WriteOff) error {
 	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		// Сохраняем Items во временную переменную и очищаем writeOff.Items
+		// чтобы GORM не пытался создать их автоматически
+		items := writeOff.Items
+		writeOff.Items = nil
+		
+		// Создаем WriteOff без Items
 		if err := tx.Create(writeOff).Error; err != nil {
 			return err
 		}
-		for i := range writeOff.Items {
-			writeOff.Items[i].WriteOffID = writeOff.ID
-		}
-		if len(writeOff.Items) > 0 {
-			if err := tx.Create(&writeOff.Items).Error; err != nil {
+		
+		// Теперь создаем элементы по одному с явно установленными UUID
+		for i := range items {
+			items[i].WriteOffID = writeOff.ID
+			// UUID уже должен быть сгенерирован в handler, но на всякий случай проверяем
+			if items[i].ID == uuid.Nil {
+				items[i].ID = uuid.New()
+			}
+			if err := tx.Create(&items[i]).Error; err != nil {
 				return err
 			}
 		}
+		
+		// Восстанавливаем Items для возврата
+		writeOff.Items = items
 		return nil
 	})
+}
+
+func (r *warehouseRepository) GetWriteOffsByWarehouse(ctx context.Context, establishmentID uuid.UUID, warehouseID *uuid.UUID) ([]*models.WriteOff, error) {
+	query := r.db.WithContext(ctx).
+		Model(&models.WriteOff{}).
+		Preload("Warehouse").
+		Preload("Items.Ingredient").
+		Preload("Items.Product").
+		Joins("JOIN warehouses ON write_offs.warehouse_id = warehouses.id").
+		Where("warehouses.establishment_id = ?", establishmentID)
+	
+	if warehouseID != nil {
+		query = query.Where("write_offs.warehouse_id = ?", *warehouseID)
+	}
+	
+	var writeOffs []*models.WriteOff
+	err := query.Order("write_offs.write_off_date_time DESC").Find(&writeOffs).Error
+	return writeOffs, err
 }

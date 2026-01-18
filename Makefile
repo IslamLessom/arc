@@ -29,12 +29,21 @@ docker-down:
 docker-logs:
 	docker-compose logs -f app
 
+docker-restart:
+	docker-compose build app
+	docker-compose up -d app
+
+docker-rebuild:
+	docker-compose build --no-cache app
+	docker-compose up -d app
+
 # Database migrations
+# Note: Uses port 15432 (external port from docker-compose)
 migrate-up:
-	migrate -path ./backend/migrations -database "postgres://arc_user:arc_password@localhost:5432/arc_db?sslmode=disable" up
+	migrate -path ./backend/migrations -database "postgres://arc_user:arc_password@localhost:15432/arc_db?sslmode=disable" up
 
 migrate-down:
-	migrate -path ./backend/migrations -database "postgres://arc_user:arc_password@localhost:5432/arc_db?sslmode=disable" down
+	migrate -path ./backend/migrations -database "postgres://arc_user:arc_password@localhost:15432/arc_db?sslmode=disable" down
 
 # Linting
 lint:

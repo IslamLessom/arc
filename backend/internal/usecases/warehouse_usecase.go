@@ -193,7 +193,65 @@ func (uc *WarehouseUseCase) GetSuppliesByIngredientOrProduct(ctx context.Context
 	return uc.repo.GetSuppliesByIngredientOrProduct(ctx, establishmentID, ingredientID, productID)
 }
 
-// GetMovements — пока пустой список (движения можно собрать из Supply/WriteOff при необходимости).
+// GetMovements возвращает все движения по складу (Supply и WriteOff)
 func (uc *WarehouseUseCase) GetMovements(ctx context.Context, establishmentID uuid.UUID, warehouseID *uuid.UUID) ([]interface{}, error) {
-	return []interface{}{}, nil
+	movements := make([]interface{}, 0)
+	
+	// Получаем поставки
+	supplies, err := uc.repo.GetSuppliesByWarehouse(ctx, establishmentID, warehouseID)
+	if err != nil {
+		return nil, err
+	}
+	
+	// Преобразуем Supply в движения
+	for _, supply := range supplies {
+		warehouseName := ""
+		if supply.Warehouse != nil {
+			warehouseName = supply.Warehouse.Name
+		}
+		supplierName := ""
+		if supply.Supplier != nil {
+			supplierName = supply.Supplier.Name
+		}
+		movements = append(movements, map[string]interface{}{
+			"type":            "supply",
+			"id":              supply.ID,
+			"warehouse_id":    supply.WarehouseID,
+			"warehouse_name":  warehouseName,
+			"supplier_id":     supply.SupplierID,
+			"supplier_name":   supplierName,
+			"date_time":       supply.DeliveryDateTime,
+			"status":          supply.Status,
+			"comment":         supply.Comment,
+			"items":           supply.Items,
+			"created_at":      supply.CreatedAt,
+		})
+	}
+	
+	// Получаем списания
+	writeOffs, err := uc.repo.GetWriteOffsByWarehouse(ctx, establishmentID, warehouseID)
+	if err != nil {
+		return nil, err
+	}
+	
+	// Преобразуем WriteOff в движения
+	for _, writeOff := range writeOffs {
+		warehouseName := ""
+		if writeOff.Warehouse != nil {
+			warehouseName = writeOff.Warehouse.Name
+		}
+		movements = append(movements, map[string]interface{}{
+			"type":         "write_off",
+			"id":           writeOff.ID,
+			"warehouse_id": writeOff.WarehouseID,
+			"warehouse_name": warehouseName,
+			"date_time":    writeOff.WriteOffDateTime,
+			"reason":       writeOff.Reason,
+			"comment":      writeOff.Comment,
+			"items":        writeOff.Items,
+			"created_at":   writeOff.CreatedAt,
+		})
+	}
+	
+	return movements, nil
 }

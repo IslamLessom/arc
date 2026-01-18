@@ -390,14 +390,16 @@ func (h *WarehouseHandler) CreateSupply(c *gin.Context) {
 			totalAmount = pricePerUnit * it.Quantity
 		}
 
-		items = append(items, models.SupplyItem{
+		item := models.SupplyItem{
+			ID:            uuid.New(), // Явно генерируем UUID
 			IngredientID: ingID,
 			ProductID:   prodID,
 			Quantity:    it.Quantity,
 			Unit:        it.Unit,
 			PricePerUnit: pricePerUnit,
 			TotalAmount:  totalAmount,
-		})
+		}
+		items = append(items, item)
 	}
 
 	supply := &models.Supply{
@@ -441,7 +443,7 @@ type CreateWriteOffRequest struct {
 // @Accept json
 // @Produce json
 // @Security Bearer
-// @Param request body object true "Данные списания"
+// @Param request body CreateWriteOffRequest true "Данные списания"
 // @Success 201 {object} map[string]interface{}
 // @Failure 400 {object} map[string]string
 // @Failure 403 {object} map[string]string
@@ -484,13 +486,15 @@ func (h *WarehouseHandler) CreateWriteOff(c *gin.Context) {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "each item must have ingredient_id or product_id"})
 			return
 		}
-		items = append(items, models.WriteOffItem{
+		item := models.WriteOffItem{
+			ID:           uuid.New(), // Явно генерируем UUID
 			IngredientID: ingID,
 			ProductID:   prodID,
 			Quantity:    it.Quantity,
 			Unit:        it.Unit,
 			Details:     it.Details,
-		})
+		}
+		items = append(items, item)
 	}
 
 	wo := &models.WriteOff{
@@ -682,7 +686,7 @@ func (h *WarehouseHandler) GetSupplier(c *gin.Context) {
 // @Accept json
 // @Produce json
 // @Security Bearer
-// @Param request body object true "Данные поставщика"
+// @Param request body CreateSupplierRequest true "Данные поставщика"
 // @Success 201 {object} map[string]interface{}
 // @Failure 400 {object} map[string]string
 // @Failure 403 {object} map[string]string
@@ -725,7 +729,7 @@ func (h *WarehouseHandler) CreateSupplier(c *gin.Context) {
 // @Produce json
 // @Security Bearer
 // @Param id path string true "ID поставщика"
-// @Param request body object true "Данные для обновления"
+// @Param request body UpdateSupplierRequest true "Данные для обновления"
 // @Success 200 {object} map[string]interface{}
 // @Failure 400 {object} map[string]string
 // @Failure 403 {object} map[string]string

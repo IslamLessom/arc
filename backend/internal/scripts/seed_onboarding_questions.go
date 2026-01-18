@@ -1,19 +1,84 @@
 package main
 
 import (
+	"fmt"
 	"log"
 
+	"gorm.io/driver/postgres"
+	"gorm.io/gorm"
+
+	"github.com/yourusername/arc/backend/internal/config"
 	"github.com/yourusername/arc/backend/internal/models"
 	"github.com/yourusername/arc/backend/pkg/database"
-	"gorm.io/gorm"
 )
 
 func main() {
-	// Инициализация БД (нужно будет настроить конфиг)
-	db, err := database.NewPostgres(/* config */)
+	// Загружаем конфигурацию
+	cfg, err := config.Load()
+	if err != nil {
+		log.Fatal("Failed to load config:", err)
+	}
+
+	log.Printf("Connecting to database: %s@%s:%d/%s", 
+		cfg.Database.User, cfg.Database.Host, cfg.Database.Port, cfg.Database.Name)
+
+	// Инициализация БД
+	db, err := database.NewPostgres(cfg.Database)
 	if err != nil {
 		log.Fatal("Failed to connect to database:", err)
 	}
+	
+	sqlDB, err := db.DB()
+	if err != nil {
+		log.Fatal("Failed to get underlying sql.DB:", err)
+	}
+	defer sqlDB.Close()
+
+	log.Println("✅ Successfully connected to database")
+
+	// Автоматически создаем таблицы, если их нет
+	// Важно: создаем новое соединение с отключенными внешними ключами для миграции
+	log.Println("Running database migrations (AutoMigrate)...")
+	
+	// Создаем новое соединение GORM с отключенными внешними ключами
+	dsn := fmt.Sprintf(
+		"host=%s port=%d user=%s password=%s dbname=%s sslmode=%s",
+		cfg.Database.Host,
+		cfg.Database.Port,
+		cfg.Database.User,
+		cfg.Database.Password,
+		cfg.Database.Name,
+		cfg.Database.SSLMode,
+	)
+	
+	migrateDB, err := gorm.Open(postgres.Open(dsn), &gorm.Config{
+		DisableForeignKeyConstraintWhenMigrating: true,
+	})
+	if err != nil {
+		log.Fatalf("Failed to create migration connection: %v", err)
+	}
+	
+	// Мигрируем все таблицы onboarding в правильном порядке
+	// 1. Сначала независимые таблицы
+	if err := migrateDB.AutoMigrate(&models.OnboardingQuestion{}); err != nil {
+		log.Fatalf("Failed to migrate OnboardingQuestion: %v", err)
+	}
+	
+	// 2. Затем таблицы, зависящие от OnboardingQuestion
+	if err := migrateDB.AutoMigrate(&models.QuestionOption{}); err != nil {
+		log.Fatalf("Failed to migrate QuestionOption: %v", err)
+	}
+	
+	// 3. Затем таблицы, зависящие от User (OnboardingResponse, OnboardingAnswer)
+	// Эти таблицы нужны для работы onboarding API
+	if err := migrateDB.AutoMigrate(&models.OnboardingResponse{}); err != nil {
+		log.Fatalf("Failed to migrate OnboardingResponse: %v", err)
+	}
+	if err := migrateDB.AutoMigrate(&models.OnboardingAnswer{}); err != nil {
+		log.Fatalf("Failed to migrate OnboardingAnswer: %v", err)
+	}
+	
+	log.Println("✅ Database migrations completed")
 
 	// Создаем вопросы опросника
 	questions := []models.OnboardingQuestion{
@@ -128,13 +193,34 @@ func main() {
 	}
 
 	// Сохраняем вопросы в БД
+	log.Println("Creating onboarding questions...")
 	for i := range questions {
+		// Проверяем, существует ли вопрос
+		var existingQuestion models.OnboardingQuestion
+		result := db.Where("key = ?", questions[i].Key).First(&existingQuestion)
+		if result.Error == nil {
+			log.Printf("Question '%s' already exists, skipping", questions[i].Key)
+			continue
+		}
+
 		if err := db.Create(&questions[i]).Error; err != nil {
 			log.Printf("Failed to create question %s: %v", questions[i].Key, err)
 		} else {
-			log.Printf("Created question: %s", questions[i].Key)
+			log.Printf("Created question: %s (Step %d, Order %d)", questions[i].Key, questions[i].Step, questions[i].Order)
 		}
 	}
 
-	log.Println("Onboarding questions seeded successfully")
+	log.Println("\n✅ Onboarding questions seeded successfully!")
+
+	// Проверяем, что вопросы действительно созданы
+	log.Println("\nVerifying created questions...")
+	var questionCount int64
+	db.Model(&models.OnboardingQuestion{}).Count(&questionCount)
+	log.Printf("Total onboarding questions in database: %d", questionCount)
+
+	if questionCount == 0 {
+		log.Println("⚠️  WARNING: No questions found in database after seeding!")
+	} else {
+		log.Println("✅ Questions verified successfully")
+	}
 }

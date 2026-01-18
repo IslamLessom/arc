@@ -34,7 +34,7 @@ func (r *onboardingRepository) GetQuestions(ctx context.Context) ([]*models.Onbo
 	err := r.db.WithContext(ctx).
 		Where("active = ?", true).
 		Preload("Options").
-		Order("step ASC, `order` ASC").
+		Order("step ASC, \"order\" ASC").
 		Find(&questions).Error
 	return questions, err
 }

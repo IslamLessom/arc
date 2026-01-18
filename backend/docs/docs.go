@@ -9,7 +9,16 @@ const docTemplate = `{
     "info": {
         "description": "{{escape .Description}}",
         "title": "{{.Title}}",
-        "contact": {},
+        "termsOfService": "http://swagger.io/terms/",
+        "contact": {
+            "name": "API Support",
+            "url": "http://www.swagger.io/support",
+            "email": "support@swagger.io"
+        },
+        "license": {
+            "name": "Apache 2.0",
+            "url": "http://www.apache.org/licenses/LICENSE-2.0.html"
+        },
         "version": "{{.Version}}"
     },
     "host": "{{.Host}}",
@@ -35,7 +44,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/internal_handlers.LoginRequest"
+                            "$ref": "#/definitions/handlers.LoginRequest"
                         }
                     }
                 ],
@@ -43,7 +52,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/internal_handlers.AuthResponse"
+                            "$ref": "#/definitions/handlers.AuthResponse"
                         }
                     },
                     "401": {
@@ -176,7 +185,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/internal_handlers.SubmitAnswersRequest"
+                            "$ref": "#/definitions/handlers.SubmitAnswersRequest"
                         }
                     }
                 ],
@@ -229,7 +238,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/internal_handlers.RefreshRequest"
+                            "$ref": "#/definitions/handlers.RefreshRequest"
                         }
                     }
                 ],
@@ -237,7 +246,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/internal_handlers.AuthResponse"
+                            "$ref": "#/definitions/handlers.AuthResponse"
                         }
                     },
                     "401": {
@@ -272,7 +281,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/internal_handlers.RegisterRequest"
+                            "$ref": "#/definitions/handlers.RegisterRequest"
                         }
                     }
                 ],
@@ -280,7 +289,7 @@ const docTemplate = `{
                     "201": {
                         "description": "Created",
                         "schema": {
-                            "$ref": "#/definitions/internal_handlers.AuthResponse"
+                            "$ref": "#/definitions/handlers.AuthResponse"
                         }
                     },
                     "400": {
@@ -460,7 +469,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/internal_handlers.UpdateEstablishmentRequest"
+                            "$ref": "#/definitions/handlers.UpdateEstablishmentRequest"
                         }
                     }
                 ],
@@ -755,7 +764,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "type": "object"
+                            "$ref": "#/definitions/handlers.CreateCategoryRequest"
                         }
                     }
                 ],
@@ -889,7 +898,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "type": "object"
+                            "$ref": "#/definitions/handlers.UpdateCategoryRequest"
                         }
                     }
                 ],
@@ -1051,7 +1060,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "type": "object"
+                            "$ref": "#/definitions/handlers.CreateIngredientCategoryRequest"
                         }
                     }
                 ],
@@ -1185,7 +1194,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "type": "object"
+                            "$ref": "#/definitions/handlers.UpdateIngredientCategoryRequest"
                         }
                     }
                 ],
@@ -1323,7 +1332,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "type": "object"
+                            "$ref": "#/definitions/handlers.CreateIngredientRequest"
                         }
                     }
                 ],
@@ -1457,7 +1466,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "type": "object"
+                            "$ref": "#/definitions/handlers.UpdateIngredientRequest"
                         }
                     }
                 ],
@@ -1663,7 +1672,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/internal_handlers.CreateProductRequest"
+                            "$ref": "#/definitions/handlers.CreateProductRequest"
                         }
                     }
                 ],
@@ -1797,7 +1806,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/internal_handlers.UpdateProductRequest"
+                            "$ref": "#/definitions/handlers.UpdateProductRequest"
                         }
                     }
                 ],
@@ -1985,7 +1994,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "type": "object"
+                            "$ref": "#/definitions/handlers.CreateTechCardRequest"
                         }
                     }
                 ],
@@ -2119,7 +2128,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "type": "object"
+                            "$ref": "#/definitions/handlers.UpdateTechCardRequest"
                         }
                     }
                 ],
@@ -2926,7 +2935,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "type": "object"
+                            "$ref": "#/definitions/handlers.CreateSupplierRequest"
                         }
                     }
                 ],
@@ -3060,7 +3069,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "type": "object"
+                            "$ref": "#/definitions/handlers.UpdateSupplierRequest"
                         }
                     }
                 ],
@@ -3254,7 +3263,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/internal_handlers.CreateSupplyRequest"
+                            "$ref": "#/definitions/handlers.CreateSupplyRequest"
                         }
                     }
                 ],
@@ -3321,7 +3330,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "type": "object"
+                            "$ref": "#/definitions/handlers.CreateWriteOffRequest"
                         }
                     }
                 ],
@@ -3430,7 +3439,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/internal_handlers.CreateWarehouseRequest"
+                            "$ref": "#/definitions/handlers.CreateWarehouseRequest"
                         }
                     }
                 ],
@@ -3564,7 +3573,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/internal_handlers.UpdateWarehouseRequest"
+                            "$ref": "#/definitions/handlers.UpdateWarehouseRequest"
                         }
                     }
                 ],
@@ -3679,7 +3688,7 @@ const docTemplate = `{
         }
     },
     "definitions": {
-        "internal_handlers.AuthResponse": {
+        "handlers.AuthResponse": {
             "type": "object",
             "properties": {
                 "access_token": {
@@ -3691,7 +3700,92 @@ const docTemplate = `{
                 "user": {}
             }
         },
-        "internal_handlers.CreateProductRequest": {
+        "handlers.CreateCategoryRequest": {
+            "type": "object",
+            "required": [
+                "name",
+                "type"
+            ],
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "type": {
+                    "type": "string",
+                    "enum": [
+                        "product",
+                        "tech_card",
+                        "semi_finished"
+                    ]
+                }
+            }
+        },
+        "handlers.CreateIngredientCategoryRequest": {
+            "type": "object",
+            "required": [
+                "name"
+            ],
+            "properties": {
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
+        "handlers.CreateIngredientRequest": {
+            "type": "object",
+            "required": [
+                "category_id",
+                "name",
+                "unit"
+            ],
+            "properties": {
+                "barcode": {
+                    "type": "string"
+                },
+                "category_id": {
+                    "type": "string"
+                },
+                "loss_baking": {
+                    "type": "number"
+                },
+                "loss_boiling": {
+                    "type": "number"
+                },
+                "loss_cleaning": {
+                    "type": "number"
+                },
+                "loss_frying": {
+                    "type": "number"
+                },
+                "loss_stewing": {
+                    "type": "number"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "price_per_unit": {
+                    "description": "Цена за единицу измерения",
+                    "type": "number"
+                },
+                "quantity": {
+                    "description": "Количество в наличии",
+                    "type": "number"
+                },
+                "unit": {
+                    "type": "string",
+                    "enum": [
+                        "шт",
+                        "л",
+                        "кг"
+                    ]
+                },
+                "warehouse_id": {
+                    "description": "Складской учет (опционально)",
+                    "type": "string"
+                }
+            }
+        },
+        "handlers.CreateProductRequest": {
             "type": "object",
             "required": [
                 "category_id",
@@ -3744,7 +3838,43 @@ const docTemplate = `{
                 }
             }
         },
-        "internal_handlers.CreateSupplyRequest": {
+        "handlers.CreateSupplierRequest": {
+            "type": "object",
+            "required": [
+                "name"
+            ],
+            "properties": {
+                "address": {
+                    "description": "Адрес",
+                    "type": "string"
+                },
+                "comment": {
+                    "description": "Комментарий",
+                    "type": "string"
+                },
+                "contact": {
+                    "description": "Контактное лицо (опционально)",
+                    "type": "string"
+                },
+                "email": {
+                    "description": "Email (опционально)",
+                    "type": "string"
+                },
+                "name": {
+                    "description": "Имя",
+                    "type": "string"
+                },
+                "phone": {
+                    "description": "Телефон",
+                    "type": "string"
+                },
+                "taxpayer_number": {
+                    "description": "Номер налогоплательщика",
+                    "type": "string"
+                }
+            }
+        },
+        "handlers.CreateSupplyRequest": {
             "type": "object",
             "required": [
                 "delivery_date_time",
@@ -3765,7 +3895,7 @@ const docTemplate = `{
                     "type": "array",
                     "minItems": 1,
                     "items": {
-                        "$ref": "#/definitions/internal_handlers.SupplyItemRequest"
+                        "$ref": "#/definitions/handlers.SupplyItemRequest"
                     }
                 },
                 "status": {
@@ -3782,7 +3912,62 @@ const docTemplate = `{
                 }
             }
         },
-        "internal_handlers.CreateWarehouseRequest": {
+        "handlers.CreateTechCardRequest": {
+            "type": "object",
+            "required": [
+                "category_id",
+                "name"
+            ],
+            "properties": {
+                "category_id": {
+                    "type": "string"
+                },
+                "cost_price": {
+                    "type": "number"
+                },
+                "cover_image": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "exclude_from_discounts": {
+                    "type": "boolean"
+                },
+                "ingredients": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/handlers.TechCardIngredientRequest"
+                    }
+                },
+                "is_weighted": {
+                    "type": "boolean"
+                },
+                "markup": {
+                    "type": "number"
+                },
+                "modifier_sets": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/handlers.ModifierSetRequest"
+                    }
+                },
+                "name": {
+                    "type": "string"
+                },
+                "price": {
+                    "type": "number"
+                },
+                "warehouse_id": {
+                    "description": "Для расчета себестоимости",
+                    "type": "string"
+                },
+                "workshop_id": {
+                    "type": "string"
+                }
+            }
+        },
+        "handlers.CreateWarehouseRequest": {
             "type": "object",
             "required": [
                 "name"
@@ -3796,7 +3981,40 @@ const docTemplate = `{
                 }
             }
         },
-        "internal_handlers.LoginRequest": {
+        "handlers.CreateWriteOffRequest": {
+            "type": "object",
+            "required": [
+                "items",
+                "warehouse_id",
+                "write_off_date_time"
+            ],
+            "properties": {
+                "comment": {
+                    "description": "Комментарий",
+                    "type": "string"
+                },
+                "items": {
+                    "type": "array",
+                    "minItems": 1,
+                    "items": {
+                        "$ref": "#/definitions/handlers.WriteOffItemRequest"
+                    }
+                },
+                "reason": {
+                    "description": "Причина списания",
+                    "type": "string"
+                },
+                "warehouse_id": {
+                    "description": "Склад",
+                    "type": "string"
+                },
+                "write_off_date_time": {
+                    "description": "Дата и время списания (RFC3339)",
+                    "type": "string"
+                }
+            }
+        },
+        "handlers.LoginRequest": {
             "type": "object",
             "required": [
                 "email",
@@ -3811,7 +4029,55 @@ const docTemplate = `{
                 }
             }
         },
-        "internal_handlers.RefreshRequest": {
+        "handlers.ModifierOptionRequest": {
+            "type": "object",
+            "required": [
+                "name"
+            ],
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "price": {
+                    "type": "number"
+                }
+            }
+        },
+        "handlers.ModifierSetRequest": {
+            "type": "object",
+            "required": [
+                "name",
+                "selection_type"
+            ],
+            "properties": {
+                "max_selection": {
+                    "description": "Максимальное количество выбора (для multiple, 0 = без ограничений)",
+                    "type": "integer"
+                },
+                "min_selection": {
+                    "description": "Минимальное количество выбора (для multiple)",
+                    "type": "integer"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "options": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/handlers.ModifierOptionRequest"
+                    }
+                },
+                "selection_type": {
+                    "description": "\"single\" или \"multiple\"",
+                    "type": "string",
+                    "enum": [
+                        "single",
+                        "multiple"
+                    ]
+                }
+            }
+        },
+        "handlers.RefreshRequest": {
             "type": "object",
             "required": [
                 "refresh_token"
@@ -3822,7 +4088,7 @@ const docTemplate = `{
                 }
             }
         },
-        "internal_handlers.RegisterRequest": {
+        "handlers.RegisterRequest": {
             "type": "object",
             "required": [
                 "email",
@@ -3842,7 +4108,7 @@ const docTemplate = `{
                 }
             }
         },
-        "internal_handlers.SubmitAnswersRequest": {
+        "handlers.SubmitAnswersRequest": {
             "type": "object",
             "required": [
                 "answers"
@@ -3854,7 +4120,7 @@ const docTemplate = `{
                 }
             }
         },
-        "internal_handlers.SupplyItemRequest": {
+        "handlers.SupplyItemRequest": {
             "type": "object",
             "required": [
                 "quantity",
@@ -3883,7 +4149,43 @@ const docTemplate = `{
                 }
             }
         },
-        "internal_handlers.UpdateEstablishmentRequest": {
+        "handlers.TechCardIngredientRequest": {
+            "type": "object",
+            "required": [
+                "ingredient_id",
+                "quantity",
+                "unit"
+            ],
+            "properties": {
+                "ingredient_id": {
+                    "type": "string"
+                },
+                "quantity": {
+                    "type": "number"
+                },
+                "unit": {
+                    "description": "кг, л, шт и т.д.",
+                    "type": "string"
+                }
+            }
+        },
+        "handlers.UpdateCategoryRequest": {
+            "type": "object",
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "type": {
+                    "type": "string",
+                    "enum": [
+                        "product",
+                        "tech_card",
+                        "semi_finished"
+                    ]
+                }
+            }
+        },
+        "handlers.UpdateEstablishmentRequest": {
             "type": "object",
             "properties": {
                 "active": {
@@ -3912,7 +4214,55 @@ const docTemplate = `{
                 }
             }
         },
-        "internal_handlers.UpdateProductRequest": {
+        "handlers.UpdateIngredientCategoryRequest": {
+            "type": "object",
+            "properties": {
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
+        "handlers.UpdateIngredientRequest": {
+            "type": "object",
+            "properties": {
+                "active": {
+                    "type": "boolean"
+                },
+                "barcode": {
+                    "type": "string"
+                },
+                "category_id": {
+                    "type": "string"
+                },
+                "loss_baking": {
+                    "type": "number"
+                },
+                "loss_boiling": {
+                    "type": "number"
+                },
+                "loss_cleaning": {
+                    "type": "number"
+                },
+                "loss_frying": {
+                    "type": "number"
+                },
+                "loss_stewing": {
+                    "type": "number"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "unit": {
+                    "type": "string",
+                    "enum": [
+                        "шт",
+                        "л",
+                        "кг"
+                    ]
+                }
+            }
+        },
+        "handlers.UpdateProductRequest": {
             "type": "object",
             "properties": {
                 "active": {
@@ -3956,7 +4306,90 @@ const docTemplate = `{
                 }
             }
         },
-        "internal_handlers.UpdateWarehouseRequest": {
+        "handlers.UpdateSupplierRequest": {
+            "type": "object",
+            "properties": {
+                "active": {
+                    "type": "boolean"
+                },
+                "address": {
+                    "type": "string"
+                },
+                "comment": {
+                    "type": "string"
+                },
+                "contact": {
+                    "type": "string"
+                },
+                "email": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "phone": {
+                    "type": "string"
+                },
+                "taxpayer_number": {
+                    "type": "string"
+                }
+            }
+        },
+        "handlers.UpdateTechCardRequest": {
+            "type": "object",
+            "properties": {
+                "active": {
+                    "type": "boolean"
+                },
+                "category_id": {
+                    "type": "string"
+                },
+                "cost_price": {
+                    "type": "number"
+                },
+                "cover_image": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "exclude_from_discounts": {
+                    "type": "boolean"
+                },
+                "ingredients": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/handlers.TechCardIngredientRequest"
+                    }
+                },
+                "is_weighted": {
+                    "type": "boolean"
+                },
+                "markup": {
+                    "type": "number"
+                },
+                "modifier_sets": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/handlers.ModifierSetRequest"
+                    }
+                },
+                "name": {
+                    "type": "string"
+                },
+                "price": {
+                    "type": "number"
+                },
+                "warehouse_id": {
+                    "description": "Для расчета себестоимости",
+                    "type": "string"
+                },
+                "workshop_id": {
+                    "type": "string"
+                }
+            }
+        },
+        "handlers.UpdateWarehouseRequest": {
             "type": "object",
             "properties": {
                 "active": {
@@ -3969,18 +4402,51 @@ const docTemplate = `{
                     "type": "string"
                 }
             }
+        },
+        "handlers.WriteOffItemRequest": {
+            "type": "object",
+            "required": [
+                "quantity",
+                "unit"
+            ],
+            "properties": {
+                "details": {
+                    "description": "Детали списания",
+                    "type": "string"
+                },
+                "ingredient_id": {
+                    "type": "string"
+                },
+                "product_id": {
+                    "type": "string"
+                },
+                "quantity": {
+                    "type": "number"
+                },
+                "unit": {
+                    "type": "string"
+                }
+            }
+        }
+    },
+    "securityDefinitions": {
+        "Bearer": {
+            "description": "Type \"Bearer\" followed by a space and JWT token.",
+            "type": "apiKey",
+            "name": "Authorization",
+            "in": "header"
         }
     }
 }`
 
 // SwaggerInfo holds exported Swagger Info so clients can modify it
 var SwaggerInfo = &swag.Spec{
-	Version:          "",
-	Host:             "",
-	BasePath:         "",
-	Schemes:          []string{},
-	Title:            "",
-	Description:      "",
+	Version:          "1.0",
+	Host:             "localhost:8080",
+	BasePath:         "/api/v1",
+	Schemes:          []string{"http", "https"},
+	Title:            "Arc Restaurant Management API",
+	Description:      "API для системы управления рестораном/кафе с функционалом меню, склада, финансов и статистики",
 	InfoInstanceName: "swagger",
 	SwaggerTemplate:  docTemplate,
 	LeftDelim:        "{{",

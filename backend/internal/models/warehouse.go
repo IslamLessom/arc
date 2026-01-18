@@ -77,7 +77,7 @@ func (s *Supply) BeforeCreate(tx *gorm.DB) error {
 
 // SupplyItem представляет позицию поставки
 type SupplyItem struct {
-	ID          uuid.UUID   `json:"id" gorm:"type:uuid;primaryKey;default:gen_random_uuid()"`
+	ID          uuid.UUID   `json:"id" gorm:"type:uuid;primaryKey"` // UUID генерируется в коде, не используем default
 	SupplyID    uuid.UUID   `json:"supply_id" gorm:"type:uuid;not null"`
 	IngredientID *uuid.UUID `json:"ingredient_id,omitempty" gorm:"type:uuid"`
 	Ingredient   *Ingredient `json:"ingredient,omitempty" gorm:"foreignKey:IngredientID"`
@@ -122,7 +122,7 @@ func (wo *WriteOff) BeforeCreate(tx *gorm.DB) error {
 
 // WriteOffItem представляет позицию списания
 type WriteOffItem struct {
-	ID           uuid.UUID   `json:"id" gorm:"type:uuid;primaryKey;default:gen_random_uuid()"`
+	ID           uuid.UUID   `json:"id" gorm:"type:uuid;primaryKey"` // UUID генерируется в коде, не используем default
 	WriteOffID   uuid.UUID   `json:"write_off_id" gorm:"type:uuid;not null"`
 	IngredientID *uuid.UUID  `json:"ingredient_id,omitempty" gorm:"type:uuid"`
 	Ingredient   *Ingredient `json:"ingredient,omitempty" gorm:"foreignKey:IngredientID"`

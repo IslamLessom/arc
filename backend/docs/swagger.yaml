@@ -1,5 +1,6 @@
+basePath: /api/v1
 definitions:
-  internal_handlers.AuthResponse:
+  handlers.AuthResponse:
     properties:
       access_token:
         type: string
@@ -7,7 +8,66 @@ definitions:
         type: string
       user: {}
     type: object
-  internal_handlers.CreateProductRequest:
+  handlers.CreateCategoryRequest:
+    properties:
+      name:
+        type: string
+      type:
+        enum:
+        - product
+        - tech_card
+        - semi_finished
+        type: string
+    required:
+    - name
+    - type
+    type: object
+  handlers.CreateIngredientCategoryRequest:
+    properties:
+      name:
+        type: string
+    required:
+    - name
+    type: object
+  handlers.CreateIngredientRequest:
+    properties:
+      barcode:
+        type: string
+      category_id:
+        type: string
+      loss_baking:
+        type: number
+      loss_boiling:
+        type: number
+      loss_cleaning:
+        type: number
+      loss_frying:
+        type: number
+      loss_stewing:
+        type: number
+      name:
+        type: string
+      price_per_unit:
+        description: Цена за единицу измерения
+        type: number
+      quantity:
+        description: Количество в наличии
+        type: number
+      unit:
+        enum:
+        - шт
+        - л
+        - кг
+        type: string
+      warehouse_id:
+        description: Складской учет (опционально)
+        type: string
+    required:
+    - category_id
+    - name
+    - unit
+    type: object
+  handlers.CreateProductRequest:
     properties:
       barcode:
         type: string
@@ -44,7 +104,33 @@ definitions:
     - name
     - warehouse_id
     type: object
-  internal_handlers.CreateSupplyRequest:
+  handlers.CreateSupplierRequest:
+    properties:
+      address:
+        description: Адрес
+        type: string
+      comment:
+        description: Комментарий
+        type: string
+      contact:
+        description: Контактное лицо (опционально)
+        type: string
+      email:
+        description: Email (опционально)
+        type: string
+      name:
+        description: Имя
+        type: string
+      phone:
+        description: Телефон
+        type: string
+      taxpayer_number:
+        description: Номер налогоплательщика
+        type: string
+    required:
+    - name
+    type: object
+  handlers.CreateSupplyRequest:
     properties:
       comment:
         description: Комментарий
@@ -54,7 +140,7 @@ definitions:
         type: string
       items:
         items:
-          $ref: '#/definitions/internal_handlers.SupplyItemRequest'
+          $ref: '#/definitions/handlers.SupplyItemRequest'
         minItems: 1
         type: array
       status:
@@ -72,7 +158,44 @@ definitions:
     - supplier_id
     - warehouse_id
     type: object
-  internal_handlers.CreateWarehouseRequest:
+  handlers.CreateTechCardRequest:
+    properties:
+      category_id:
+        type: string
+      cost_price:
+        type: number
+      cover_image:
+        type: string
+      description:
+        type: string
+      exclude_from_discounts:
+        type: boolean
+      ingredients:
+        items:
+          $ref: '#/definitions/handlers.TechCardIngredientRequest'
+        type: array
+      is_weighted:
+        type: boolean
+      markup:
+        type: number
+      modifier_sets:
+        items:
+          $ref: '#/definitions/handlers.ModifierSetRequest'
+        type: array
+      name:
+        type: string
+      price:
+        type: number
+      warehouse_id:
+        description: Для расчета себестоимости
+        type: string
+      workshop_id:
+        type: string
+    required:
+    - category_id
+    - name
+    type: object
+  handlers.CreateWarehouseRequest:
     properties:
       address:
         type: string
@@ -81,7 +204,31 @@ definitions:
     required:
     - name
     type: object
-  internal_handlers.LoginRequest:
+  handlers.CreateWriteOffRequest:
+    properties:
+      comment:
+        description: Комментарий
+        type: string
+      items:
+        items:
+          $ref: '#/definitions/handlers.WriteOffItemRequest'
+        minItems: 1
+        type: array
+      reason:
+        description: Причина списания
+        type: string
+      warehouse_id:
+        description: Склад
+        type: string
+      write_off_date_time:
+        description: Дата и время списания (RFC3339)
+        type: string
+    required:
+    - items
+    - warehouse_id
+    - write_off_date_time
+    type: object
+  handlers.LoginRequest:
     properties:
       email:
         type: string
@@ -91,14 +238,47 @@ definitions:
     - email
     - password
     type: object
-  internal_handlers.RefreshRequest:
+  handlers.ModifierOptionRequest:
+    properties:
+      name:
+        type: string
+      price:
+        type: number
+    required:
+    - name
+    type: object
+  handlers.ModifierSetRequest:
+    properties:
+      max_selection:
+        description: Максимальное количество выбора (для multiple, 0 = без ограничений)
+        type: integer
+      min_selection:
+        description: Минимальное количество выбора (для multiple)
+        type: integer
+      name:
+        type: string
+      options:
+        items:
+          $ref: '#/definitions/handlers.ModifierOptionRequest'
+        type: array
+      selection_type:
+        description: '"single" или "multiple"'
+        enum:
+        - single
+        - multiple
+        type: string
+    required:
+    - name
+    - selection_type
+    type: object
+  handlers.RefreshRequest:
     properties:
       refresh_token:
         type: string
     required:
     - refresh_token
     type: object
-  internal_handlers.RegisterRequest:
+  handlers.RegisterRequest:
     properties:
       email:
         type: string
@@ -112,7 +292,7 @@ definitions:
     - name
     - password
     type: object
-  internal_handlers.SubmitAnswersRequest:
+  handlers.SubmitAnswersRequest:
     properties:
       answers:
         additionalProperties: true
@@ -120,7 +300,7 @@ definitions:
     required:
     - answers
     type: object
-  internal_handlers.SupplyItemRequest:
+  handlers.SupplyItemRequest:
     properties:
       ingredient_id:
         type: string
@@ -140,7 +320,32 @@ definitions:
     - quantity
     - unit
     type: object
-  internal_handlers.UpdateEstablishmentRequest:
+  handlers.TechCardIngredientRequest:
+    properties:
+      ingredient_id:
+        type: string
+      quantity:
+        type: number
+      unit:
+        description: кг, л, шт и т.д.
+        type: string
+    required:
+    - ingredient_id
+    - quantity
+    - unit
+    type: object
+  handlers.UpdateCategoryRequest:
+    properties:
+      name:
+        type: string
+      type:
+        enum:
+        - product
+        - tech_card
+        - semi_finished
+        type: string
+    type: object
+  handlers.UpdateEstablishmentRequest:
     properties:
       active:
         type: boolean
@@ -159,7 +364,39 @@ definitions:
       type:
         type: string
     type: object
-  internal_handlers.UpdateProductRequest:
+  handlers.UpdateIngredientCategoryRequest:
+    properties:
+      name:
+        type: string
+    type: object
+  handlers.UpdateIngredientRequest:
+    properties:
+      active:
+        type: boolean
+      barcode:
+        type: string
+      category_id:
+        type: string
+      loss_baking:
+        type: number
+      loss_boiling:
+        type: number
+      loss_cleaning:
+        type: number
+      loss_frying:
+        type: number
+      loss_stewing:
+        type: number
+      name:
+        type: string
+      unit:
+        enum:
+        - шт
+        - л
+        - кг
+        type: string
+    type: object
+  handlers.UpdateProductRequest:
     properties:
       active:
         type: boolean
@@ -188,7 +425,62 @@ definitions:
       workshop_id:
         type: string
     type: object
-  internal_handlers.UpdateWarehouseRequest:
+  handlers.UpdateSupplierRequest:
+    properties:
+      active:
+        type: boolean
+      address:
+        type: string
+      comment:
+        type: string
+      contact:
+        type: string
+      email:
+        type: string
+      name:
+        type: string
+      phone:
+        type: string
+      taxpayer_number:
+        type: string
+    type: object
+  handlers.UpdateTechCardRequest:
+    properties:
+      active:
+        type: boolean
+      category_id:
+        type: string
+      cost_price:
+        type: number
+      cover_image:
+        type: string
+      description:
+        type: string
+      exclude_from_discounts:
+        type: boolean
+      ingredients:
+        items:
+          $ref: '#/definitions/handlers.TechCardIngredientRequest'
+        type: array
+      is_weighted:
+        type: boolean
+      markup:
+        type: number
+      modifier_sets:
+        items:
+          $ref: '#/definitions/handlers.ModifierSetRequest'
+        type: array
+      name:
+        type: string
+      price:
+        type: number
+      warehouse_id:
+        description: Для расчета себестоимости
+        type: string
+      workshop_id:
+        type: string
+    type: object
+  handlers.UpdateWarehouseRequest:
     properties:
       active:
         type: boolean
@@ -197,8 +489,37 @@ definitions:
       name:
         type: string
     type: object
+  handlers.WriteOffItemRequest:
+    properties:
+      details:
+        description: Детали списания
+        type: string
+      ingredient_id:
+        type: string
+      product_id:
+        type: string
+      quantity:
+        type: number
+      unit:
+        type: string
+    required:
+    - quantity
+    - unit
+    type: object
+host: localhost:8080
 info:
-  contact: {}
+  contact:
+    email: support@swagger.io
+    name: API Support
+    url: http://www.swagger.io/support
+  description: API для системы управления рестораном/кафе с функционалом меню, склада,
+    финансов и статистики
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+  termsOfService: http://swagger.io/terms/
+  title: Arc Restaurant Management API
+  version: "1.0"
 paths:
   /auth/login:
     post:
@@ -211,14 +532,14 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/internal_handlers.LoginRequest'
+          $ref: '#/definitions/handlers.LoginRequest'
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/internal_handlers.AuthResponse'
+            $ref: '#/definitions/handlers.AuthResponse'
         "401":
           description: Unauthorized
           schema:
@@ -299,7 +620,7 @@ paths:
         name: answers
         required: true
         schema:
-          $ref: '#/definitions/internal_handlers.SubmitAnswersRequest'
+          $ref: '#/definitions/handlers.SubmitAnswersRequest'
       produces:
       - application/json
       responses:
@@ -336,14 +657,14 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/internal_handlers.RefreshRequest'
+          $ref: '#/definitions/handlers.RefreshRequest'
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/internal_handlers.AuthResponse'
+            $ref: '#/definitions/handlers.AuthResponse'
         "401":
           description: Unauthorized
           schema:
@@ -364,14 +685,14 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/internal_handlers.RegisterRequest'
+          $ref: '#/definitions/handlers.RegisterRequest'
       produces:
       - application/json
       responses:
         "201":
           description: Created
           schema:
-            $ref: '#/definitions/internal_handlers.AuthResponse'
+            $ref: '#/definitions/handlers.AuthResponse'
         "400":
           description: Bad Request
           schema:
@@ -505,7 +826,7 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/internal_handlers.UpdateEstablishmentRequest'
+          $ref: '#/definitions/handlers.UpdateEstablishmentRequest'
       produces:
       - application/json
       responses:
@@ -669,7 +990,7 @@ paths:
         name: request
         required: true
         schema:
-          type: object
+          $ref: '#/definitions/handlers.CreateCategoryRequest'
       produces:
       - application/json
       responses:
@@ -796,7 +1117,7 @@ paths:
         name: request
         required: true
         schema:
-          type: object
+          $ref: '#/definitions/handlers.UpdateCategoryRequest'
       produces:
       - application/json
       responses:
@@ -860,7 +1181,7 @@ paths:
         name: request
         required: true
         schema:
-          type: object
+          $ref: '#/definitions/handlers.CreateIngredientCategoryRequest'
       produces:
       - application/json
       responses:
@@ -987,7 +1308,7 @@ paths:
         name: request
         required: true
         schema:
-          type: object
+          $ref: '#/definitions/handlers.UpdateIngredientCategoryRequest'
       produces:
       - application/json
       responses:
@@ -1036,7 +1357,7 @@ paths:
         name: request
         required: true
         schema:
-          type: object
+          $ref: '#/definitions/handlers.CreateIngredientRequest'
       produces:
       - application/json
       responses:
@@ -1163,7 +1484,7 @@ paths:
         name: request
         required: true
         schema:
-          type: object
+          $ref: '#/definitions/handlers.UpdateIngredientRequest'
       produces:
       - application/json
       responses:
@@ -1257,7 +1578,7 @@ paths:
         name: product
         required: true
         schema:
-          $ref: '#/definitions/internal_handlers.CreateProductRequest'
+          $ref: '#/definitions/handlers.CreateProductRequest'
       produces:
       - application/json
       responses:
@@ -1384,7 +1705,7 @@ paths:
         name: product
         required: true
         schema:
-          $ref: '#/definitions/internal_handlers.UpdateProductRequest'
+          $ref: '#/definitions/handlers.UpdateProductRequest'
       produces:
       - application/json
       responses:
@@ -1465,7 +1786,7 @@ paths:
         name: request
         required: true
         schema:
-          type: object
+          $ref: '#/definitions/handlers.CreateTechCardRequest'
       produces:
       - application/json
       responses:
@@ -1592,7 +1913,7 @@ paths:
         name: request
         required: true
         schema:
-          type: object
+          $ref: '#/definitions/handlers.UpdateTechCardRequest'
       produces:
       - application/json
       responses:
@@ -2069,7 +2390,7 @@ paths:
         name: request
         required: true
         schema:
-          type: object
+          $ref: '#/definitions/handlers.CreateSupplierRequest'
       produces:
       - application/json
       responses:
@@ -2196,7 +2517,7 @@ paths:
         name: request
         required: true
         schema:
-          type: object
+          $ref: '#/definitions/handlers.UpdateSupplierRequest'
       produces:
       - application/json
       responses:
@@ -2281,7 +2602,7 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/internal_handlers.CreateSupplyRequest'
+          $ref: '#/definitions/handlers.CreateSupplyRequest'
       produces:
       - application/json
       responses:
@@ -2324,7 +2645,7 @@ paths:
         name: request
         required: true
         schema:
-          type: object
+          $ref: '#/definitions/handlers.CreateWriteOffRequest'
       produces:
       - application/json
       responses:
@@ -2394,7 +2715,7 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/internal_handlers.CreateWarehouseRequest'
+          $ref: '#/definitions/handlers.CreateWarehouseRequest'
       produces:
       - application/json
       responses:
@@ -2521,7 +2842,7 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/internal_handlers.UpdateWarehouseRequest'
+          $ref: '#/definitions/handlers.UpdateWarehouseRequest'
       produces:
       - application/json
       responses:
@@ -2559,4 +2880,13 @@ paths:
       summary: Обновить склад
       tags:
       - warehouse
+schemes:
+- http
+- https
+securityDefinitions:
+  Bearer:
+    description: Type "Bearer" followed by a space and JWT token.
+    in: header
+    name: Authorization
+    type: apiKey
 swagger: "2.0"

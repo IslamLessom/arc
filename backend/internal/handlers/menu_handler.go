@@ -487,7 +487,7 @@ func (h *MenuHandler) GetTechCard(c *gin.Context) {
 // @Accept json
 // @Produce json
 // @Security Bearer
-// @Param request body object true "Данные тех-карты"
+// @Param request body CreateTechCardRequest true "Данные тех-карты"
 // @Success 201 {object} map[string]interface{}
 // @Failure 400 {object} map[string]string
 // @Failure 403 {object} map[string]string
@@ -599,7 +599,7 @@ func (h *MenuHandler) CreateTechCard(c *gin.Context) {
 // @Produce json
 // @Security Bearer
 // @Param id path string true "ID тех-карты"
-// @Param request body object true "Данные для обновления"
+// @Param request body UpdateTechCardRequest true "Данные для обновления"
 // @Success 200 {object} map[string]interface{}
 // @Failure 400 {object} map[string]string
 // @Failure 403 {object} map[string]string
@@ -858,7 +858,7 @@ func (h *MenuHandler) GetIngredient(c *gin.Context) {
 // @Accept json
 // @Produce json
 // @Security Bearer
-// @Param request body object true "Данные ингредиента"
+// @Param request body CreateIngredientRequest true "Данные ингредиента"
 // @Success 201 {object} map[string]interface{}
 // @Failure 400 {object} map[string]string
 // @Failure 403 {object} map[string]string
@@ -922,7 +922,7 @@ func (h *MenuHandler) CreateIngredient(c *gin.Context) {
 // @Produce json
 // @Security Bearer
 // @Param id path string true "ID ингредиента"
-// @Param request body object true "Данные для обновления"
+// @Param request body UpdateIngredientRequest true "Данные для обновления"
 // @Success 200 {object} map[string]interface{}
 // @Failure 400 {object} map[string]string
 // @Failure 403 {object} map[string]string
@@ -1101,7 +1101,7 @@ func (h *MenuHandler) GetCategory(c *gin.Context) {
 // @Accept json
 // @Produce json
 // @Security Bearer
-// @Param request body object true "Данные категории"
+// @Param request body CreateCategoryRequest true "Данные категории"
 // @Success 201 {object} map[string]interface{}
 // @Failure 400 {object} map[string]string
 // @Failure 403 {object} map[string]string
@@ -1135,7 +1135,7 @@ func (h *MenuHandler) CreateCategory(c *gin.Context) {
 // @Produce json
 // @Security Bearer
 // @Param id path string true "ID категории"
-// @Param request body object true "Данные для обновления"
+// @Param request body UpdateCategoryRequest true "Данные для обновления"
 // @Success 200 {object} map[string]interface{}
 // @Failure 400 {object} map[string]string
 // @Failure 403 {object} map[string]string
@@ -1283,7 +1283,7 @@ func (h *MenuHandler) GetIngredientCategory(c *gin.Context) {
 // @Accept json
 // @Produce json
 // @Security Bearer
-// @Param request body object true "Данные категории"
+// @Param request body CreateIngredientCategoryRequest true "Данные категории"
 // @Success 201 {object} map[string]interface{}
 // @Failure 400 {object} map[string]string
 // @Failure 403 {object} map[string]string
@@ -1317,7 +1317,7 @@ func (h *MenuHandler) CreateIngredientCategory(c *gin.Context) {
 // @Produce json
 // @Security Bearer
 // @Param id path string true "ID категории"
-// @Param request body object true "Данные для обновления"
+// @Param request body UpdateIngredientCategoryRequest true "Данные для обновления"
 // @Success 200 {object} map[string]interface{}
 // @Failure 400 {object} map[string]string
 // @Failure 403 {object} map[string]string

@@ -47,7 +47,7 @@ func Load() (*Config, error) {
 	viper.SetDefault("SERVER_PORT", 8080)
 	viper.SetDefault("SERVER_HOST", "0.0.0.0")
 	viper.SetDefault("DB_HOST", "localhost")
-	viper.SetDefault("DB_PORT", 5432)
+	viper.SetDefault("DB_PORT", 15432) // Порт из docker-compose (внешний порт PostgreSQL)
 	viper.SetDefault("DB_USER", "arc_user")
 	viper.SetDefault("DB_PASSWORD", "arc_password")
 	viper.SetDefault("DB_NAME", "arc_db")
