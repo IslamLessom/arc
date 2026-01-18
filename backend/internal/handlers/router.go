@@ -155,6 +155,8 @@ func NewRouter(usecases *usecases.UseCases, cfg *config.Config, logger *zap.Logg
 				warehouse.PUT("/stock/:id/limit", warehouseHandler.UpdateStockLimit)
 				warehouse.GET("/supplies", warehouseHandler.GetSuppliesByItem) // ?ingredient_id=xxx или ?product_id=xxx
 				warehouse.POST("/supplies", warehouseHandler.CreateSupply)
+				warehouse.GET("/write-offs", warehouseHandler.ListWriteOffs)
+				warehouse.GET("/write-offs/:id", warehouseHandler.GetWriteOff)
 				warehouse.POST("/write-offs", warehouseHandler.CreateWriteOff)
 				warehouse.GET("/movements", warehouseHandler.GetMovements)
 				warehouse.GET("/suppliers", warehouseHandler.ListSuppliers)

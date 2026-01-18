@@ -22,8 +22,8 @@ func main() {
 	log.Printf("Connecting to database: %s@%s:%d/%s", 
 		cfg.Database.User, cfg.Database.Host, cfg.Database.Port, cfg.Database.Name)
 
-	// Инициализация БД
-	db, err := database.NewPostgres(cfg.Database)
+	// Инициализация БД (logger = nil для скриптов)
+	db, err := database.NewPostgres(cfg.Database, nil)
 	if err != nil {
 		log.Fatal("Failed to connect to database:", err)
 	}
@@ -142,9 +142,20 @@ func main() {
 			},
 		},
 
-		// Шаг 3: Формат обслуживания
+		// Шаг 3: Опыт использования
 		{
 			Step:        3,
+			Order:       1,
+			Key:         "used_arc_before",
+			Type:        "boolean",
+			Label:       "Использовали ли вы раньше систему ARC или подобные системы управления рестораном?",
+			Required:    true,
+			DefaultValue: "false",
+		},
+
+		// Шаг 4: Формат обслуживания
+		{
+			Step:        4,
 			Order:       1,
 			Key:         "has_seating_places",
 			Type:        "boolean",
@@ -153,7 +164,7 @@ func main() {
 			DefaultValue: "false",
 		},
 		{
-			Step:        3,
+			Step:        4,
 			Order:       2,
 			Key:         "table_count",
 			Type:        "number",
@@ -163,7 +174,7 @@ func main() {
 			Condition:   "has_seating_places=true",
 		},
 		{
-			Step:        3,
+			Step:        4,
 			Order:       3,
 			Key:         "has_takeaway",
 			Type:        "boolean",
@@ -172,7 +183,7 @@ func main() {
 			DefaultValue: "true",
 		},
 		{
-			Step:        3,
+			Step:        4,
 			Order:       4,
 			Key:         "has_delivery",
 			Type:        "boolean",
@@ -181,7 +192,7 @@ func main() {
 			DefaultValue: "false",
 		},
 		{
-			Step:        3,
+			Step:        4,
 			Order:       5,
 			Key:         "has_reservations",
 			Type:        "boolean",

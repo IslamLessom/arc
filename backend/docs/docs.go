@@ -115,7 +115,7 @@ const docTemplate = `{
         },
         "/auth/onboarding/questions": {
             "get": {
-                "description": "Возвращает все активные вопросы опросника, отсортированные по шагам",
+                "description": "Возвращает все активные вопросы опросника, отсортированные по шагам. Вопросы группируются по номерам шагов (1, 2, 3...). Каждый вопрос содержит: id (UUID), key (ключ для ответа, используется при отправке ответов), type (text/email/phone/number/boolean/select), label (текст вопроса), placeholder (подсказка), required (обязательность), default_value (значение по умолчанию), condition (условие показа), validation (правила валидации). Для вопросов типа \"select\" дополнительно возвращается массив options с полями value (значение для отправки) и label (текст для отображения).",
                 "produces": [
                     "application/json"
                 ],
@@ -125,10 +125,18 @@ const docTemplate = `{
                 "summary": "Получить вопросы опросника",
                 "responses": {
                     "200": {
-                        "description": "OK",
+                        "description": "Структура ответа: {\\\"data\\\": {\\\"1\\\": [вопросы шага 1], \\\"2\\\": [вопросы шага 2]}, \\\"steps\\\": количество_шагов}\" \"Пример ответа: {\\\"data\\\":{\\\"1\\\":[{\\\"id\\\":\\\"uuid\\\",\\\"key\\\":\\\"establishment_name\\\",\\\"type\\\":\\\"text\\\",\\\"label\\\":\\\"Название заведения\\\",\\\"placeholder\\\":\\\"Введите название\\\",\\\"required\\\":true,\\\"default_value\\\":\\\"\\\",\\\"condition\\\":\\\"\\\",\\\"validation\\\":\\\"\\\"}],\\\"2\\\":[{\\\"id\\\":\\\"uuid\\\",\\\"key\\\":\\\"establishment_type\\\",\\\"type\\\":\\\"select\\\",\\\"label\\\":\\\"Тип заведения\\\",\\\"required\\\":true,\\\"options\\\":[{\\\"value\\\":\\\"restaurant\\\",\\\"label\\\":\\\"Ресторан\\\"},{\\\"value\\\":\\\"cafe\\\",\\\"label\\\":\\\"Кафе\\\"}]}]},\\\"steps\\\":2}",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.QuestionsResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
                         "schema": {
                             "type": "object",
-                            "additionalProperties": true
+                            "additionalProperties": {
+                                "type": "string"
+                            }
                         }
                     }
                 }
@@ -141,7 +149,7 @@ const docTemplate = `{
                         "Bearer": []
                     }
                 ],
-                "description": "Возвращает сохраненные ответы пользователя на опросник",
+                "description": "Возвращает сохраненные ответы пользователя на опросник. Если опросник не пройден, возвращается completed: false и data: null. Если пройден, возвращается объект с полями: data (объект с ответами, где ключи - это question_key, значения - ответы пользователя) и completed (true/false)",
                 "produces": [
                     "application/json"
                 ],
@@ -151,10 +159,28 @@ const docTemplate = `{
                 "summary": "Получить ответы пользователя",
                 "responses": {
                     "200": {
-                        "description": "OK",
+                        "description": "Ответ содержит data (объект с ответами, ключи - question_key) и completed (true/false). Если опросник не пройден, data: null",
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
                         }
                     }
                 }
@@ -167,7 +193,7 @@ const docTemplate = `{
                         "Bearer": []
                     }
                 ],
-                "description": "Обрабатывает ответы пользователя, создает заведение и настраивает систему",
+                "description": "Обрабатывает ответы пользователя, создает заведение и настраивает систему. Ответы передаются в формате объекта, где ключи соответствуют полю \"key\" из вопросов, а значения - ответы пользователя. Типы значений зависят от типа вопроса: text/email/phone - строка, number - число, boolean - true/false, select - значение из options.value",
                 "consumes": [
                     "application/json"
                 ],
@@ -180,7 +206,7 @@ const docTemplate = `{
                 "summary": "Отправить ответы опросника",
                 "parameters": [
                     {
-                        "description": "Ответы на вопросы опросника",
+                        "description": "Ответы на вопросы опросника. Ключи объекта answers соответствуют полю 'key' из вопросов",
                         "name": "answers",
                         "in": "body",
                         "required": true,
@@ -191,7 +217,7 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "201": {
-                        "description": "Created",
+                        "description": "Ответ содержит message и establishment объект",
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
@@ -311,7 +337,7 @@ const docTemplate = `{
                         "Bearer": []
                     }
                 ],
-                "description": "Возвращает заведения пользователя (обычно 0 или 1 элемент)",
+                "description": "Возвращает заведения пользователя (обычно 0 или 1 элемент). Возвращает массив заведений с полями: id, owner_id, name, address, phone, email, has_seating_places, table_count, type, tables, active, created_at, updated_at",
                 "produces": [
                     "application/json"
                 ],
@@ -321,10 +347,12 @@ const docTemplate = `{
                 "summary": "Получить список заведений",
                 "responses": {
                     "200": {
-                        "description": "OK",
+                        "description": "Ответ обернут в объект: {\\\"data\\\": [заведения]}. Каждое заведение содержит: id, owner_id, name, address, phone, email, has_seating_places, table_count, type, tables, active, created_at, updated_at",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/handlers.EstablishmentResponse"
+                            }
                         }
                     },
                     "403": {
@@ -384,7 +412,7 @@ const docTemplate = `{
                         "Bearer": []
                     }
                 ],
-                "description": "Возвращает заведение по ID (доступ только к своему заведению)",
+                "description": "Возвращает заведение по ID (доступ только к своему заведению). Возвращает объект с полями: id, owner_id, name, address, phone, email, has_seating_places, table_count, type, tables (массив столов), active, created_at, updated_at",
                 "produces": [
                     "application/json"
                 ],
@@ -403,10 +431,9 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "OK",
+                        "description": "Ответ обернут в объект: {\\\"data\\\": {заведение}}. Поля заведения: id, owner_id, name, address, phone, email, has_seating_places, table_count, type, tables (массив), active, created_at, updated_at",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/handlers.EstablishmentResponse"
                         }
                     },
                     "400": {
@@ -444,7 +471,7 @@ const docTemplate = `{
                         "Bearer": []
                     }
                 ],
-                "description": "Обновляет заведение (доступ только к своему заведению)",
+                "description": "Обновляет заведение (доступ только к своему заведению). Возвращает обновленное заведение с полями: id, owner_id, name, address, phone, email, has_seating_places, table_count, type, tables, active, created_at, updated_at",
                 "consumes": [
                     "application/json"
                 ],
@@ -464,7 +491,7 @@ const docTemplate = `{
                         "required": true
                     },
                     {
-                        "description": "Данные для обновления",
+                        "description": "Данные для обновления. Все поля опциональны",
                         "name": "request",
                         "in": "body",
                         "required": true,
@@ -475,10 +502,9 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "OK",
+                        "description": "Ответ обернут в объект: {\\\"data\\\": {заведение}}. Поля заведения: id, owner_id, name, address, phone, email, has_seating_places, table_count, type, tables, active, created_at, updated_at",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/handlers.EstablishmentResponse"
                         }
                     },
                     "400": {
@@ -1654,7 +1680,7 @@ const docTemplate = `{
                         "Bearer": []
                     }
                 ],
-                "description": "Создает новый товар и автоматически создает остатки на складе",
+                "description": "Создает новый товар и автоматически создает остатки на складе. Поле cover_image принимает URL изображения, полученный через POST /api/v1/upload/image или POST /api/v1/upload/image/base64",
                 "consumes": [
                     "application/json"
                 ],
@@ -1781,7 +1807,7 @@ const docTemplate = `{
                         "Bearer": []
                     }
                 ],
-                "description": "Обновляет данные товара",
+                "description": "Обновляет данные товара. Поле cover_image принимает URL изображения, полученный через POST /api/v1/upload/image или POST /api/v1/upload/image/base64",
                 "consumes": [
                     "application/json"
                 ],
@@ -1976,7 +2002,7 @@ const docTemplate = `{
                         "Bearer": []
                     }
                 ],
-                "description": "Создает новую тех-карту",
+                "description": "Создает новую тех-карту. Поле cover_image принимает URL изображения, полученный через POST /api/v1/upload/image или POST /api/v1/upload/image/base64",
                 "consumes": [
                     "application/json"
                 ],
@@ -2103,7 +2129,7 @@ const docTemplate = `{
                         "Bearer": []
                     }
                 ],
-                "description": "Обновляет данные тех-карты",
+                "description": "Обновляет данные тех-карты. Поле cover_image принимает URL изображения, полученный через POST /api/v1/upload/image или POST /api/v1/upload/image/base64",
                 "consumes": [
                     "application/json"
                 ],
@@ -2653,6 +2679,123 @@ const docTemplate = `{
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/upload/image": {
+            "post": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
+                "description": "Загружает изображение в хранилище и возвращает публичный URL",
+                "consumes": [
+                    "multipart/form-data"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "upload"
+                ],
+                "summary": "Загрузить изображение",
+                "parameters": [
+                    {
+                        "type": "file",
+                        "description": "Файл изображения",
+                        "name": "file",
+                        "in": "formData",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/upload/image/base64": {
+            "post": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
+                "description": "Загружает изображение из base64 строки в хранилище",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "upload"
+                ],
+                "summary": "Загрузить изображение из base64",
+                "parameters": [
+                    {
+                        "description": "Base64 изображения",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
                         }
                     }
                 }
@@ -3306,13 +3449,63 @@ const docTemplate = `{
             }
         },
         "/warehouse/write-offs": {
+            "get": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
+                "description": "Возвращает список списаний с возможностью фильтрации по складу",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "warehouse"
+                ],
+                "summary": "Получить список списаний",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "ID склада",
+                        "name": "warehouse_id",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            },
             "post": {
                 "security": [
                     {
                         "Bearer": []
                     }
                 ],
-                "description": "Создает списание со склада",
+                "description": "Создает списание товаров/ингредиентов со склада. При создании списания автоматически уменьшаются остатки на складе. Каждая позиция списания должна иметь либо ingredient_id, либо product_id.",
                 "consumes": [
                     "application/json"
                 ],
@@ -3336,7 +3529,69 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "201": {
-                        "description": "Created",
+                        "description": "Созданное списание",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Ошибка валидации данных",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Доступ запрещен",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Внутренняя ошибка сервера",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/warehouse/write-offs/{id}": {
+            "get": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
+                "description": "Возвращает списание по ID",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "warehouse"
+                ],
+                "summary": "Получить списание по ID",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "ID списания",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
@@ -3360,8 +3615,8 @@ const docTemplate = `{
                             }
                         }
                     },
-                    "500": {
-                        "description": "Internal Server Error",
+                    "404": {
+                        "description": "Not Found",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -3991,9 +4246,11 @@ const docTemplate = `{
             "properties": {
                 "comment": {
                     "description": "Комментарий",
-                    "type": "string"
+                    "type": "string",
+                    "example": "Комментарий к списанию"
                 },
                 "items": {
+                    "description": "Список позиций для списания (минимум 1)",
                     "type": "array",
                     "minItems": 1,
                     "items": {
@@ -4002,15 +4259,91 @@ const docTemplate = `{
                 },
                 "reason": {
                     "description": "Причина списания",
-                    "type": "string"
+                    "type": "string",
+                    "example": "Без причины"
                 },
                 "warehouse_id": {
-                    "description": "Склад",
-                    "type": "string"
+                    "description": "ID склада",
+                    "type": "string",
+                    "example": "550e8400-e29b-41d4-a716-446655440000"
                 },
                 "write_off_date_time": {
-                    "description": "Дата и время списания (RFC3339)",
-                    "type": "string"
+                    "description": "Дата и время списания в формате RFC3339",
+                    "type": "string",
+                    "example": "2026-01-18T17:18:00Z"
+                }
+            }
+        },
+        "handlers.EstablishmentResponse": {
+            "description": "Структура заведения со всеми полями, включая настройки и связанные таблицы",
+            "type": "object",
+            "properties": {
+                "active": {
+                    "description": "Active активность заведения",
+                    "type": "boolean",
+                    "example": true
+                },
+                "address": {
+                    "description": "Address адрес заведения",
+                    "type": "string",
+                    "example": "ул. Тверская, д. 1"
+                },
+                "created_at": {
+                    "description": "CreatedAt дата создания",
+                    "type": "string",
+                    "example": "2024-01-18T10:00:00Z"
+                },
+                "email": {
+                    "description": "Email email заведения",
+                    "type": "string",
+                    "example": "info@cafe-moscow.ru"
+                },
+                "has_seating_places": {
+                    "description": "HasSeatingPlaces есть ли сидячие места",
+                    "type": "boolean",
+                    "example": true
+                },
+                "id": {
+                    "description": "ID уникальный идентификатор заведения (UUID)",
+                    "type": "string",
+                    "example": "550e8400-e29b-41d4-a716-446655440000"
+                },
+                "name": {
+                    "description": "Name название заведения",
+                    "type": "string",
+                    "example": "Кафе Москва"
+                },
+                "owner_id": {
+                    "description": "OwnerID идентификатор владельца заведения",
+                    "type": "string",
+                    "example": "550e8400-e29b-41d4-a716-446655440000"
+                },
+                "phone": {
+                    "description": "Phone телефон заведения",
+                    "type": "string",
+                    "example": "+79991234567"
+                },
+                "table_count": {
+                    "description": "TableCount количество столов (если есть сидячие места)",
+                    "type": "integer",
+                    "example": 10
+                },
+                "tables": {
+                    "description": "Tables массив столов заведения (если есть сидячие места)",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/handlers.TableResponse"
+                    }
+                },
+                "type": {
+                    "description": "Type тип заведения: restaurant, cafe, fast_food, bar, pizzeria, bakery, coffee_shop, takeaway, delivery, other",
+                    "type": "string",
+                    "example": "cafe"
+                },
+                "updated_at": {
+                    "description": "UpdatedAt дата последнего обновления",
+                    "type": "string",
+                    "example": "2024-01-18T10:00:00Z"
                 }
             }
         },
@@ -4074,6 +4407,108 @@ const docTemplate = `{
                         "single",
                         "multiple"
                     ]
+                }
+            }
+        },
+        "handlers.QuestionOptionResponse": {
+            "description": "Вариант ответа для вопросов типа \"select\". Содержит значение для отправки и текст для отображения",
+            "type": "object",
+            "properties": {
+                "label": {
+                    "description": "Label текст для отображения пользователю",
+                    "type": "string",
+                    "example": "Ресторан"
+                },
+                "value": {
+                    "description": "Value значение, которое отправляется в ответе (используется в поле \"key\" при SubmitAnswers)",
+                    "type": "string",
+                    "example": "restaurant"
+                }
+            }
+        },
+        "handlers.QuestionResponse": {
+            "description": "Структура вопроса опросника. Содержит все необходимые поля для отображения и обработки вопроса на фронтенде",
+            "type": "object",
+            "properties": {
+                "condition": {
+                    "description": "Condition условие показа вопроса (например: \"has_seating_places=true\")",
+                    "type": "string",
+                    "example": "has_seating_places=true"
+                },
+                "default_value": {
+                    "description": "DefaultValue значение по умолчанию",
+                    "type": "string",
+                    "example": ""
+                },
+                "id": {
+                    "description": "ID уникальный идентификатор вопроса (UUID)",
+                    "type": "string",
+                    "example": "550e8400-e29b-41d4-a716-446655440000"
+                },
+                "key": {
+                    "description": "Key ключ вопроса, используется при отправке ответов (например: \"establishment_name\", \"has_seating_places\")",
+                    "type": "string",
+                    "example": "establishment_name"
+                },
+                "label": {
+                    "description": "Label текст вопроса для отображения пользователю",
+                    "type": "string",
+                    "example": "Название заведения"
+                },
+                "options": {
+                    "description": "Options варианты ответов для вопросов типа \"select\"",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/handlers.QuestionOptionResponse"
+                    }
+                },
+                "placeholder": {
+                    "description": "Placeholder подсказка для поля ввода",
+                    "type": "string",
+                    "example": "Введите название вашего заведения"
+                },
+                "required": {
+                    "description": "Required обязательность заполнения вопроса",
+                    "type": "boolean",
+                    "example": true
+                },
+                "type": {
+                    "description": "Type тип вопроса: text, email, phone, number, boolean, select",
+                    "type": "string",
+                    "enum": [
+                        "text",
+                        "email",
+                        "phone",
+                        "number",
+                        "boolean",
+                        "select"
+                    ],
+                    "example": "text"
+                },
+                "validation": {
+                    "description": "Validation правила валидации в формате JSON",
+                    "type": "string",
+                    "example": "{\"min\": 3, \"max\": 100}"
+                }
+            }
+        },
+        "handlers.QuestionsResponse": {
+            "description": "Структура ответа с вопросами, сгруппированными по шагам. Поле data содержит объект, где ключи - номера шагов (строки \"1\", \"2\", \"3\"...), а значения - массивы вопросов",
+            "type": "object",
+            "properties": {
+                "data": {
+                    "description": "Data содержит вопросы, сгруппированные по шагам. Ключи - номера шагов (строки), значения - массивы вопросов",
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/definitions/handlers.QuestionResponse"
+                        }
+                    }
+                },
+                "steps": {
+                    "description": "Steps - количество шагов в опроснике",
+                    "type": "integer"
                 }
             }
         },
@@ -4146,6 +4581,72 @@ const docTemplate = `{
                 },
                 "unit": {
                     "type": "string"
+                }
+            }
+        },
+        "handlers.TableResponse": {
+            "description": "Структура стола с координатами и статусом",
+            "type": "object",
+            "properties": {
+                "active": {
+                    "description": "Active активность стола",
+                    "type": "boolean",
+                    "example": true
+                },
+                "capacity": {
+                    "description": "Capacity вместимость стола (количество мест)",
+                    "type": "integer",
+                    "example": 4
+                },
+                "created_at": {
+                    "description": "CreatedAt дата создания",
+                    "type": "string",
+                    "example": "2024-01-18T10:00:00Z"
+                },
+                "establishment_id": {
+                    "description": "EstablishmentID идентификатор заведения",
+                    "type": "string",
+                    "example": "550e8400-e29b-41d4-a716-446655440000"
+                },
+                "id": {
+                    "description": "ID уникальный идентификатор стола (UUID)",
+                    "type": "string",
+                    "example": "550e8400-e29b-41d4-a716-446655440000"
+                },
+                "name": {
+                    "description": "Name название стола (опционально)",
+                    "type": "string",
+                    "example": "Стол у окна"
+                },
+                "number": {
+                    "description": "Number номер стола (уникален в рамках заведения)",
+                    "type": "integer",
+                    "example": 1
+                },
+                "position_x": {
+                    "description": "PositionX X координата на схеме зала",
+                    "type": "number",
+                    "example": 100.5
+                },
+                "position_y": {
+                    "description": "PositionY Y координата на схеме зала",
+                    "type": "number",
+                    "example": 200.5
+                },
+                "rotation": {
+                    "description": "Rotation поворот стола в градусах (0-360)",
+                    "type": "number",
+                    "example": 0
+                },
+                "status": {
+                    "description": "Status статус стола: available, occupied, reserved",
+                    "type": "string",
+                    "example": "available"
+                },
+                "updated_at": {
+                    "description": "UpdatedAt дата последнего обновления",
+                    "type": "string",
+                    "example": "2024-01-18T10:00:00Z"
                 }
             }
         },
@@ -4412,19 +4913,28 @@ const docTemplate = `{
             "properties": {
                 "details": {
                     "description": "Детали списания",
-                    "type": "string"
+                    "type": "string",
+                    "example": "Детали списания"
                 },
                 "ingredient_id": {
-                    "type": "string"
+                    "description": "ID ингредиента (обязательно, если не указан product_id)",
+                    "type": "string",
+                    "example": "550e8400-e29b-41d4-a716-446655440001"
                 },
                 "product_id": {
-                    "type": "string"
+                    "description": "ID товара (обязательно, если не указан ingredient_id)",
+                    "type": "string",
+                    "example": "550e8400-e29b-41d4-a716-446655440002"
                 },
                 "quantity": {
-                    "type": "number"
+                    "description": "Количество для списания",
+                    "type": "number",
+                    "example": 10
                 },
                 "unit": {
-                    "type": "string"
+                    "description": "Единица измерения",
+                    "type": "string",
+                    "example": "кг"
                 }
             }
         }

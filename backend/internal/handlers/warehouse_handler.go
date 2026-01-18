@@ -420,34 +420,36 @@ func (h *WarehouseHandler) CreateSupply(c *gin.Context) {
 
 // ——— WriteOff ———
 
+// WriteOffItemRequest представляет позицию списания
 type WriteOffItemRequest struct {
-	IngredientID *string `json:"ingredient_id,omitempty" binding:"omitempty,uuid"`
-	ProductID    *string `json:"product_id,omitempty" binding:"omitempty,uuid"`
-	Quantity     float64 `json:"quantity" binding:"required,gt=0"`
-	Unit         string  `json:"unit" binding:"required"`
-	Details      string  `json:"details"` // Детали списания
+	IngredientID *string `json:"ingredient_id,omitempty" binding:"omitempty,uuid" example:"550e8400-e29b-41d4-a716-446655440001"` // ID ингредиента (обязательно, если не указан product_id)
+	ProductID    *string `json:"product_id,omitempty" binding:"omitempty,uuid" example:"550e8400-e29b-41d4-a716-446655440002"`        // ID товара (обязательно, если не указан ingredient_id)
+	Quantity     float64 `json:"quantity" binding:"required,gt=0" example:"10"`                                                    // Количество для списания
+	Unit         string  `json:"unit" binding:"required" example:"кг"`                                                              // Единица измерения
+	Details      string  `json:"details" example:"Детали списания"`                                                                  // Детали списания
 }
 
+// CreateWriteOffRequest представляет запрос на создание списания
 type CreateWriteOffRequest struct {
-	WarehouseID     string              `json:"warehouse_id" binding:"required,uuid"`     // Склад
-	WriteOffDateTime string             `json:"write_off_date_time" binding:"required"`  // Дата и время списания (RFC3339)
-	Reason          string              `json:"reason"`                                     // Причина списания
-	Comment         string              `json:"comment"`                                    // Комментарий
-	Items           []WriteOffItemRequest `json:"items" binding:"required,min=1"`
+	WarehouseID      string               `json:"warehouse_id" binding:"required,uuid" example:"550e8400-e29b-41d4-a716-446655440000"` // ID склада
+	WriteOffDateTime string               `json:"write_off_date_time" binding:"required" example:"2026-01-18T17:18:00Z"`              // Дата и время списания в формате RFC3339
+	Reason           string               `json:"reason" example:"Без причины"`                                                      // Причина списания
+	Comment          string               `json:"comment" example:"Комментарий к списанию"`                                          // Комментарий
+	Items            []WriteOffItemRequest `json:"items" binding:"required,min=1"`                                                    // Список позиций для списания (минимум 1)
 }
 
 // CreateWriteOff создает списание со склада
 // @Summary Создать списание
-// @Description Создает списание со склада
+// @Description Создает списание товаров/ингредиентов со склада. При создании списания автоматически уменьшаются остатки на складе. Каждая позиция списания должна иметь либо ingredient_id, либо product_id.
 // @Tags warehouse
 // @Accept json
 // @Produce json
 // @Security Bearer
-// @Param request body CreateWriteOffRequest true "Данные списания"
-// @Success 201 {object} map[string]interface{}
-// @Failure 400 {object} map[string]string
-// @Failure 403 {object} map[string]string
-// @Failure 500 {object} map[string]string
+// @Param request body CreateWriteOffRequest true "Данные списания" SchemaExample({"warehouse_id": "550e8400-e29b-41d4-a716-446655440000", "write_off_date_time": "2026-01-18T17:18:00Z", "reason": "Без причины", "comment": "Комментарий к списанию", "items": [{"ingredient_id": "550e8400-e29b-41d4-a716-446655440001", "quantity": 10, "unit": "кг", "details": "Детали списания"}]})
+// @Success 201 {object} map[string]interface{} "Созданное списание"
+// @Failure 400 {object} map[string]string "Ошибка валидации данных"
+// @Failure 403 {object} map[string]string "Доступ запрещен"
+// @Failure 500 {object} map[string]string "Внутренняя ошибка сервера"
 // @Router /warehouse/write-offs [post]
 func (h *WarehouseHandler) CreateWriteOff(c *gin.Context) {
 	estID, err := getEstablishmentID(c)
@@ -510,6 +512,76 @@ func (h *WarehouseHandler) CreateWriteOff(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusCreated, gin.H{"data": wo})
+}
+
+// ListWriteOffs возвращает список списаний
+// @Summary Получить список списаний
+// @Description Возвращает список списаний с возможностью фильтрации по складу
+// @Tags warehouse
+// @Produce json
+// @Security Bearer
+// @Param warehouse_id query string false "ID склада"
+// @Success 200 {object} map[string]interface{}
+// @Failure 403 {object} map[string]string
+// @Failure 500 {object} map[string]string
+// @Router /warehouse/write-offs [get]
+func (h *WarehouseHandler) ListWriteOffs(c *gin.Context) {
+	estID, err := getEstablishmentID(c)
+	if err != nil {
+		c.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
+		return
+	}
+
+	var warehouseID *uuid.UUID
+	if s := c.Query("warehouse_id"); s != "" {
+		if id, e := uuid.Parse(s); e == nil {
+			warehouseID = &id
+		}
+	}
+
+	list, err := h.usecase.GetWriteOffs(c.Request.Context(), estID, warehouseID)
+	if err != nil {
+		h.logger.Error("Failed to list write-offs", zap.Error(err))
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to list write-offs"})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"data": list})
+}
+
+// GetWriteOff возвращает списание по ID
+// @Summary Получить списание по ID
+// @Description Возвращает списание по ID
+// @Tags warehouse
+// @Produce json
+// @Security Bearer
+// @Param id path string true "ID списания"
+// @Success 200 {object} map[string]interface{}
+// @Failure 400 {object} map[string]string
+// @Failure 403 {object} map[string]string
+// @Failure 404 {object} map[string]string
+// @Router /warehouse/write-offs/{id} [get]
+func (h *WarehouseHandler) GetWriteOff(c *gin.Context) {
+	estID, err := getEstablishmentID(c)
+	if err != nil {
+		c.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
+		return
+	}
+	id, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id"})
+		return
+	}
+	wo, err := h.usecase.GetWriteOff(c.Request.Context(), id, estID)
+	if err != nil {
+		h.logger.Error("Failed to get write-off", zap.Error(err))
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to get write-off"})
+		return
+	}
+	if wo == nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "write-off not found"})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"data": wo})
 }
 
 // GetSuppliesByItem возвращает поставки по ингредиенту или товару

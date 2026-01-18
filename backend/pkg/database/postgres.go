@@ -2,14 +2,16 @@ package database
 
 import (
 	"fmt"
+	"time"
 
+	"go.uber.org/zap"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 
 	"github.com/yourusername/arc/backend/internal/config"
 )
 
-func NewPostgres(cfg config.DatabaseConfig) (*gorm.DB, error) {
+func NewPostgres(cfg config.DatabaseConfig, logger *zap.Logger) (*gorm.DB, error) {
 	dsn := fmt.Sprintf(
 		"host=%s port=%d user=%s password=%s dbname=%s sslmode=%s",
 		cfg.Host,
@@ -31,10 +33,15 @@ func NewPostgres(cfg config.DatabaseConfig) (*gorm.DB, error) {
 		return nil, fmt.Errorf("failed to get underlying sql.DB: %w", err)
 	}
 
-	// Set connection pool settings
-	sqlDB.SetMaxIdleConns(10)
-	sqlDB.SetMaxOpenConns(100)
-	sqlDB.SetConnMaxLifetime(3600) // 1 hour
+	// Set connection pool settings from config
+	sqlDB.SetMaxIdleConns(cfg.MaxIdleConns)
+	sqlDB.SetMaxOpenConns(cfg.MaxOpenConns)
+	sqlDB.SetConnMaxLifetime(time.Duration(cfg.ConnMaxLifetime) * time.Second)
+
+	// Настраиваем мониторинг запросов, если logger передан
+	if logger != nil {
+		SetupQueryMonitoring(db, logger)
+	}
 
 	return db, nil
 }

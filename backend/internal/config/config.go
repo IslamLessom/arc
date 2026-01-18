@@ -23,12 +23,15 @@ type ServerConfig struct {
 }
 
 type DatabaseConfig struct {
-	Host     string
-	Port     int
-	User     string
-	Password string
-	Name     string
-	SSLMode  string
+	Host            string
+	Port            int
+	User            string
+	Password        string
+	Name            string
+	SSLMode         string
+	MaxIdleConns    int // Максимальное количество неактивных соединений в пуле
+	MaxOpenConns    int // Максимальное количество открытых соединений
+	ConnMaxLifetime int // Максимальное время жизни соединения в секундах
 }
 
 type JWTConfig struct {
@@ -62,6 +65,9 @@ func Load() (*Config, error) {
 	viper.SetDefault("DB_PASSWORD", "arc_password")
 	viper.SetDefault("DB_NAME", "arc_db")
 	viper.SetDefault("DB_SSLMODE", "disable")
+	viper.SetDefault("DB_MAX_IDLE_CONNS", 10)
+	viper.SetDefault("DB_MAX_OPEN_CONNS", 100)
+	viper.SetDefault("DB_CONN_MAX_LIFETIME", 3600) // 1 час
 	viper.SetDefault("JWT_SECRET", "your-secret-key-change-in-production")
 	viper.SetDefault("JWT_EXPIRATION", 24)
 	viper.SetDefault("APP_ENV", "development")
@@ -88,24 +94,42 @@ func Load() (*Config, error) {
 		return nil, fmt.Errorf("invalid DB_PORT: %w", err)
 	}
 
-	jwtExpiration, err := getIntEnv("JWT_EXPIRATION", viper.GetInt("JWT_EXPIRATION"))
-	if err != nil {
-		return nil, fmt.Errorf("invalid JWT_EXPIRATION: %w", err)
-	}
+		jwtExpiration, err := getIntEnv("JWT_EXPIRATION", viper.GetInt("JWT_EXPIRATION"))
+		if err != nil {
+			return nil, fmt.Errorf("invalid JWT_EXPIRATION: %w", err)
+		}
 
-	cfg := &Config{
-		Server: ServerConfig{
-			Port: serverPort,
-			Host: getEnv("SERVER_HOST", viper.GetString("SERVER_HOST")),
-		},
-		Database: DatabaseConfig{
-			Host:     getEnv("DB_HOST", viper.GetString("DB_HOST")),
-			Port:     dbPort,
-			User:     getEnv("DB_USER", viper.GetString("DB_USER")),
-			Password: getEnv("DB_PASSWORD", viper.GetString("DB_PASSWORD")),
-			Name:     getEnv("DB_NAME", viper.GetString("DB_NAME")),
-			SSLMode:  getEnv("DB_SSLMODE", viper.GetString("DB_SSLMODE")),
-		},
+		maxIdleConns, err := getIntEnv("DB_MAX_IDLE_CONNS", viper.GetInt("DB_MAX_IDLE_CONNS"))
+		if err != nil {
+			return nil, fmt.Errorf("invalid DB_MAX_IDLE_CONNS: %w", err)
+		}
+
+		maxOpenConns, err := getIntEnv("DB_MAX_OPEN_CONNS", viper.GetInt("DB_MAX_OPEN_CONNS"))
+		if err != nil {
+			return nil, fmt.Errorf("invalid DB_MAX_OPEN_CONNS: %w", err)
+		}
+
+		connMaxLifetime, err := getIntEnv("DB_CONN_MAX_LIFETIME", viper.GetInt("DB_CONN_MAX_LIFETIME"))
+		if err != nil {
+			return nil, fmt.Errorf("invalid DB_CONN_MAX_LIFETIME: %w", err)
+		}
+
+		cfg := &Config{
+			Server: ServerConfig{
+				Port: serverPort,
+				Host: getEnv("SERVER_HOST", viper.GetString("SERVER_HOST")),
+			},
+			Database: DatabaseConfig{
+				Host:            getEnv("DB_HOST", viper.GetString("DB_HOST")),
+				Port:            dbPort,
+				User:            getEnv("DB_USER", viper.GetString("DB_USER")),
+				Password:        getEnv("DB_PASSWORD", viper.GetString("DB_PASSWORD")),
+				Name:            getEnv("DB_NAME", viper.GetString("DB_NAME")),
+				SSLMode:         getEnv("DB_SSLMODE", viper.GetString("DB_SSLMODE")),
+				MaxIdleConns:    maxIdleConns,
+				MaxOpenConns:    maxOpenConns,
+				ConnMaxLifetime: connMaxLifetime,
+			},
 		JWT: JWTConfig{
 			Secret:     getEnv("JWT_SECRET", viper.GetString("JWT_SECRET")),
 			Expiration: jwtExpiration,

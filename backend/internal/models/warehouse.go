@@ -31,11 +31,11 @@ func (w *Warehouse) BeforeCreate(tx *gorm.DB) error {
 // Stock представляет остатки на складе
 type Stock struct {
 	ID          uuid.UUID    `json:"id" gorm:"type:uuid;primaryKey;default:gen_random_uuid()"`
-	WarehouseID uuid.UUID    `json:"warehouse_id" gorm:"type:uuid;not null"`
+	WarehouseID uuid.UUID    `json:"warehouse_id" gorm:"type:uuid;not null;index"`
 	Warehouse   *Warehouse   `json:"warehouse,omitempty" gorm:"foreignKey:WarehouseID"`
-	IngredientID *uuid.UUID  `json:"ingredient_id,omitempty" gorm:"type:uuid"`
+	IngredientID *uuid.UUID  `json:"ingredient_id,omitempty" gorm:"type:uuid;index"`
 	Ingredient   *Ingredient `json:"ingredient,omitempty" gorm:"foreignKey:IngredientID"`
-	ProductID    *uuid.UUID  `json:"product_id,omitempty" gorm:"type:uuid"`
+	ProductID    *uuid.UUID  `json:"product_id,omitempty" gorm:"type:uuid;index"`
 	Product      *Product    `json:"product,omitempty" gorm:"foreignKey:ProductID"`
 	Quantity     float64     `json:"quantity" gorm:"not null"`
 	Unit         string      `json:"unit" gorm:"not null"`
@@ -55,15 +55,15 @@ func (s *Stock) BeforeCreate(tx *gorm.DB) error {
 // Supply представляет поставку
 type Supply struct {
 	ID              uuid.UUID    `json:"id" gorm:"type:uuid;primaryKey;default:gen_random_uuid()"`
-	WarehouseID     uuid.UUID    `json:"warehouse_id" gorm:"type:uuid;not null"`
+	WarehouseID     uuid.UUID    `json:"warehouse_id" gorm:"type:uuid;not null;index"`
 	Warehouse       *Warehouse   `json:"warehouse,omitempty" gorm:"foreignKey:WarehouseID"`
-	SupplierID      uuid.UUID    `json:"supplier_id" gorm:"type:uuid;not null"`
+	SupplierID      uuid.UUID    `json:"supplier_id" gorm:"type:uuid;not null;index"`
 	Supplier        *Supplier    `json:"supplier,omitempty" gorm:"foreignKey:SupplierID"`
-	DeliveryDateTime time.Time   `json:"delivery_date_time" gorm:"not null"` // Дата и время поставки
-	Status          string       `json:"status" gorm:"not null"`              // pending, completed, cancelled
+	DeliveryDateTime time.Time   `json:"delivery_date_time" gorm:"not null;index"` // Дата и время поставки
+	Status          string       `json:"status" gorm:"not null;index"`              // pending, completed, cancelled
 	Comment         string       `json:"comment"`                             // Комментарий
 	Items           []SupplyItem  `json:"items,omitempty" gorm:"foreignKey:SupplyID"`
-	CreatedAt       time.Time    `json:"created_at"`
+	CreatedAt       time.Time    `json:"created_at" gorm:"index"`
 	UpdatedAt       time.Time    `json:"updated_at"`
 }
 
@@ -78,10 +78,10 @@ func (s *Supply) BeforeCreate(tx *gorm.DB) error {
 // SupplyItem представляет позицию поставки
 type SupplyItem struct {
 	ID          uuid.UUID   `json:"id" gorm:"type:uuid;primaryKey"` // UUID генерируется в коде, не используем default
-	SupplyID    uuid.UUID   `json:"supply_id" gorm:"type:uuid;not null"`
-	IngredientID *uuid.UUID `json:"ingredient_id,omitempty" gorm:"type:uuid"`
+	SupplyID    uuid.UUID   `json:"supply_id" gorm:"type:uuid;not null;index"`
+	IngredientID *uuid.UUID `json:"ingredient_id,omitempty" gorm:"type:uuid;index"`
 	Ingredient   *Ingredient `json:"ingredient,omitempty" gorm:"foreignKey:IngredientID"`
-	ProductID    *uuid.UUID `json:"product_id,omitempty" gorm:"type:uuid"`
+	ProductID    *uuid.UUID `json:"product_id,omitempty" gorm:"type:uuid;index"`
 	Product      *Product   `json:"product,omitempty" gorm:"foreignKey:ProductID"`
 	Quantity     float64   `json:"quantity" gorm:"not null"`
 	Unit         string    `json:"unit" gorm:"not null"`
@@ -101,13 +101,13 @@ func (si *SupplyItem) BeforeCreate(tx *gorm.DB) error {
 // WriteOff представляет списание товаров
 type WriteOff struct {
 	ID               uuid.UUID      `json:"id" gorm:"type:uuid;primaryKey;default:gen_random_uuid()"`
-	WarehouseID      uuid.UUID      `json:"warehouse_id" gorm:"type:uuid;not null"`
+	WarehouseID      uuid.UUID      `json:"warehouse_id" gorm:"type:uuid;not null;index"`
 	Warehouse        *Warehouse     `json:"warehouse,omitempty" gorm:"foreignKey:WarehouseID"`
-	WriteOffDateTime time.Time      `json:"write_off_date_time" gorm:"not null"` // Дата и время списания
+	WriteOffDateTime time.Time      `json:"write_off_date_time" gorm:"not null;index"` // Дата и время списания
 	Reason           string         `json:"reason"`                               // Причина списания
 	Comment          string         `json:"comment"`                              // Комментарий
 	Items            []WriteOffItem `json:"items,omitempty" gorm:"foreignKey:WriteOffID"`
-	CreatedAt        time.Time      `json:"created_at"`
+	CreatedAt        time.Time      `json:"created_at" gorm:"index"`
 	UpdatedAt        time.Time      `json:"updated_at"`
 	DeletedAt        gorm.DeletedAt `json:"-" gorm:"index"`
 }
@@ -123,10 +123,10 @@ func (wo *WriteOff) BeforeCreate(tx *gorm.DB) error {
 // WriteOffItem представляет позицию списания
 type WriteOffItem struct {
 	ID           uuid.UUID   `json:"id" gorm:"type:uuid;primaryKey"` // UUID генерируется в коде, не используем default
-	WriteOffID   uuid.UUID   `json:"write_off_id" gorm:"type:uuid;not null"`
-	IngredientID *uuid.UUID  `json:"ingredient_id,omitempty" gorm:"type:uuid"`
+	WriteOffID   uuid.UUID   `json:"write_off_id" gorm:"type:uuid;not null;index"`
+	IngredientID *uuid.UUID  `json:"ingredient_id,omitempty" gorm:"type:uuid;index"`
 	Ingredient   *Ingredient `json:"ingredient,omitempty" gorm:"foreignKey:IngredientID"`
-	ProductID    *uuid.UUID  `json:"product_id,omitempty" gorm:"type:uuid"`
+	ProductID    *uuid.UUID  `json:"product_id,omitempty" gorm:"type:uuid;index"`
 	Product      *Product    `json:"product,omitempty" gorm:"foreignKey:ProductID"`
 	Quantity     float64     `json:"quantity" gorm:"not null"`
 	Unit         string      `json:"unit" gorm:"not null"`

@@ -22,6 +22,66 @@ func NewEstablishmentHandler(usecase *usecases.EstablishmentUseCase, logger *zap
 	}
 }
 
+// EstablishmentResponse представляет структуру заведения в ответе API
+// @Description Структура заведения со всеми полями, включая настройки и связанные таблицы
+type EstablishmentResponse struct {
+	// ID уникальный идентификатор заведения (UUID)
+	ID string `json:"id" example:"550e8400-e29b-41d4-a716-446655440000"`
+	// OwnerID идентификатор владельца заведения
+	OwnerID string `json:"owner_id" example:"550e8400-e29b-41d4-a716-446655440000"`
+	// Name название заведения
+	Name string `json:"name" example:"Кафе Москва"`
+	// Address адрес заведения
+	Address string `json:"address" example:"ул. Тверская, д. 1"`
+	// Phone телефон заведения
+	Phone string `json:"phone" example:"+79991234567"`
+	// Email email заведения
+	Email string `json:"email" example:"info@cafe-moscow.ru"`
+	// HasSeatingPlaces есть ли сидячие места
+	HasSeatingPlaces bool `json:"has_seating_places" example:"true"`
+	// TableCount количество столов (если есть сидячие места)
+	TableCount *int `json:"table_count,omitempty" example:"10"`
+	// Type тип заведения: restaurant, cafe, fast_food, bar, pizzeria, bakery, coffee_shop, takeaway, delivery, other
+	Type string `json:"type" example:"cafe"`
+	// Tables массив столов заведения (если есть сидячие места)
+	Tables []TableResponse `json:"tables,omitempty"`
+	// Active активность заведения
+	Active bool `json:"active" example:"true"`
+	// CreatedAt дата создания
+	CreatedAt string `json:"created_at" example:"2024-01-18T10:00:00Z"`
+	// UpdatedAt дата последнего обновления
+	UpdatedAt string `json:"updated_at" example:"2024-01-18T10:00:00Z"`
+}
+
+// TableResponse представляет структуру стола в ответе API
+// @Description Структура стола с координатами и статусом
+type TableResponse struct {
+	// ID уникальный идентификатор стола (UUID)
+	ID string `json:"id" example:"550e8400-e29b-41d4-a716-446655440000"`
+	// EstablishmentID идентификатор заведения
+	EstablishmentID string `json:"establishment_id" example:"550e8400-e29b-41d4-a716-446655440000"`
+	// Number номер стола (уникален в рамках заведения)
+	Number int `json:"number" example:"1"`
+	// Name название стола (опционально)
+	Name string `json:"name" example:"Стол у окна"`
+	// Capacity вместимость стола (количество мест)
+	Capacity int `json:"capacity" example:"4"`
+	// PositionX X координата на схеме зала
+	PositionX float64 `json:"position_x" example:"100.5"`
+	// PositionY Y координата на схеме зала
+	PositionY float64 `json:"position_y" example:"200.5"`
+	// Rotation поворот стола в градусах (0-360)
+	Rotation float64 `json:"rotation" example:"0"`
+	// Status статус стола: available, occupied, reserved
+	Status string `json:"status" example:"available"`
+	// Active активность стола
+	Active bool `json:"active" example:"true"`
+	// CreatedAt дата создания
+	CreatedAt string `json:"created_at" example:"2024-01-18T10:00:00Z"`
+	// UpdatedAt дата последнего обновления
+	UpdatedAt string `json:"updated_at" example:"2024-01-18T10:00:00Z"`
+}
+
 type UpdateEstablishmentRequest struct {
 	Name              *string `json:"name,omitempty"`
 	Address           *string `json:"address,omitempty"`
@@ -35,11 +95,11 @@ type UpdateEstablishmentRequest struct {
 
 // List возвращает заведение пользователя (создаётся при onboarding). 0 или 1 элемент.
 // @Summary Получить список заведений
-// @Description Возвращает заведения пользователя (обычно 0 или 1 элемент)
+// @Description Возвращает заведения пользователя (обычно 0 или 1 элемент). Возвращает массив заведений с полями: id, owner_id, name, address, phone, email, has_seating_places, table_count, type, tables, active, created_at, updated_at
 // @Tags establishments
 // @Produce json
 // @Security Bearer
-// @Success 200 {object} map[string]interface{}
+// @Success 200 {array} EstablishmentResponse "Ответ обернут в объект: {\"data\": [заведения]}. Каждое заведение содержит: id, owner_id, name, address, phone, email, has_seating_places, table_count, type, tables, active, created_at, updated_at"
 // @Failure 403 {object} map[string]string
 // @Failure 500 {object} map[string]string
 // @Router /establishments [get]
@@ -60,12 +120,12 @@ func (h *EstablishmentHandler) List(c *gin.Context) {
 
 // Get возвращает заведение по ID. Доступ только к своему заведению.
 // @Summary Получить заведение по ID
-// @Description Возвращает заведение по ID (доступ только к своему заведению)
+// @Description Возвращает заведение по ID (доступ только к своему заведению). Возвращает объект с полями: id, owner_id, name, address, phone, email, has_seating_places, table_count, type, tables (массив столов), active, created_at, updated_at
 // @Tags establishments
 // @Produce json
 // @Security Bearer
 // @Param id path string true "ID заведения"
-// @Success 200 {object} map[string]interface{}
+// @Success 200 {object} EstablishmentResponse "Ответ обернут в объект: {\"data\": {заведение}}. Поля заведения: id, owner_id, name, address, phone, email, has_seating_places, table_count, type, tables (массив), active, created_at, updated_at"
 // @Failure 400 {object} map[string]string
 // @Failure 403 {object} map[string]string
 // @Failure 404 {object} map[string]string
@@ -108,14 +168,14 @@ func (h *EstablishmentHandler) Create(c *gin.Context) {
 
 // Update обновляет заведение. Только своё.
 // @Summary Обновить заведение
-// @Description Обновляет заведение (доступ только к своему заведению)
+// @Description Обновляет заведение (доступ только к своему заведению). Возвращает обновленное заведение с полями: id, owner_id, name, address, phone, email, has_seating_places, table_count, type, tables, active, created_at, updated_at
 // @Tags establishments
 // @Accept json
 // @Produce json
 // @Security Bearer
 // @Param id path string true "ID заведения"
-// @Param request body UpdateEstablishmentRequest true "Данные для обновления"
-// @Success 200 {object} map[string]interface{}
+// @Param request body UpdateEstablishmentRequest true "Данные для обновления. Все поля опциональны"
+// @Success 200 {object} EstablishmentResponse "Ответ обернут в объект: {\"data\": {заведение}}. Поля заведения: id, owner_id, name, address, phone, email, has_seating_places, table_count, type, tables, active, created_at, updated_at"
 // @Failure 400 {object} map[string]string
 // @Failure 403 {object} map[string]string
 // @Failure 404 {object} map[string]string

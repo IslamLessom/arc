@@ -10,13 +10,13 @@ import (
 // Order представляет заказ
 type Order struct {
 	ID            uuid.UUID      `json:"id" gorm:"type:uuid;primaryKey;default:gen_random_uuid()"`
-	EstablishmentID uuid.UUID    `json:"establishment_id" gorm:"type:uuid;not null"`
+	EstablishmentID uuid.UUID    `json:"establishment_id" gorm:"type:uuid;not null;index"`
 	Establishment   *Establishment `json:"establishment,omitempty" gorm:"foreignKey:EstablishmentID"`
-	TableNumber     *int         `json:"table_number,omitempty"`
-	Status        string         `json:"status" gorm:"not null"` // draft, confirmed, preparing, ready, paid, cancelled
+	TableNumber     *int         `json:"table_number,omitempty" gorm:"index"`
+	Status        string         `json:"status" gorm:"not null;index"` // draft, confirmed, preparing, ready, paid, cancelled
 	TotalAmount   float64        `json:"total_amount"`
 	Items         []OrderItem    `json:"items,omitempty" gorm:"foreignKey:OrderID"`
-	CreatedAt     time.Time      `json:"created_at"`
+	CreatedAt     time.Time      `json:"created_at" gorm:"index"`
 	UpdatedAt     time.Time      `json:"updated_at"`
 	DeletedAt     gorm.DeletedAt `json:"-" gorm:"index"`
 }
@@ -32,10 +32,10 @@ func (o *Order) BeforeCreate(tx *gorm.DB) error {
 // OrderItem представляет позицию заказа
 type OrderItem struct {
 	ID          uuid.UUID   `json:"id" gorm:"type:uuid;primaryKey;default:gen_random_uuid()"`
-	OrderID     uuid.UUID   `json:"order_id" gorm:"type:uuid;not null"`
-	ProductID   *uuid.UUID  `json:"product_id,omitempty" gorm:"type:uuid"`
+	OrderID     uuid.UUID   `json:"order_id" gorm:"type:uuid;not null;index"`
+	ProductID   *uuid.UUID  `json:"product_id,omitempty" gorm:"type:uuid;index"`
 	Product     *Product    `json:"product,omitempty" gorm:"foreignKey:ProductID"`
-	TechCardID  *uuid.UUID  `json:"tech_card_id,omitempty" gorm:"type:uuid"`
+	TechCardID  *uuid.UUID  `json:"tech_card_id,omitempty" gorm:"type:uuid;index"`
 	TechCard    *TechCard   `json:"tech_card,omitempty" gorm:"foreignKey:TechCardID"`
 	Quantity    int        `json:"quantity" gorm:"not null"`
 	Price       float64    `json:"price" gorm:"not null"`

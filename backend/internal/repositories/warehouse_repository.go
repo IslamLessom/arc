@@ -42,6 +42,7 @@ type WarehouseRepository interface {
 	GetSuppliesByWarehouse(ctx context.Context, establishmentID uuid.UUID, warehouseID *uuid.UUID) ([]*models.Supply, error)
 	CreateWriteOff(ctx context.Context, writeOff *models.WriteOff) error
 	GetWriteOffsByWarehouse(ctx context.Context, establishmentID uuid.UUID, warehouseID *uuid.UUID) ([]*models.WriteOff, error)
+	GetWriteOffByID(ctx context.Context, id uuid.UUID, establishmentID *uuid.UUID) (*models.WriteOff, error)
 }
 
 type warehouseRepository struct {
@@ -101,9 +102,11 @@ func (r *warehouseRepository) GetStockForEstablishment(ctx context.Context, esta
 		Preload("Ingredient.Category").
 		Preload("Product.Category").
 		Preload("Warehouse").
-		Joins("LEFT JOIN ingredients ON stocks.ingredient_id = ingredients.id").
-		Joins("LEFT JOIN products ON stocks.product_id = products.id").
-		Where("(ingredients.establishment_id = ? OR products.establishment_id = ?)", establishmentID, establishmentID)
+		// Используем INNER JOIN вместо LEFT JOIN для лучшей производительности
+		// и фильтруем по establishment_id сразу в JOIN
+		Joins("LEFT JOIN ingredients ON stocks.ingredient_id = ingredients.id AND ingredients.establishment_id = ?", establishmentID).
+		Joins("LEFT JOIN products ON stocks.product_id = products.id AND products.establishment_id = ?", establishmentID).
+		Where("(stocks.ingredient_id IS NOT NULL AND ingredients.id IS NOT NULL) OR (stocks.product_id IS NOT NULL AND products.id IS NOT NULL)")
 
 	if filter != nil {
 		if filter.WarehouseID != nil {
@@ -111,14 +114,15 @@ func (r *warehouseRepository) GetStockForEstablishment(ctx context.Context, esta
 		}
 		if filter.Search != nil && *filter.Search != "" {
 			search := "%" + strings.ToLower(*filter.Search) + "%"
-			query = query.Where("LOWER(ingredients.name) LIKE ? OR LOWER(products.name) LIKE ?", search, search)
+			// Оптимизация: используем COALESCE для объединения условий поиска
+			query = query.Where("COALESCE(LOWER(ingredients.name), LOWER(products.name)) LIKE ?", search)
 		}
 		if filter.Type != nil {
 			switch *filter.Type {
 			case "ingredient":
-				query = query.Where("stocks.ingredient_id IS NOT NULL")
+				query = query.Where("stocks.ingredient_id IS NOT NULL AND ingredients.id IS NOT NULL")
 			case "product":
-				query = query.Where("stocks.product_id IS NOT NULL")
+				query = query.Where("stocks.product_id IS NOT NULL AND products.id IS NOT NULL")
 			}
 		}
 		if filter.CategoryID != nil {
@@ -222,37 +226,28 @@ func (r *warehouseRepository) CreateSupply(ctx context.Context, supply *models.S
 }
 
 func (r *warehouseRepository) GetSuppliesByIngredientOrProduct(ctx context.Context, establishmentID uuid.UUID, ingredientID *uuid.UUID, productID *uuid.UUID) ([]*models.Supply, error) {
-	// Сначала находим ID поставок, которые содержат нужный ингредиент или товар
-	var supplyIDs []uuid.UUID
-	subQuery := r.db.WithContext(ctx).
-		Model(&models.SupplyItem{}).
-		Select("supply_id").
-		Where("supply_id IN (SELECT id FROM supplies WHERE warehouse_id IN (SELECT id FROM warehouses WHERE establishment_id = ?))", establishmentID)
-
-	if ingredientID != nil {
-		subQuery = subQuery.Where("ingredient_id = ?", *ingredientID)
-	}
-	if productID != nil {
-		subQuery = subQuery.Where("product_id = ?", *productID)
-	}
-
-	if err := subQuery.Distinct().Pluck("supply_id", &supplyIDs).Error; err != nil {
-		return nil, err
-	}
-
-	if len(supplyIDs) == 0 {
-		return []*models.Supply{}, nil
-	}
-
-	// Затем загружаем полные данные поставок
+	// Оптимизированный запрос с JOIN вместо вложенных подзапросов
 	var supplies []*models.Supply
-	err := r.db.WithContext(ctx).
+	query := r.db.WithContext(ctx).
+		Model(&models.Supply{}).
 		Preload("Warehouse").
 		Preload("Supplier").
 		Preload("Items.Ingredient").
 		Preload("Items.Product").
-		Where("id IN ?", supplyIDs).
-		Order("delivery_date_time DESC").
+		Joins("JOIN warehouses ON supplies.warehouse_id = warehouses.id").
+		Joins("JOIN supply_items ON supplies.id = supply_items.supply_id").
+		Where("warehouses.establishment_id = ?", establishmentID)
+
+	if ingredientID != nil {
+		query = query.Where("supply_items.ingredient_id = ?", *ingredientID)
+	}
+	if productID != nil {
+		query = query.Where("supply_items.product_id = ?", *productID)
+	}
+
+	err := query.
+		Group("supplies.id").
+		Order("supplies.delivery_date_time DESC").
 		Find(&supplies).Error
 
 	return supplies, err
@@ -323,4 +318,24 @@ func (r *warehouseRepository) GetWriteOffsByWarehouse(ctx context.Context, estab
 	var writeOffs []*models.WriteOff
 	err := query.Order("write_offs.write_off_date_time DESC").Find(&writeOffs).Error
 	return writeOffs, err
+}
+
+func (r *warehouseRepository) GetWriteOffByID(ctx context.Context, id uuid.UUID, establishmentID *uuid.UUID) (*models.WriteOff, error) {
+	var writeOff models.WriteOff
+	query := r.db.WithContext(ctx).
+		Preload("Warehouse").
+		Preload("Items.Ingredient").
+		Preload("Items.Product").
+		Joins("JOIN warehouses ON write_offs.warehouse_id = warehouses.id").
+		Where("write_offs.id = ?", id)
+	
+	if establishmentID != nil {
+		query = query.Where("warehouses.establishment_id = ?", *establishmentID)
+	}
+	
+	err := query.First(&writeOff, "write_offs.id = ?", id).Error
+	if err == gorm.ErrRecordNotFound {
+		return nil, nil
+	}
+	return &writeOff, err
 }

@@ -22,8 +22,8 @@ func main() {
 	log.Printf("Connecting to database: %s@%s:%d/%s", 
 		cfg.Database.User, cfg.Database.Host, cfg.Database.Port, cfg.Database.Name)
 
-	// Инициализация БД
-	db, err := database.NewPostgres(cfg.Database)
+	// Инициализация БД (logger = nil для скриптов)
+	db, err := database.NewPostgres(cfg.Database, nil)
 	if err != nil {
 		log.Fatal("Failed to connect to database:", err)
 	}

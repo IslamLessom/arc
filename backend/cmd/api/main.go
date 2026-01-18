@@ -55,7 +55,7 @@ func main() {
 	}
 
 	// Initialize database
-	db, err := database.NewPostgres(cfg.Database)
+	db, err := database.NewPostgres(cfg.Database, lg)
 	if err != nil {
 		lg.Fatal("failed to connect to database", zap.Error(err))
 	}

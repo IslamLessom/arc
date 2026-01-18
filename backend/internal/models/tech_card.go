@@ -12,9 +12,9 @@ type TechCard struct {
 	ID              uuid.UUID          `json:"id" gorm:"type:uuid;primaryKey;default:gen_random_uuid()"`
 	EstablishmentID uuid.UUID          `json:"establishment_id" gorm:"type:uuid;not null;index"`
 	Establishment   *Establishment     `json:"establishment,omitempty" gorm:"foreignKey:EstablishmentID"`
-	CategoryID      uuid.UUID          `json:"category_id" gorm:"type:uuid;not null"`
+	CategoryID      uuid.UUID          `json:"category_id" gorm:"type:uuid;not null;index"`
 	Category      *Category          `json:"category,omitempty" gorm:"foreignKey:CategoryID"`
-	WorkshopID    *uuid.UUID         `json:"workshop_id,omitempty" gorm:"type:uuid"` // Цех приготовления (может быть null)
+	WorkshopID    *uuid.UUID         `json:"workshop_id,omitempty" gorm:"type:uuid;index"` // Цех приготовления (может быть null)
 	Workshop      *Workshop          `json:"workshop,omitempty" gorm:"foreignKey:WorkshopID"`
 	Name          string             `json:"name" gorm:"not null"`
 	Description   string             `json:"description"`
@@ -31,10 +31,10 @@ type TechCard struct {
 	Markup      float64        `json:"markup" gorm:"default:0"`                      // Наценка (%)
 	Price       float64        `json:"price" gorm:"not null"`                        // Итоговая цена (себестоимость + наценка)
 	
-	Active        bool               `json:"active" gorm:"default:true"`
+	Active        bool               `json:"active" gorm:"default:true;index"`
 	Ingredients   []TechCardIngredient `json:"ingredients,omitempty" gorm:"foreignKey:TechCardID"`
 	ModifierSets  []ModifierSet      `json:"modifier_sets,omitempty" gorm:"foreignKey:TechCardID"`
-	CreatedAt     time.Time          `json:"created_at"`
+	CreatedAt     time.Time          `json:"created_at" gorm:"index"`
 	UpdatedAt     time.Time          `json:"updated_at"`
 	DeletedAt     gorm.DeletedAt     `json:"-" gorm:"index"`
 }

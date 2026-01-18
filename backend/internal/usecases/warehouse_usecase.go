@@ -193,6 +193,16 @@ func (uc *WarehouseUseCase) GetSuppliesByIngredientOrProduct(ctx context.Context
 	return uc.repo.GetSuppliesByIngredientOrProduct(ctx, establishmentID, ingredientID, productID)
 }
 
+// GetWriteOffs возвращает список списаний
+func (uc *WarehouseUseCase) GetWriteOffs(ctx context.Context, establishmentID uuid.UUID, warehouseID *uuid.UUID) ([]*models.WriteOff, error) {
+	return uc.repo.GetWriteOffsByWarehouse(ctx, establishmentID, warehouseID)
+}
+
+// GetWriteOff возвращает списание по ID
+func (uc *WarehouseUseCase) GetWriteOff(ctx context.Context, id uuid.UUID, establishmentID uuid.UUID) (*models.WriteOff, error) {
+	return uc.repo.GetWriteOffByID(ctx, id, &establishmentID)
+}
+
 // GetMovements возвращает все движения по складу (Supply и WriteOff)
 func (uc *WarehouseUseCase) GetMovements(ctx context.Context, establishmentID uuid.UUID, warehouseID *uuid.UUID) ([]interface{}, error) {
 	movements := make([]interface{}, 0)

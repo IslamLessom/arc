@@ -208,25 +208,89 @@ definitions:
     properties:
       comment:
         description: Комментарий
+        example: Комментарий к списанию
         type: string
       items:
+        description: Список позиций для списания (минимум 1)
         items:
           $ref: '#/definitions/handlers.WriteOffItemRequest'
         minItems: 1
         type: array
       reason:
         description: Причина списания
+        example: Без причины
         type: string
       warehouse_id:
-        description: Склад
+        description: ID склада
+        example: 550e8400-e29b-41d4-a716-446655440000
         type: string
       write_off_date_time:
-        description: Дата и время списания (RFC3339)
+        description: Дата и время списания в формате RFC3339
+        example: "2026-01-18T17:18:00Z"
         type: string
     required:
     - items
     - warehouse_id
     - write_off_date_time
+    type: object
+  handlers.EstablishmentResponse:
+    description: Структура заведения со всеми полями, включая настройки и связанные
+      таблицы
+    properties:
+      active:
+        description: Active активность заведения
+        example: true
+        type: boolean
+      address:
+        description: Address адрес заведения
+        example: ул. Тверская, д. 1
+        type: string
+      created_at:
+        description: CreatedAt дата создания
+        example: "2024-01-18T10:00:00Z"
+        type: string
+      email:
+        description: Email email заведения
+        example: info@cafe-moscow.ru
+        type: string
+      has_seating_places:
+        description: HasSeatingPlaces есть ли сидячие места
+        example: true
+        type: boolean
+      id:
+        description: ID уникальный идентификатор заведения (UUID)
+        example: 550e8400-e29b-41d4-a716-446655440000
+        type: string
+      name:
+        description: Name название заведения
+        example: Кафе Москва
+        type: string
+      owner_id:
+        description: OwnerID идентификатор владельца заведения
+        example: 550e8400-e29b-41d4-a716-446655440000
+        type: string
+      phone:
+        description: Phone телефон заведения
+        example: "+79991234567"
+        type: string
+      table_count:
+        description: TableCount количество столов (если есть сидячие места)
+        example: 10
+        type: integer
+      tables:
+        description: Tables массив столов заведения (если есть сидячие места)
+        items:
+          $ref: '#/definitions/handlers.TableResponse'
+        type: array
+      type:
+        description: 'Type тип заведения: restaurant, cafe, fast_food, bar, pizzeria,
+          bakery, coffee_shop, takeaway, delivery, other'
+        example: cafe
+        type: string
+      updated_at:
+        description: UpdatedAt дата последнего обновления
+        example: "2024-01-18T10:00:00Z"
+        type: string
     type: object
   handlers.LoginRequest:
     properties:
@@ -270,6 +334,91 @@ definitions:
     required:
     - name
     - selection_type
+    type: object
+  handlers.QuestionOptionResponse:
+    description: Вариант ответа для вопросов типа "select". Содержит значение для
+      отправки и текст для отображения
+    properties:
+      label:
+        description: Label текст для отображения пользователю
+        example: Ресторан
+        type: string
+      value:
+        description: Value значение, которое отправляется в ответе (используется в
+          поле "key" при SubmitAnswers)
+        example: restaurant
+        type: string
+    type: object
+  handlers.QuestionResponse:
+    description: Структура вопроса опросника. Содержит все необходимые поля для отображения
+      и обработки вопроса на фронтенде
+    properties:
+      condition:
+        description: 'Condition условие показа вопроса (например: "has_seating_places=true")'
+        example: has_seating_places=true
+        type: string
+      default_value:
+        description: DefaultValue значение по умолчанию
+        example: ""
+        type: string
+      id:
+        description: ID уникальный идентификатор вопроса (UUID)
+        example: 550e8400-e29b-41d4-a716-446655440000
+        type: string
+      key:
+        description: 'Key ключ вопроса, используется при отправке ответов (например:
+          "establishment_name", "has_seating_places")'
+        example: establishment_name
+        type: string
+      label:
+        description: Label текст вопроса для отображения пользователю
+        example: Название заведения
+        type: string
+      options:
+        description: Options варианты ответов для вопросов типа "select"
+        items:
+          $ref: '#/definitions/handlers.QuestionOptionResponse'
+        type: array
+      placeholder:
+        description: Placeholder подсказка для поля ввода
+        example: Введите название вашего заведения
+        type: string
+      required:
+        description: Required обязательность заполнения вопроса
+        example: true
+        type: boolean
+      type:
+        description: 'Type тип вопроса: text, email, phone, number, boolean, select'
+        enum:
+        - text
+        - email
+        - phone
+        - number
+        - boolean
+        - select
+        example: text
+        type: string
+      validation:
+        description: Validation правила валидации в формате JSON
+        example: '{"min": 3, "max": 100}'
+        type: string
+    type: object
+  handlers.QuestionsResponse:
+    description: Структура ответа с вопросами, сгруппированными по шагам. Поле data
+      содержит объект, где ключи - номера шагов (строки "1", "2", "3"...), а значения
+      - массивы вопросов
+    properties:
+      data:
+        additionalProperties:
+          items:
+            $ref: '#/definitions/handlers.QuestionResponse'
+          type: array
+        description: Data содержит вопросы, сгруппированные по шагам. Ключи - номера
+          шагов (строки), значения - массивы вопросов
+        type: object
+      steps:
+        description: Steps - количество шагов в опроснике
+        type: integer
     type: object
   handlers.RefreshRequest:
     properties:
@@ -319,6 +468,58 @@ definitions:
     required:
     - quantity
     - unit
+    type: object
+  handlers.TableResponse:
+    description: Структура стола с координатами и статусом
+    properties:
+      active:
+        description: Active активность стола
+        example: true
+        type: boolean
+      capacity:
+        description: Capacity вместимость стола (количество мест)
+        example: 4
+        type: integer
+      created_at:
+        description: CreatedAt дата создания
+        example: "2024-01-18T10:00:00Z"
+        type: string
+      establishment_id:
+        description: EstablishmentID идентификатор заведения
+        example: 550e8400-e29b-41d4-a716-446655440000
+        type: string
+      id:
+        description: ID уникальный идентификатор стола (UUID)
+        example: 550e8400-e29b-41d4-a716-446655440000
+        type: string
+      name:
+        description: Name название стола (опционально)
+        example: Стол у окна
+        type: string
+      number:
+        description: Number номер стола (уникален в рамках заведения)
+        example: 1
+        type: integer
+      position_x:
+        description: PositionX X координата на схеме зала
+        example: 100.5
+        type: number
+      position_y:
+        description: PositionY Y координата на схеме зала
+        example: 200.5
+        type: number
+      rotation:
+        description: Rotation поворот стола в градусах (0-360)
+        example: 0
+        type: number
+      status:
+        description: 'Status статус стола: available, occupied, reserved'
+        example: available
+        type: string
+      updated_at:
+        description: UpdatedAt дата последнего обновления
+        example: "2024-01-18T10:00:00Z"
+        type: string
     type: object
   handlers.TechCardIngredientRequest:
     properties:
@@ -493,14 +694,23 @@ definitions:
     properties:
       details:
         description: Детали списания
+        example: Детали списания
         type: string
       ingredient_id:
+        description: ID ингредиента (обязательно, если не указан product_id)
+        example: 550e8400-e29b-41d4-a716-446655440001
         type: string
       product_id:
+        description: ID товара (обязательно, если не указан ingredient_id)
+        example: 550e8400-e29b-41d4-a716-446655440002
         type: string
       quantity:
+        description: Количество для списания
+        example: 10
         type: number
       unit:
+        description: Единица измерения
+        example: кг
         type: string
     required:
     - quantity
@@ -580,28 +790,59 @@ paths:
       - auth
   /auth/onboarding/questions:
     get:
-      description: Возвращает все активные вопросы опросника, отсортированные по шагам
+      description: 'Возвращает все активные вопросы опросника, отсортированные по
+        шагам. Вопросы группируются по номерам шагов (1, 2, 3...). Каждый вопрос содержит:
+        id (UUID), key (ключ для ответа, используется при отправке ответов), type
+        (text/email/phone/number/boolean/select), label (текст вопроса), placeholder
+        (подсказка), required (обязательность), default_value (значение по умолчанию),
+        condition (условие показа), validation (правила валидации). Для вопросов типа
+        "select" дополнительно возвращается массив options с полями value (значение
+        для отправки) и label (текст для отображения).'
       produces:
       - application/json
       responses:
         "200":
-          description: OK
+          description: 'Структура ответа: {\"data\": {\"1\": [вопросы шага 1], \"2\":
+            [вопросы шага 2]}, \"steps\": количество_шагов}" "Пример ответа: {\"data\":{\"1\":[{\"id\":\"uuid\",\"key\":\"establishment_name\",\"type\":\"text\",\"label\":\"Название
+            заведения\",\"placeholder\":\"Введите название\",\"required\":true,\"default_value\":\"\",\"condition\":\"\",\"validation\":\"\"}],\"2\":[{\"id\":\"uuid\",\"key\":\"establishment_type\",\"type\":\"select\",\"label\":\"Тип
+            заведения\",\"required\":true,\"options\":[{\"value\":\"restaurant\",\"label\":\"Ресторан\"},{\"value\":\"cafe\",\"label\":\"Кафе\"}]}]},\"steps\":2}'
           schema:
-            additionalProperties: true
+            $ref: '#/definitions/handlers.QuestionsResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
             type: object
       summary: Получить вопросы опросника
       tags:
       - onboarding
   /auth/onboarding/response:
     get:
-      description: Возвращает сохраненные ответы пользователя на опросник
+      description: 'Возвращает сохраненные ответы пользователя на опросник. Если опросник
+        не пройден, возвращается completed: false и data: null. Если пройден, возвращается
+        объект с полями: data (объект с ответами, где ключи - это question_key, значения
+        - ответы пользователя) и completed (true/false)'
       produces:
       - application/json
       responses:
         "200":
-          description: OK
+          description: 'Ответ содержит data (объект с ответами, ключи - question_key)
+            и completed (true/false). Если опросник не пройден, data: null'
           schema:
             additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
             type: object
       security:
       - Bearer: []
@@ -612,10 +853,14 @@ paths:
     post:
       consumes:
       - application/json
-      description: Обрабатывает ответы пользователя, создает заведение и настраивает
-        систему
+      description: 'Обрабатывает ответы пользователя, создает заведение и настраивает
+        систему. Ответы передаются в формате объекта, где ключи соответствуют полю
+        "key" из вопросов, а значения - ответы пользователя. Типы значений зависят
+        от типа вопроса: text/email/phone - строка, number - число, boolean - true/false,
+        select - значение из options.value'
       parameters:
-      - description: Ответы на вопросы опросника
+      - description: Ответы на вопросы опросника. Ключи объекта answers соответствуют
+          полю 'key' из вопросов
         in: body
         name: answers
         required: true
@@ -625,7 +870,7 @@ paths:
       - application/json
       responses:
         "201":
-          description: Created
+          description: Ответ содержит message и establishment объект
           schema:
             additionalProperties: true
             type: object
@@ -704,15 +949,20 @@ paths:
       - auth
   /establishments:
     get:
-      description: Возвращает заведения пользователя (обычно 0 или 1 элемент)
+      description: 'Возвращает заведения пользователя (обычно 0 или 1 элемент). Возвращает
+        массив заведений с полями: id, owner_id, name, address, phone, email, has_seating_places,
+        table_count, type, tables, active, created_at, updated_at'
       produces:
       - application/json
       responses:
         "200":
-          description: OK
+          description: 'Ответ обернут в объект: {\"data\": [заведения]}. Каждое заведение
+            содержит: id, owner_id, name, address, phone, email, has_seating_places,
+            table_count, type, tables, active, created_at, updated_at'
           schema:
-            additionalProperties: true
-            type: object
+            items:
+              $ref: '#/definitions/handlers.EstablishmentResponse'
+            type: array
         "403":
           description: Forbidden
           schema:
@@ -773,7 +1023,9 @@ paths:
       tags:
       - establishments
     get:
-      description: Возвращает заведение по ID (доступ только к своему заведению)
+      description: 'Возвращает заведение по ID (доступ только к своему заведению).
+        Возвращает объект с полями: id, owner_id, name, address, phone, email, has_seating_places,
+        table_count, type, tables (массив столов), active, created_at, updated_at'
       parameters:
       - description: ID заведения
         in: path
@@ -784,10 +1036,11 @@ paths:
       - application/json
       responses:
         "200":
-          description: OK
+          description: 'Ответ обернут в объект: {\"data\": {заведение}}. Поля заведения:
+            id, owner_id, name, address, phone, email, has_seating_places, table_count,
+            type, tables (массив), active, created_at, updated_at'
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/handlers.EstablishmentResponse'
         "400":
           description: Bad Request
           schema:
@@ -814,14 +1067,16 @@ paths:
     put:
       consumes:
       - application/json
-      description: Обновляет заведение (доступ только к своему заведению)
+      description: 'Обновляет заведение (доступ только к своему заведению). Возвращает
+        обновленное заведение с полями: id, owner_id, name, address, phone, email,
+        has_seating_places, table_count, type, tables, active, created_at, updated_at'
       parameters:
       - description: ID заведения
         in: path
         name: id
         required: true
         type: string
-      - description: Данные для обновления
+      - description: Данные для обновления. Все поля опциональны
         in: body
         name: request
         required: true
@@ -831,10 +1086,11 @@ paths:
       - application/json
       responses:
         "200":
-          description: OK
+          description: 'Ответ обернут в объект: {\"data\": {заведение}}. Поля заведения:
+            id, owner_id, name, address, phone, email, has_seating_places, table_count,
+            type, tables, active, created_at, updated_at'
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/handlers.EstablishmentResponse'
         "400":
           description: Bad Request
           schema:
@@ -1571,7 +1827,9 @@ paths:
     post:
       consumes:
       - application/json
-      description: Создает новый товар и автоматически создает остатки на складе
+      description: Создает новый товар и автоматически создает остатки на складе.
+        Поле cover_image принимает URL изображения, полученный через POST /api/v1/upload/image
+        или POST /api/v1/upload/image/base64
       parameters:
       - description: Данные товара
         in: body
@@ -1693,7 +1951,8 @@ paths:
     put:
       consumes:
       - application/json
-      description: Обновляет данные товара
+      description: Обновляет данные товара. Поле cover_image принимает URL изображения,
+        полученный через POST /api/v1/upload/image или POST /api/v1/upload/image/base64
       parameters:
       - description: ID товара
         in: path
@@ -1779,7 +2038,8 @@ paths:
     post:
       consumes:
       - application/json
-      description: Создает новую тех-карту
+      description: Создает новую тех-карту. Поле cover_image принимает URL изображения,
+        полученный через POST /api/v1/upload/image или POST /api/v1/upload/image/base64
       parameters:
       - description: Данные тех-карты
         in: body
@@ -1901,7 +2161,8 @@ paths:
     put:
       consumes:
       - application/json
-      description: Обновляет данные тех-карты
+      description: Обновляет данные тех-карты. Поле cover_image принимает URL изображения,
+        полученный через POST /api/v1/upload/image или POST /api/v1/upload/image/base64
       parameters:
       - description: ID тех-карты
         in: path
@@ -2217,6 +2478,81 @@ paths:
       summary: Получить статистику продаж
       tags:
       - statistics
+  /upload/image:
+    post:
+      consumes:
+      - multipart/form-data
+      description: Загружает изображение в хранилище и возвращает публичный URL
+      parameters:
+      - description: Файл изображения
+        in: formData
+        name: file
+        required: true
+        type: file
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - Bearer: []
+      summary: Загрузить изображение
+      tags:
+      - upload
+  /upload/image/base64:
+    post:
+      consumes:
+      - application/json
+      description: Загружает изображение из base64 строки в хранилище
+      parameters:
+      - description: Base64 изображения
+        in: body
+        name: request
+        required: true
+        schema:
+          additionalProperties:
+            type: string
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - Bearer: []
+      summary: Загрузить изображение из base64
+      tags:
+      - upload
   /warehouse/movements:
     get:
       description: Возвращает историю движений по складу
@@ -2635,30 +2971,20 @@ paths:
       tags:
       - warehouse
   /warehouse/write-offs:
-    post:
-      consumes:
-      - application/json
-      description: Создает списание со склада
+    get:
+      description: Возвращает список списаний с возможностью фильтрации по складу
       parameters:
-      - description: Данные списания
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/handlers.CreateWriteOffRequest'
+      - description: ID склада
+        in: query
+        name: warehouse_id
+        type: string
       produces:
       - application/json
       responses:
-        "201":
-          description: Created
+        "200":
+          description: OK
           schema:
             additionalProperties: true
-            type: object
-        "400":
-          description: Bad Request
-          schema:
-            additionalProperties:
-              type: string
             type: object
         "403":
           description: Forbidden
@@ -2674,7 +3000,91 @@ paths:
             type: object
       security:
       - Bearer: []
+      summary: Получить список списаний
+      tags:
+      - warehouse
+    post:
+      consumes:
+      - application/json
+      description: Создает списание товаров/ингредиентов со склада. При создании списания
+        автоматически уменьшаются остатки на складе. Каждая позиция списания должна
+        иметь либо ingredient_id, либо product_id.
+      parameters:
+      - description: Данные списания
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.CreateWriteOffRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Созданное списание
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Ошибка валидации данных
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Доступ запрещен
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - Bearer: []
       summary: Создать списание
+      tags:
+      - warehouse
+  /warehouse/write-offs/{id}:
+    get:
+      description: Возвращает списание по ID
+      parameters:
+      - description: ID списания
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - Bearer: []
+      summary: Получить списание по ID
       tags:
       - warehouse
   /warehouses:
