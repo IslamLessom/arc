@@ -64,6 +64,13 @@ func NewRouter(usecases *usecases.UseCases, cfg *config.Config, logger *zap.Logg
 		protected := v1.Group("")
 		protected.Use(middleware.Auth(cfg.JWT.Secret, usecases.Auth.GetTokenRepo()))
 		{
+			// Upload routes (для загрузки изображений)
+			uploadHandler := NewUploadHandler(usecases.Storage, logger)
+			upload := protected.Group("/upload")
+			{
+				upload.POST("/image", uploadHandler.UploadImage)
+				upload.POST("/image/base64", uploadHandler.UploadImageFromBase64)
+			}
 			// Establishments (заведение создаётся при onboarding; здесь — просмотр/редактирование)
 			establishmentHandler := NewEstablishmentHandler(usecases.Establishment, logger)
 			establishments := protected.Group("/establishments")

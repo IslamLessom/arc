@@ -154,12 +154,12 @@ func (h *MenuHandler) GetProduct(c *gin.Context) {
 
 // CreateProduct создает новый товар
 // @Summary Создать товар
-// @Description Создает новый товар и автоматически создает остатки на складе
+// @Description Создает новый товар и автоматически создает остатки на складе. Поле cover_image принимает URL изображения, полученный через POST /api/v1/upload/image или POST /api/v1/upload/image/base64
 // @Tags menu
 // @Accept json
 // @Produce json
 // @Security Bearer
-// @Param product body CreateProductRequest true "Данные товара"
+// @Param product body CreateProductRequest true "Данные товара" SchemaExample({"name": "Пицца Маргарита", "category_id": "uuid", "description": "Классическая пицца", "cover_image": "http://localhost:9000/arc-images/images/uuid.jpg", "is_weighted": false, "cost_price": 150.0, "markup": 50.0, "warehouse_id": "uuid"})
 // @Success 201 {object} map[string]interface{}
 // @Failure 400 {object} map[string]string
 // @Failure 403 {object} map[string]string
@@ -231,7 +231,7 @@ func (h *MenuHandler) CreateProduct(c *gin.Context) {
 
 // UpdateProduct обновляет товар
 // @Summary Обновить товар
-// @Description Обновляет данные товара
+// @Description Обновляет данные товара. Поле cover_image принимает URL изображения, полученный через POST /api/v1/upload/image или POST /api/v1/upload/image/base64
 // @Tags menu
 // @Accept json
 // @Produce json
@@ -482,12 +482,12 @@ func (h *MenuHandler) GetTechCard(c *gin.Context) {
 
 // CreateTechCard создает новую тех-карту
 // @Summary Создать тех-карту
-// @Description Создает новую тех-карту
+// @Description Создает новую тех-карту. Поле cover_image принимает URL изображения, полученный через POST /api/v1/upload/image или POST /api/v1/upload/image/base64
 // @Tags menu
 // @Accept json
 // @Produce json
 // @Security Bearer
-// @Param request body CreateTechCardRequest true "Данные тех-карты"
+// @Param request body CreateTechCardRequest true "Данные тех-карты" SchemaExample({"name": "Тех-карта пиццы", "category_id": "uuid", "description": "Рецепт пиццы", "cover_image": "http://localhost:9000/arc-images/images/uuid.jpg", "is_weighted": false, "cost_price": 120.0, "markup": 40.0})
 // @Success 201 {object} map[string]interface{}
 // @Failure 400 {object} map[string]string
 // @Failure 403 {object} map[string]string
@@ -593,7 +593,7 @@ func (h *MenuHandler) CreateTechCard(c *gin.Context) {
 
 // UpdateTechCard обновляет тех-карту
 // @Summary Обновить тех-карту
-// @Description Обновляет данные тех-карты
+// @Description Обновляет данные тех-карты. Поле cover_image принимает URL изображения, полученный через POST /api/v1/upload/image или POST /api/v1/upload/image/base64
 // @Tags menu
 // @Accept json
 // @Produce json

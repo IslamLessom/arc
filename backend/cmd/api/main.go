@@ -70,7 +70,10 @@ func main() {
 	repos := repositories.NewRepositories(db)
 
 	// Initialize use cases
-	usecases := usecases.NewUseCases(repos, cfg)
+	usecases, err := usecases.NewUseCases(repos, cfg)
+	if err != nil {
+		lg.Fatal("failed to initialize use cases", zap.Error(err))
+	}
 
 	// Initialize handlers
 	router := handlers.NewRouter(usecases, cfg, lg)

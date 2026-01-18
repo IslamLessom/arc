@@ -14,6 +14,7 @@ type Config struct {
 	Database DatabaseConfig
 	JWT      JWTConfig
 	App      AppConfig
+	Storage  StorageConfig
 }
 
 type ServerConfig struct {
@@ -40,6 +41,15 @@ type AppConfig struct {
 	LogLevel    string
 }
 
+type StorageConfig struct {
+	Endpoint        string
+	AccessKeyID     string
+	SecretAccessKey string
+	UseSSL          bool
+	BucketName      string
+	PublicURL       string // Публичный URL для доступа к файлам
+}
+
 func Load() (*Config, error) {
 	// Load .env file if exists
 	_ = godotenv.Load()
@@ -56,6 +66,14 @@ func Load() (*Config, error) {
 	viper.SetDefault("JWT_EXPIRATION", 24)
 	viper.SetDefault("APP_ENV", "development")
 	viper.SetDefault("LOG_LEVEL", "info")
+	
+	// MinIO/Storage defaults
+	viper.SetDefault("MINIO_ENDPOINT", "localhost:9000")
+	viper.SetDefault("MINIO_ACCESS_KEY", "minioadmin")
+	viper.SetDefault("MINIO_SECRET_KEY", "minioadmin")
+	viper.SetDefault("MINIO_USE_SSL", false)
+	viper.SetDefault("MINIO_BUCKET_NAME", "arc-images")
+	viper.SetDefault("MINIO_PUBLIC_URL", "http://localhost:9000")
 
 	// Read from environment variables
 	viper.AutomaticEnv()
@@ -95,6 +113,14 @@ func Load() (*Config, error) {
 		App: AppConfig{
 			Environment: getEnv("APP_ENV", viper.GetString("APP_ENV")),
 			LogLevel:    getEnv("LOG_LEVEL", viper.GetString("LOG_LEVEL")),
+		},
+		Storage: StorageConfig{
+			Endpoint:        getEnv("MINIO_ENDPOINT", viper.GetString("MINIO_ENDPOINT")),
+			AccessKeyID:     getEnv("MINIO_ACCESS_KEY", viper.GetString("MINIO_ACCESS_KEY")),
+			SecretAccessKey: getEnv("MINIO_SECRET_KEY", viper.GetString("MINIO_SECRET_KEY")),
+			UseSSL:          viper.GetBool("MINIO_USE_SSL"),
+			BucketName:      getEnv("MINIO_BUCKET_NAME", viper.GetString("MINIO_BUCKET_NAME")),
+			PublicURL:       getEnv("MINIO_PUBLIC_URL", viper.GetString("MINIO_PUBLIC_URL")),
 		},
 	}
 
