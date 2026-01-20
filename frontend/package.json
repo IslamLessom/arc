@@ -1,0 +1,26 @@
+{
+  "name": "restaurant-pos",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "lint": "turbo run lint",
+    "type-check": "turbo run type-check",
+    "test": "turbo run test",
+    "dev:marketing": "turbo run dev --filter=@restaurant-pos/marketing-site",
+    "dev:admin": "turbo run dev --filter=@restaurant-pos/admin-panel",
+    "dev:pos": "turbo run dev --filter=@restaurant-pos/pos-pwa",
+    "dev:qr-menu": "turbo run dev --filter=@restaurant-pos/qr-menu-pwa"
+  },
+  "devDependencies": {
+    "turbo": "^2.0.0",
+    "@typescript-eslint/eslint-plugin": "^7.0.0",
+    "@typescript-eslint/parser": "^7.0.0",
+    "eslint": "^8.57.0",
+    "prettier": "^3.2.0",
+    "typescript": "^5.4.0"
+  },
+  "packageManager": "pnpm@9.1.0"
+}
+
