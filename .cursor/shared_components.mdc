@@ -1,0 +1,228 @@
+## Общие фронтенд‑пакеты и компоненты для `@restaurant-pos/admin-panel`
+
+Этот файл описывает, **как админ‑панель использует общие пакеты из `frontend/packages`** и **как правильно добавлять новые общие компоненты** с учётом FSD‑правил из `.cursorrules`.
+
+---
+
+## 1. Где живут общие пакеты
+
+- **Корень фронтенда**: `frontend/`
+- **Workspace** настраивается в `pnpm-workspace.yaml`:
+
+```yaml
+packages:
+  - 'apps/*'
+  - 'packages/*'
+```
+
+Все общие пакеты лежат в `frontend/packages/*` и подтягиваются в приложениях (`apps/*`) как workspace‑зависимости.
+
+Основные общие пакеты:
+
+- **`@restaurant-pos/ui`** → общие UI‑компоненты (`packages/ui`)
+- **`@restaurant-pos/types`** → доменные типы и интерфейсы (`packages/types`)
+- **`@restaurant-pos/api-client`** → HTTP‑клиент, React‑хуки для API (`packages/api-client`)
+
+В `@restaurant-pos/admin-panel` они уже подключены в `package.json`:
+
+```json
+"dependencies": {
+  "@restaurant-pos/ui": "workspace:*",
+  "@restaurant-pos/types": "workspace:*",
+  "@restaurant-pos/api-client": "workspace:*"
+}
+```
+
+---
+
+## 2. Как админ‑панель подтягивает общие компоненты
+
+### 2.1. Общие UI‑компоненты (`@restaurant-pos/ui`)
+
+Пакет `frontend/packages/ui` экспортирует компоненты и утилиты из `src/index.ts`:
+
+- `frontend/packages/ui/src/index.ts`:
+
+```ts
+export { cn } from './utils'
+export { Button } from './button'
+export type { ButtonProps } from './button'
+```
+
+**Внутри админ‑панели** импорт выглядит так:
+
+```ts
+import { Button } from '@restaurant-pos/ui'
+import type { ButtonProps } from '@restaurant-pos/ui'
+```
+
+Используем их в UI‑слое FSD‑компонентов (например, в `ui/ComponentName.tsx`), не смешивая с доменной логикой.
+
+### 2.2. Общие типы (`@restaurant-pos/types`)
+
+Все переиспользуемые доменные типы выносятся в `frontend/packages/types`.
+
+Пример использования в админ‑панели:
+
+```ts
+import type { Order, OrderStatus } from '@restaurant-pos/types'
+```
+
+**Правило:** не дублировать доменные интерфейсы в приложении; если тип нужен в нескольких приложениях, он должен жить в `@restaurant-pos/types`.
+
+### 2.3. API‑клиент и хуки (`@restaurant-pos/api-client`)
+
+Пакет `frontend/packages/api-client` инкапсулирует:
+
+- HTTP‑клиент
+- React‑хуки для работы с API (например, `useOrders`)
+
+Пример использования в FSD‑слое `entities` админ‑панели:
+
+```ts
+import { useOrders } from '@restaurant-pos/api-client'
+import type { Order } from '@restaurant-pos/types'
+```
+
+**Важно:** API‑вызовы и tanstack‑хуки не пишем напрямую в компонентах; в админ‑панели они живут в `entities/*/api.ts` и `entities/*/hooks/*` и могут использовать общие хуки/клиент из `@restaurant-pos/api-client`.
+
+---
+
+## 3. Как писать новые общие компоненты в `frontend/packages`
+
+### 3.1. Общий подход
+
+- **Если это UI‑компонент** (кнопка, инпут, модалка и т.п.) → добавляем его в пакет `@restaurant-pos/ui`.
+- **Если это доменный тип/enum** → добавляем в `@restaurant-pos/types`.
+- **Если это общий React‑хук для работы с API** → добавляем в `@restaurant-pos/api-client` (и/или используем его внутри FSD‑`entities` приложений).
+
+После добавления/изменения:
+
+- не забываем **экспортировать** новый компонент/тип/хук из `src/index.ts` соответствующего пакета;
+- проверяем типы: `pnpm -C frontend/apps/admin-panel run type-check`.
+
+---
+
+## 4. FSD‑подход к общим UI‑компонентам в `@restaurant-pos/ui`
+
+Правила из `.cursorrules` распространяем и на общие компоненты:
+
+- ❌ не используем `any`/`unknown`;
+- ❌ не описываем интерфейсы прямо в UI‑файлах;
+- ✅ выносим типы и enum‑ы в отдельные файлы;
+- ✅ логику выносим в хуки.
+
+### 4.1. Структура нового общего FSD‑компонента
+
+Для **новых** общих компонентов в `@restaurant-pos/ui` используем мини‑FSD‑структуру:
+
+```txt
+frontend/packages/ui/src/
+  [ComponentName]/
+    ui/
+      ComponentName.tsx      # JSX, без логики, < 300 строк
+      styled.ts              # styled-components
+    model/
+      types.ts               # пропсы, внутренние типы
+      enums.ts               # все enum‑ы (если нужны)
+    hooks/
+      useComponentName.ts    # состояние, эффекты, обработчики
+    index.ts                 # экспорт ComponentName и типов
+```
+
+Пример импорта в админ‑панели:
+
+```ts
+import { FancyButton } from '@restaurant-pos/ui'
+```
+
+Для этого в `frontend/packages/ui/src/index.ts` добавляем:
+
+```ts
+export { FancyButton } from './FancyButton'
+export type { FancyButtonProps } from './FancyButton'
+```
+
+Где `frontend/packages/ui/src/FancyButton/index.ts`:
+
+```ts
+export { FancyButton } from './ui/ComponentName'
+export type { FancyButtonProps } from './model/types'
+```
+
+> Старые компоненты (например, текущий `button.tsx`) могут иметь плоскую структуру, но **для новых компонентов придерживаемся FSD‑подхода**.
+
+---
+
+## 5. Шаблон создания нового общего UI‑компонента
+
+1. **Создать папку компонента в `@restaurant-pos/ui`:**
+
+   ```txt
+   frontend/packages/ui/src/ButtonGroup/
+     ui/ButtonGroup.tsx
+     ui/styled.ts
+     model/types.ts
+     hooks/useButtonGroup.ts
+     index.ts
+   ```
+
+2. **Описать типы в `model/types.ts`**:
+
+   - все пропсы компонента;
+   - никакого `any`/`unknown`.
+
+3. **Написать JSX в `ui/ButtonGroup.tsx`**:
+
+   - только разметка и вызов хука `useButtonGroup`;
+   - без побочных эффектов и бизнес‑логики.
+
+4. **Вынести состояние и обработчики в `hooks/useButtonGroup.ts`**.
+
+5. **Добавить styled‑компоненты в `ui/styled.ts`**.
+
+6. **Собрать публичный API в `src/ButtonGroup/index.ts`**:
+
+   - `export { ButtonGroup } from './ui/ButtonGroup'`
+   - `export type { ButtonGroupProps } from './model/types'`
+
+7. **Переэкспортировать компонент из корневого `src/index.ts` пакета `ui`**:
+
+   ```ts
+   export { ButtonGroup } from './ButtonGroup'
+   export type { ButtonGroupProps } from './ButtonGroup'
+   ```
+
+8. **Использовать компонент в админ‑панели**:
+
+   ```ts
+   import { ButtonGroup } from '@restaurant-pos/ui'
+   ```
+
+---
+
+## 6. Добавление новых общих пакетов
+
+Если компонент/логика не вписывается в существующие пакеты (`ui`, `types`, `api-client` и т.д.), можно завести **новый пакет**:
+
+1. Создаём папку: `frontend/packages/forms` (пример).
+2. Добавляем `package.json` с именем `@restaurant-pos/forms`.
+3. Настраиваем `tsconfig.json` и `src/index.ts`.
+4. Используем FSD‑подход внутри пакета, если там будут сложные компоненты.
+5. Подключаем новый пакет в `apps/*` через `package.json` приложения:
+
+   ```json
+   "@restaurant-pos/forms": "workspace:*"
+   ```
+
+---
+
+## 7. Кратко: что делать, если нужен новый общий компонент
+
+- **UI‑компонент** → создаём его в `frontend/packages/ui` по мини‑FSD‑структуре, экспортируем из `src/index.ts`, используем через `@restaurant-pos/ui`.
+- **Доменный тип** → добавляем в `frontend/packages/types`, используем через `@restaurant-pos/types`.
+- **API‑логика/хуки** → добавляем в `frontend/packages/api-client`, в приложении используем внутри `entities/*`.
+
+Так админ‑панель остаётся тонкой FSD‑оболочкой вокруг общих пакетов, а переиспользуемый код живёт в `frontend/packages`.
+
+

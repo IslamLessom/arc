@@ -195,6 +195,15 @@ func (uc *AuthUseCase) GetTokenRepo() repositories.TokenRepository {
 	return uc.tokenRepo
 }
 
+// GetCurrentUser возвращает данные текущего пользователя
+func (uc *AuthUseCase) GetCurrentUser(ctx context.Context, userID uuid.UUID) (*models.User, error) {
+	user, err := uc.userRepo.GetByID(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+	return user, nil
+}
+
 // GetEstablishmentID возвращает ID заведения пользователя (нужен завершённый onboarding)
 func (uc *AuthUseCase) GetEstablishmentID(ctx context.Context, userID uuid.UUID) (*uuid.UUID, error) {
 	user, err := uc.userRepo.GetByID(ctx, userID)

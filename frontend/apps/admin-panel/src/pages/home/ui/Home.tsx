@@ -1,10 +1,8 @@
-'use client'
-
-import { SERVICES } from '@restaurant-pos/types'
 import { Button } from '@restaurant-pos/ui'
+import { useHome } from '../hooks/useHome'
 
-export default function Home() {
-  const currentServiceId = 'admin-panel'
+export const Home = () => {
+  const { services, currentServiceId, handleServiceClick } = useHome()
 
   return (
     <main style={{ padding: '2rem', maxWidth: '1200px', margin: '0 auto' }}>
@@ -13,8 +11,14 @@ export default function Home() {
 
       <div style={{ marginTop: '2rem' }}>
         <h2 style={{ marginBottom: '1rem' }}>Доступные сервисы</h2>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1rem' }}>
-          {SERVICES.map((service) => (
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
+            gap: '1rem',
+          }}
+        >
+          {services.map((service) => (
             <div
               key={service.id}
               style={{
@@ -23,21 +27,17 @@ export default function Home() {
                 borderRadius: '8px',
                 display: 'flex',
                 flexDirection: 'column',
-                gap: '0.5rem'
+                gap: '0.5rem',
               }}
             >
-              <h3 style={{ margin: 0, fontSize: '1.125rem', fontWeight: '600' }}>
+              <h3 style={{ margin: 0, fontSize: '1.125rem', fontWeight: 600 }}>
                 {service.name}
               </h3>
               <p style={{ margin: 0, color: '#6b7280', fontSize: '0.875rem' }}>
                 {service.description}
               </p>
               <Button
-                onClick={() => {
-                  if (typeof window !== 'undefined') {
-                    window.location.href = service.url
-                  }
-                }}
+                onClick={() => handleServiceClick(service.url)}
                 disabled={service.id === currentServiceId}
                 variant={service.id === currentServiceId ? 'outline' : 'default'}
                 style={{ marginTop: '0.5rem' }}
@@ -51,4 +51,5 @@ export default function Home() {
     </main>
   )
 }
+
 

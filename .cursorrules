@@ -1,0 +1,142 @@
+---
+alwaysApply: true
+---
+
+## React + FSD Architecture Rules (MANDATORY)
+
+FOLLOW THIS STRUCTURE EXACTLY:
+
+### Component Structure:
+```
+ui/
+  ComponentName.tsx      # JSX only, < 300 lines, no interfaces
+  styled.ts             # styled-components ONLY
+model/
+  types.ts              # ALL interfaces/types
+  enums.ts              # ALL enums
+hooks/
+  useComponentName.ts   # ALL logic (state, effects, handlers)
+index.ts               # export ComponentName
+```
+
+### Entity Structure:
+```
+entities/
+  EntityName/
+    api.ts              # API calls
+    model/
+      types.ts          # domain types
+      enums.ts          # enums
+    hooks/
+      useGetEntity.ts   # tanstack query hooks
+    index.ts            # export hooks
+```
+
+### CRITICAL RULES:
+❌ NEVER use `any` or `unknown`
+❌ NEVER define interfaces in components
+❌ NEVER put logic in UI files (>300 lines = refactor)
+❌ NEVER put API calls in components/features
+
+✅ ALWAYS use model/types.ts for interfaces
+✅ ALWAYS extract logic to hooks/useComponentName.ts
+✅ ALWAYS use entities/* for API + queries
+
+### File limits:
+- ComponentName.tsx: MAX 300 lines
+- All interfaces → model/types.ts
+- All enums → model/enums.ts
+```
+
+## 2. Cursor Prompt Template
+
+Save this as `react-fsd-prompt.md`:
+
+```markdown
+# React FSD Component Generator
+
+Generate a [COMPONENT_NAME] following FSD:
+
+```
+ui/
+├── [ComponentName].tsx
+├── styled.ts
+model/
+├── types.ts
+├── enums.ts
+hooks/
+├── use[ComponentName].tsx
+└── index.ts
+```
+
+REQUIREMENTS:
+1. NO `any`/`unknown`
+2. NO interfaces in UI files
+3. ALL logic → use[ComponentName].tsx  
+4. Component < 300 lines
+5. Types/enums → model/
+6. Styled-components → styled.ts
+
+
+SPEC:
+[PASTE YOUR SPEC HERE]
+```
+## Styled components usage
+- Always import * as Styled from './
+
+## 3. Usage Instructions
+
+### For Cursor:
+```
+1. Open .cursorrules in Cursor
+2. Ctrl+K → "Create new [ComponentName]"
+3. Cursor auto-generates correct structure
+4. Review + refine types/enums
+```
+
+### For entities:
+```
+1. Ctrl+K → "Create entities/Person"
+2. Cursor generates:
+   entities/Person/api.ts
+   entities/Person/model/types.ts  
+   entities/Person/hooks/useGetPersons.ts
+```
+
+### Quick commands:
+```
+"create FSD Button component"
+"create Person entity with useGetPersons"
+"refactor this component to FSD structure"
+```
+
+## 4. Example Output
+
+**When you say:** `"create FSD Button component"`
+
+**Cursor generates:**
+
+```tsx
+// ui/Button.tsx
+import { Button as UIButton } from './styled';
+import { useButton } from '../hooks/useButton';
+import { ButtonProps } from '../model/types';
+
+export const Button = (props: ButtonProps) => {
+  const { onClick, isLoading, ...rest } = useButton(props);
+  
+  return (
+    <UIButton 
+      onClick={onClick}
+      disabled={isLoading}
+      {...rest}
+    />
+  );
+};
+```
+
+```
+hooks/useButton.ts → all logic
+model/types.ts → ButtonProps interface  
+styled.ts → styled Button primitive
+```

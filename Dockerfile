@@ -15,17 +15,29 @@ COPY backend/ .
 # Build application
 RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o main ./cmd/api
 
+# Build seed scripts
+RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o seed_roles_and_subscriptions ./internal/scripts/seed_roles_and_subscriptions.go
+RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o seed_onboarding_questions ./internal/scripts/seed_onboarding_questions.go
+
 FROM alpine:latest
 
-RUN apk --no-cache add ca-certificates tzdata
+# Install postgresql-client for database health check
+RUN apk --no-cache add ca-certificates tzdata postgresql-client
+
 WORKDIR /app
 
 # Create logs directory
 RUN mkdir -p /app/logs
 
+# Copy binaries
 COPY --from=builder /app/main .
-RUN chmod +x main
+COPY --from=builder /app/seed_roles_and_subscriptions .
+COPY --from=builder /app/seed_onboarding_questions .
+
+# Copy entrypoint script
+COPY backend/docker-entrypoint.sh .
+RUN chmod +x main seed_roles_and_subscriptions seed_onboarding_questions docker-entrypoint.sh
 
 EXPOSE 8080
 
-CMD ["./main"]
+ENTRYPOINT ["./docker-entrypoint.sh"]

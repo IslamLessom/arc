@@ -6,3 +6,6 @@ alwaysApply: true
 - Do not create inline styles
 - never use any
 - all logic of component should be in component/hook/useController
+
+### Использование общих компонентов
+- Всякие общие компоненты бери из packages

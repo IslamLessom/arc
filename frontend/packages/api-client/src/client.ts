@@ -1,7 +1,25 @@
 import axios from 'axios'
 
+// Универсальная функция для получения переменных окружения
+// Работает как в Vite (import.meta.env), так и в Next.js (process.env)
+const getEnvVar = (key: string, defaultValue: string): string => {
+  // Vite использует import.meta.env
+  if (typeof import.meta !== 'undefined') {
+    const meta = import.meta as { env?: Record<string, string> }
+    if (meta.env) {
+      const viteKey = key.replace('NEXT_PUBLIC_', 'VITE_')
+      return meta.env[viteKey] || meta.env[key] || defaultValue
+    }
+  }
+  // Next.js использует process.env
+  if (typeof process !== 'undefined' && process.env) {
+    return process.env[key] || defaultValue
+  }
+  return defaultValue
+}
+
 export const apiClient = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api',
+  baseURL: getEnvVar('NEXT_PUBLIC_API_URL', 'http://localhost:8080/api/v1'),
   timeout: 10000,
   headers: {
     'Content-Type': 'application/json'
@@ -26,7 +44,6 @@ apiClient.interceptors.response.use(
     if (error.response?.status === 401 && typeof window !== 'undefined') {
       // Refresh token logic
       localStorage.removeItem('auth_token')
-      window.location.href = '/login'
     }
     return Promise.reject(error)
   }

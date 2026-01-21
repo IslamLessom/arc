@@ -49,6 +49,7 @@ func NewRouter(usecases *usecases.UseCases, cfg *config.Config, logger *zap.Logg
 			auth.POST("/register", authHandler.Register) // Публичный endpoint
 			auth.POST("/login", authHandler.Login)      // Публичный endpoint
 			auth.POST("/refresh", authHandler.Refresh)  // Публичный endpoint
+			auth.GET("/me", middleware.Auth(cfg.JWT.Secret, usecases.Auth.GetTokenRepo()), authHandler.GetCurrentUser)
 			auth.POST("/logout", middleware.Auth(cfg.JWT.Secret, usecases.Auth.GetTokenRepo()), authHandler.Logout)
 			
 			// Onboarding routes
