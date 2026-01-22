@@ -146,6 +146,45 @@ func (h *AuthHandler) Refresh(c *gin.Context) {
 	})
 }
 
+// GetCurrentUser возвращает данные текущего авторизованного пользователя
+// @Summary Получение данных текущего пользователя
+// @Description Возвращает данные текущего авторизованного пользователя
+// @Tags auth
+// @Produce json
+// @Security Bearer
+// @Success 200 {object} map[string]interface{}
+// @Failure 401 {object} map[string]string
+// @Failure 500 {object} map[string]string
+// @Router /auth/me [get]
+func (h *AuthHandler) GetCurrentUser(c *gin.Context) {
+	userIDStr, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "user not authenticated"})
+		return
+	}
+
+	userID, err := uuid.Parse(userIDStr.(string))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid user_id"})
+		return
+	}
+
+	user, err := h.usecase.GetCurrentUser(c.Request.Context(), userID)
+	if err != nil {
+		h.logger.Error("Failed to get current user", zap.Error(err))
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to get user"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"id":                   user.ID,
+		"email":                user.Email,
+		"name":                 user.Name,
+		"onboarding_completed": user.OnboardingCompleted,
+		"establishment_id":     user.EstablishmentID,
+	})
+}
+
 // Logout выходит из системы и добавляет токен в черный список
 // @Summary Выход из системы
 // @Description Добавляет токен доступа в черный список
