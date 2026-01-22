@@ -42,6 +42,10 @@ func NewAuthUseCase(
 // Register создает нового пользователя и автоматически создает подписку на 14 дней
 func (uc *AuthUseCase) Register(ctx context.Context, email, password, name string) (*models.User, string, string, error) {
 	// Проверяем, существует ли пользователь
+	if email == "" {
+		return nil, "", "", errors.New("email is required")
+	}
+
 	existingUser, _ := uc.userRepo.GetByEmail(ctx, email)
 	if existingUser != nil {
 		return nil, "", "", errors.New("user with this email already exists")
@@ -117,12 +121,12 @@ func (uc *AuthUseCase) Register(ctx context.Context, email, password, name strin
 func (uc *AuthUseCase) Login(ctx context.Context, email, password string) (*models.User, string, string, error) {
 	user, err := uc.userRepo.GetByEmail(ctx, email)
 	if err != nil {
-		return nil, "", "", errors.New("invalid email or password")
+		return nil, "", "", repositories.ErrUserNotFound
 	}
 
 	// Проверяем пароль
 	if !auth.CheckPassword(password, user.Password) {
-		return nil, "", "", errors.New("invalid email or password")
+		return nil, "", "", repositories.ErrInvalidCredentials
 	}
 
 	// Генерируем токены
@@ -143,13 +147,13 @@ func (uc *AuthUseCase) Login(ctx context.Context, email, password string) (*mode
 func (uc *AuthUseCase) RefreshToken(ctx context.Context, refreshTokenString string) (string, string, error) {
 	claims, err := auth.ValidateToken(refreshTokenString, uc.config.JWT.Secret)
 	if err != nil {
-		return "", "", errors.New("invalid refresh token")
+		return nil, "", "", errors.New("invalid refresh token")
 	}
 
 	// Получаем пользователя
 	user, err := uc.userRepo.GetByID(ctx, claims.UserID)
 	if err != nil {
-		return "", "", errors.New("user not found")
+		return "", "", repositories.ErrUserNotFound
 	}
 
 	// Генерируем новые токены

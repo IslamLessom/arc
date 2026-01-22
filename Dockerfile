@@ -18,6 +18,7 @@ RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o main ./cmd/api
 # Build seed scripts
 RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o seed_roles_and_subscriptions ./internal/scripts/seed_roles_and_subscriptions.go
 RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o seed_onboarding_questions ./internal/scripts/seed_onboarding_questions.go
+RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o seed_account_types ./internal/scripts/seed_account_types.go
 
 FROM alpine:latest
 
@@ -33,10 +34,11 @@ RUN mkdir -p /app/logs
 COPY --from=builder /app/main .
 COPY --from=builder /app/seed_roles_and_subscriptions .
 COPY --from=builder /app/seed_onboarding_questions .
+COPY --from=builder /app/seed_account_types .
 
 # Copy entrypoint script
 COPY backend/docker-entrypoint.sh .
-RUN chmod +x main seed_roles_and_subscriptions seed_onboarding_questions docker-entrypoint.sh
+RUN chmod +x main seed_roles_and_subscriptions seed_onboarding_questions seed_account_types docker-entrypoint.sh
 
 EXPOSE 8080
 

@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"errors"
 	"net/http"
 	"strings"
 
@@ -8,6 +9,7 @@ import (
 	"github.com/google/uuid"
 	"go.uber.org/zap"
 
+	"github.com/yourusername/arc/backend/internal/repositories"
 	"github.com/yourusername/arc/backend/internal/usecases"
 )
 
@@ -64,7 +66,18 @@ func (h *AuthHandler) Register(c *gin.Context) {
 	user, accessToken, refreshToken, err := h.usecase.Register(c.Request.Context(), req.Email, req.Password, req.Name)
 	if err != nil {
 		h.logger.Error("Failed to register user", zap.Error(err))
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		
+statusCode := http.StatusInternalServerError
+		errorMessage := "Внутренняя ошибка сервера"
+
+		if errors.Is(err, usecases.ErrUserAlreadyExists) {
+			statusCode = http.StatusBadRequest
+			errorMessage = "Пользователь с таким email уже существует"
+		} else if errors.Is(err, usecases.ErrEmailRequired) {
+			statusCode = http.StatusBadRequest
+			errorMessage = "Требуется адрес электронной почты"
+		}
+		c.JSON(statusCode, gin.H{"error": errorMessage})
 		return
 	}
 
@@ -100,7 +113,14 @@ func (h *AuthHandler) Login(c *gin.Context) {
 	user, accessToken, refreshToken, err := h.usecase.Login(c.Request.Context(), req.Email, req.Password)
 	if err != nil {
 		h.logger.Error("Failed to login", zap.Error(err))
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid email or password"})
+statusCode := http.StatusInternalServerError
+		errorMessage := "Внутренняя ошибка сервера"
+
+		if errors.Is(err, repositories.ErrUserNotFound) || errors.Is(err, repositories.ErrInvalidCredentials) {
+			statusCode = http.StatusUnauthorized
+			errorMessage = "Неверные учетные данные"
+		}
+		c.JSON(statusCode, gin.H{"error": errorMessage})
 		return
 	}
 
@@ -136,7 +156,7 @@ func (h *AuthHandler) Refresh(c *gin.Context) {
 	accessToken, refreshToken, err := h.usecase.RefreshToken(c.Request.Context(), req.RefreshToken)
 	if err != nil {
 		h.logger.Error("Failed to refresh token", zap.Error(err))
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid refresh token"})
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Неверный токен обновления"})
 		return
 	}
 
@@ -193,20 +213,20 @@ type EstablishmentSettingsResponse struct {
 func (h *AuthHandler) GetCurrentUser(c *gin.Context) {
 	userIDStr, exists := c.Get("user_id")
 	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "user not authenticated"})
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Пользователь не авторизован"})
 		return
 	}
 
 	userID, err := uuid.Parse(userIDStr.(string))
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid user_id"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Неверный ID пользователя"})
 		return
 	}
 
 	user, establishment, err := h.usecase.GetCurrentUserWithEstablishment(c.Request.Context(), userID)
 	if err != nil {
 		h.logger.Error("Failed to get current user", zap.Error(err))
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to get user"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Не удалось получить пользователя"})
 		return
 	}
 
@@ -250,26 +270,26 @@ func (h *AuthHandler) Logout(c *gin.Context) {
 	// Получаем user_id из токена
 	userIDStr, exists := c.Get("user_id")
 	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "user not authenticated"})
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Пользователь не авторизован"})
 		return
 	}
 
 	userID, err := uuid.Parse(userIDStr.(string))
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid user_id"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Неверный ID пользователя"})
 		return
 	}
 
 	// Получаем токен из заголовка
 	authHeader := c.GetHeader("Authorization")
 	if authHeader == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "authorization header required"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Требуется заголовок авторизации"})
 		return
 	}
 
 	parts := strings.Split(authHeader, " ")
 	if len(parts) != 2 || parts[0] != "Bearer" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid authorization header format"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Неверный формат заголовка авторизации"})
 		return
 	}
 
@@ -278,11 +298,11 @@ func (h *AuthHandler) Logout(c *gin.Context) {
 	// Добавляем токен в blacklist
 	if err := h.usecase.Logout(c.Request.Context(), tokenString, userID); err != nil {
 		h.logger.Error("Failed to logout", zap.Error(err))
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to logout"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Не удалось выйти из системы"})
 		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"message": "logged out successfully",
+		"message": "Выход выполнен успешно",
 	})
 }

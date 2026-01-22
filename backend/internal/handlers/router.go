@@ -169,9 +169,31 @@ func NewRouter(usecases *usecases.UseCases, cfg *config.Config, logger *zap.Logg
 
 			// Finance
 			financeHandler := NewFinanceHandler(usecases.Finance, logger)
+			accountHandler := NewAccountHandler(usecases.Account, logger)
 			finance := protected.Group("/finance")
+			finance.Use(middleware.RequireEstablishment(usecases.Auth))
 			{
-				finance.GET("/transactions", financeHandler.GetTransactions)
+				// Transactions
+				transactions := finance.Group("/transactions")
+				{
+					transactions.GET("", financeHandler.ListTransactions)
+					transactions.GET("/:id", financeHandler.GetTransaction)
+					transactions.POST("", financeHandler.CreateTransaction)
+					transactions.PUT("/:id", financeHandler.UpdateTransaction)
+					transactions.DELETE("/:id", financeHandler.DeleteTransaction)
+				}
+				// Accounts
+				accounts := finance.Group("/accounts")
+				{
+					accounts.GET("", accountHandler.ListAccounts)
+					accounts.GET("/:id", accountHandler.GetAccount)
+					accounts.POST("", accountHandler.CreateAccount)
+					accounts.PUT("/:id", accountHandler.UpdateAccount)
+					accounts.DELETE("/:id", accountHandler.DeleteAccount)
+				}
+				// Account Types
+				finance.GET("/account-types", accountHandler.GetAccountTypes)
+				// Other finance endpoints
 				finance.GET("/shifts", financeHandler.GetShifts)
 				finance.GET("/pnl", financeHandler.GetPNL)
 				finance.GET("/cash-flow", financeHandler.GetCashFlow)
