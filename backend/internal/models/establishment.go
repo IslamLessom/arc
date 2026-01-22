@@ -21,6 +21,9 @@ type Establishment struct {
 	HasSeatingPlaces bool          `json:"has_seating_places" gorm:"default:false"` // Есть ли сидячие места
 	TableCount       *int          `json:"table_count,omitempty"`                     // Количество столов (если есть)
 	Type            string         `json:"type"`                                      // Тип заведения: restaurant, cafe, fast_food, bar, etc.
+	HasDelivery      bool          `json:"has_delivery" gorm:"default:false"`         // Есть ли доставка
+	HasTakeaway      bool          `json:"has_takeaway" gorm:"default:false"`         // Есть ли на вынос
+	HasReservations  bool          `json:"has_reservations" gorm:"default:false"`     // Принимаются ли бронирования
 	
 	// Связи
 	Tables          []Table        `json:"tables,omitempty" gorm:"foreignKey:EstablishmentID"`

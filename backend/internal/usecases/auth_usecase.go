@@ -17,6 +17,7 @@ type AuthUseCase struct {
 	roleRepo         repositories.RoleRepository
 	subscriptionRepo repositories.SubscriptionRepository
 	tokenRepo        repositories.TokenRepository
+	establishmentRepo repositories.EstablishmentRepository
 	config           *config.Config
 }
 
@@ -25,6 +26,7 @@ func NewAuthUseCase(
 	roleRepo repositories.RoleRepository,
 	subscriptionRepo repositories.SubscriptionRepository,
 	tokenRepo repositories.TokenRepository,
+	establishmentRepo repositories.EstablishmentRepository,
 	cfg *config.Config,
 ) *AuthUseCase {
 	return &AuthUseCase{
@@ -32,6 +34,7 @@ func NewAuthUseCase(
 		roleRepo:         roleRepo,
 		subscriptionRepo: subscriptionRepo,
 		tokenRepo:        tokenRepo,
+		establishmentRepo: establishmentRepo,
 		config:           cfg,
 	}
 }
@@ -202,6 +205,26 @@ func (uc *AuthUseCase) GetCurrentUser(ctx context.Context, userID uuid.UUID) (*m
 		return nil, err
 	}
 	return user, nil
+}
+
+// GetCurrentUserWithEstablishment возвращает данные текущего пользователя и его заведение
+func (uc *AuthUseCase) GetCurrentUserWithEstablishment(ctx context.Context, userID uuid.UUID) (*models.User, *models.Establishment, error) {
+	user, err := uc.userRepo.GetByID(ctx, userID)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	var establishment *models.Establishment
+	if user.EstablishmentID != nil {
+		est, err := uc.establishmentRepo.GetByID(ctx, *user.EstablishmentID)
+		if err != nil {
+			// Если заведение не найдено, возвращаем пользователя без заведения
+			return user, nil, nil
+		}
+		establishment = est
+	}
+
+	return user, establishment, nil
 }
 
 // GetEstablishmentID возвращает ID заведения пользователя (нужен завершённый onboarding)

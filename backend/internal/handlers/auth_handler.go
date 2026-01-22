@@ -146,13 +146,47 @@ func (h *AuthHandler) Refresh(c *gin.Context) {
 	})
 }
 
+// CurrentUserResponse представляет ответ с данными текущего пользователя
+// @Description Структура ответа с данными пользователя и настройками заведения
+type CurrentUserResponse struct {
+	// ID уникальный идентификатор пользователя
+	ID string `json:"id" example:"550e8400-e29b-41d4-a716-446655440000"`
+	// Email email пользователя
+	Email string `json:"email" example:"user@example.com"`
+	// Name имя пользователя
+	Name string `json:"name" example:"User Name"`
+	// OnboardingCompleted завершен ли onboarding
+	OnboardingCompleted bool `json:"onboarding_completed" example:"true"`
+	// EstablishmentID идентификатор заведения (может быть null)
+	EstablishmentID *string `json:"establishment_id,omitempty" example:"550e8400-e29b-41d4-a716-446655440000"`
+	// EstablishmentSettings настройки заведения (может быть null)
+	EstablishmentSettings *EstablishmentSettingsResponse `json:"establishment_settings,omitempty"`
+}
+
+// EstablishmentSettingsResponse представляет настройки заведения
+// @Description Настройки заведения из опросника при регистрации
+type EstablishmentSettingsResponse struct {
+	// HasSeatingPlaces есть ли сидячие места
+	HasSeatingPlaces bool `json:"has_seating_places" example:"true"`
+	// TableCount количество столов (если есть сидячие места)
+	TableCount *int `json:"table_count,omitempty" example:"10"`
+	// Type тип заведения: restaurant, cafe, fast_food, bar, etc.
+	Type string `json:"type" example:"cafe"`
+	// HasDelivery есть ли доставка
+	HasDelivery bool `json:"has_delivery" example:"false"`
+	// HasTakeaway есть ли на вынос
+	HasTakeaway bool `json:"has_takeaway" example:"true"`
+	// HasReservations принимаются ли бронирования
+	HasReservations bool `json:"has_reservations" example:"false"`
+}
+
 // GetCurrentUser возвращает данные текущего авторизованного пользователя
 // @Summary Получение данных текущего пользователя
-// @Description Возвращает данные текущего авторизованного пользователя
+// @Description Возвращает данные текущего авторизованного пользователя с настройками заведения (если есть). Включает: id, email, name, onboarding_completed, establishment_id, establishment_settings (has_seating_places, table_count, type, has_delivery, has_takeaway, has_reservations)
 // @Tags auth
 // @Produce json
 // @Security Bearer
-// @Success 200 {object} map[string]interface{}
+// @Success 200 {object} CurrentUserResponse "Ответ содержит данные пользователя и настройки заведения"
 // @Failure 401 {object} map[string]string
 // @Failure 500 {object} map[string]string
 // @Router /auth/me [get]
@@ -169,20 +203,37 @@ func (h *AuthHandler) GetCurrentUser(c *gin.Context) {
 		return
 	}
 
-	user, err := h.usecase.GetCurrentUser(c.Request.Context(), userID)
+	user, establishment, err := h.usecase.GetCurrentUserWithEstablishment(c.Request.Context(), userID)
 	if err != nil {
 		h.logger.Error("Failed to get current user", zap.Error(err))
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to get user"})
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"id":                   user.ID,
-		"email":                user.Email,
-		"name":                 user.Name,
-		"onboarding_completed": user.OnboardingCompleted,
-		"establishment_id":     user.EstablishmentID,
-	})
+	response := CurrentUserResponse{
+		ID:                   user.ID.String(),
+		Email:                user.Email,
+		Name:                 user.Name,
+		OnboardingCompleted: user.OnboardingCompleted,
+	}
+
+	if user.EstablishmentID != nil {
+		estID := user.EstablishmentID.String()
+		response.EstablishmentID = &estID
+
+		if establishment != nil {
+			response.EstablishmentSettings = &EstablishmentSettingsResponse{
+				HasSeatingPlaces: establishment.HasSeatingPlaces,
+				TableCount:       establishment.TableCount,
+				Type:             establishment.Type,
+				HasDelivery:      establishment.HasDelivery,
+				HasTakeaway:      establishment.HasTakeaway,
+				HasReservations:  establishment.HasReservations,
+			}
+		}
+	}
+
+	c.JSON(http.StatusOK, response)
 }
 
 // Logout выходит из системы и добавляет токен в черный список

@@ -173,6 +173,17 @@ func (uc *OnboardingUseCase) createEstablishmentFromAnswers(ctx context.Context,
 		}
 	}
 
+	// Дополнительные настройки
+	if hasDelivery, ok := answers["has_delivery"].(bool); ok {
+		establishment.HasDelivery = hasDelivery
+	}
+	if hasTakeaway, ok := answers["has_takeaway"].(bool); ok {
+		establishment.HasTakeaway = hasTakeaway
+	}
+	if hasReservations, ok := answers["has_reservations"].(bool); ok {
+		establishment.HasReservations = hasReservations
+	}
+
 	establishment.Active = true
 
 	// Создаем заведение
