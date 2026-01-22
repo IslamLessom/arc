@@ -2,7 +2,31 @@
 alwaysApply: true
 ---
 
-## React + FSD Architecture Rules (MANDATORY)
+# Project Architecture Rules
+
+This project uses **Clean Architecture** for backend and **FSD (Feature-Sliced Design)** for frontend.
+
+## Backend Rules (Go + Clean Architecture)
+
+**See `.cursor/backend.mdc` for complete backend rules.**
+
+### Quick Reference:
+- **Layers**: Models → Repositories → UseCases → Handlers
+- **Dependency Direction**: Handlers → UseCases → Repositories → Models
+- **File naming**: `snake_case.go` (e.g., `user_repository.go`)
+- **Package naming**: lowercase, singular (e.g., `user`, `auth`)
+- **Context**: Always first parameter: `func(ctx context.Context, ...)`
+- **Swagger**: Always document handlers with annotations
+
+### When working in `backend/`:
+- Follow Clean Architecture strictly
+- NO direct repository access from handlers
+- NO business logic in handlers or repositories
+- All business logic in usecases
+
+---
+
+## Frontend Rules (React + FSD Architecture)
 
 FOLLOW THIS STRUCTURE EXACTLY:
 

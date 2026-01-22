@@ -30,7 +30,7 @@ func NewUseCases(repos *repositories.Repositories, cfg *config.Config) (*UseCase
 	}
 
 	return &UseCases{
-		Auth:         NewAuthUseCase(repos.User, repos.Role, repos.Subscription, repos.Token, cfg),
+		Auth:         NewAuthUseCase(repos.User, repos.Role, repos.Subscription, repos.Token, repos.Establishment, cfg),
 		Establishment: NewEstablishmentUseCase(repos.Establishment, repos.Table),
 		Menu:         NewMenuUseCase(repos.Product, repos.TechCard, repos.Ingredient, repos.Category, repos.IngredientCategory, repos.Warehouse),
 		Warehouse:    NewWarehouseUseCase(repos.Warehouse, repos.Supplier),

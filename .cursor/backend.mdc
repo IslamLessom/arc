@@ -1,0 +1,450 @@
+# Backend Clean Architecture Rules (MANDATORY)
+
+## Architecture Layers (STRICT HIERARCHY)
+
+FOLLOW THIS STRUCTURE EXACTLY - NO EXCEPTIONS:
+
+```
+backend/
+├── cmd/api/              # Entry point (main.go)
+├── internal/
+│   ├── handlers/         # Presentation Layer (HTTP handlers)
+│   ├── usecases/         # Application Layer (business logic)
+│   ├── repositories/      # Infrastructure Layer (data access)
+│   ├── models/           # Domain Layer (entities)
+│   ├── middleware/       # HTTP middleware
+│   └── config/           # Configuration
+└── pkg/                  # Shared packages (database, logger, etc.)
+```
+
+## CRITICAL RULES - Dependency Direction
+
+### ❌ NEVER:
+- Handlers → Repositories (MUST go through UseCase)
+- UseCases → Handlers (wrong direction)
+- Models → Handlers/UseCases/Repositories (models are pure)
+- Repositories → UseCases (wrong direction)
+
+### ✅ ALWAYS:
+- Handlers → UseCases → Repositories → Models
+- Models are independent (no dependencies)
+- Repositories depend only on Models
+- UseCases depend on Repositories (interfaces) and Models
+- Handlers depend on UseCases and Models
+
+## Layer Structure
+
+### 1. Models (Domain Layer)
+```
+models/
+  entity_name.go          # Domain entity
+  entity_name.go          # Pure structs, no business logic
+```
+
+**Rules:**
+- ✅ Pure Go structs with JSON/GORM tags
+- ✅ BeforeCreate hooks for UUID generation
+- ✅ Domain validation methods (if needed)
+- ❌ NO database queries
+- ❌ NO business logic
+- ❌ NO dependencies on other layers
+
+**Example:**
+```go
+// models/user.go
+type User struct {
+    ID        uuid.UUID `json:"id" gorm:"type:uuid;primaryKey;default:gen_random_uuid()"`
+    Email     string    `json:"email" gorm:"not null;uniqueIndex"`
+    Password  string    `json:"-" gorm:"not null"`
+    CreatedAt time.Time `json:"created_at"`
+}
+
+func (u *User) BeforeCreate(tx *gorm.DB) error {
+    if u.ID == uuid.Nil {
+        u.ID = uuid.New()
+    }
+    return nil
+}
+```
+
+### 2. Repositories (Infrastructure Layer)
+```
+repositories/
+  entity_repository.go    # Repository interface + implementation
+  repositories.go         # Container for all repositories
+```
+
+**Rules:**
+- ✅ Interface defined in repository file
+- ✅ Implementation uses GORM/database
+- ✅ All methods take `context.Context` as first parameter
+- ✅ Return domain models (from models package)
+- ✅ Handle database errors, convert to domain errors
+- ❌ NO business logic
+- ❌ NO HTTP concerns
+
+**Example:**
+```go
+// repositories/user_repository.go
+type UserRepository interface {
+    GetByID(ctx context.Context, id uuid.UUID) (*models.User, error)
+    GetByEmail(ctx context.Context, email string) (*models.User, error)
+    Create(ctx context.Context, user *models.User) error
+    Update(ctx context.Context, user *models.User) error
+    Delete(ctx context.Context, id uuid.UUID) error
+}
+
+type userRepository struct {
+    db *gorm.DB
+}
+
+func NewUserRepository(db *gorm.DB) UserRepository {
+    return &userRepository{db: db}
+}
+
+func (r *userRepository) GetByID(ctx context.Context, id uuid.UUID) (*models.User, error) {
+    var user models.User
+    err := r.db.WithContext(ctx).First(&user, "id = ?", id).Error
+    if err == gorm.ErrRecordNotFound {
+        return nil, repositories.ErrNotFound
+    }
+    return &user, err
+}
+```
+
+### 3. UseCases (Application Layer)
+```
+usecases/
+  entity_usecase.go      # Business logic for entity
+  usecases.go            # Container for all use cases
+```
+
+**Rules:**
+- ✅ Business logic only
+- ✅ Depend on Repository interfaces (not implementations)
+- ✅ All methods take `context.Context` as first parameter
+- ✅ Return domain models or DTOs
+- ✅ Validate business rules
+- ✅ Handle errors from repositories
+- ❌ NO database queries (use repositories)
+- ❌ NO HTTP concerns
+- ❌ NO direct GORM usage
+
+**Example:**
+```go
+// usecases/user_usecase.go
+type UserUseCase struct {
+    repo repositories.UserRepository
+}
+
+func NewUserUseCase(repo repositories.UserRepository) *UserUseCase {
+    return &UserUseCase{repo: repo}
+}
+
+func (uc *UserUseCase) GetUser(ctx context.Context, id uuid.UUID) (*models.User, error) {
+    user, err := uc.repo.GetByID(ctx, id)
+    if err != nil {
+        return nil, fmt.Errorf("failed to get user: %w", err)
+    }
+    return user, nil
+}
+
+func (uc *UserUseCase) CreateUser(ctx context.Context, email, password string) (*models.User, error) {
+    // Business validation
+    if email == "" {
+        return nil, errors.New("email is required")
+    }
+    
+    // Check if user exists
+    existing, _ := uc.repo.GetByEmail(ctx, email)
+    if existing != nil {
+        return nil, errors.New("user already exists")
+    }
+    
+    // Hash password
+    hashedPassword, err := auth.HashPassword(password)
+    if err != nil {
+        return nil, fmt.Errorf("failed to hash password: %w", err)
+    }
+    
+    // Create user
+    user := &models.User{
+        Email:    email,
+        Password: hashedPassword,
+    }
+    
+    if err := uc.repo.Create(ctx, user); err != nil {
+        return nil, fmt.Errorf("failed to create user: %w", err)
+    }
+    
+    return user, nil
+}
+```
+
+### 4. Handlers (Presentation Layer)
+```
+handlers/
+  entity_handler.go      # HTTP handlers for entity
+  router.go              # Route definitions
+```
+
+**Rules:**
+- ✅ HTTP request/response handling
+- ✅ Request validation (binding)
+- ✅ Call UseCases (not repositories directly)
+- ✅ Convert errors to HTTP status codes
+- ✅ Logging (errors, important events)
+- ✅ Swagger documentation annotations
+- ❌ NO business logic
+- ❌ NO database queries
+- ❌ NO direct repository access
+
+**Example:**
+```go
+// handlers/user_handler.go
+type UserHandler struct {
+    usecase *usecases.UserUseCase
+    logger  *zap.Logger
+}
+
+func NewUserHandler(usecase *usecases.UserUseCase, logger *zap.Logger) *UserHandler {
+    return &UserHandler{
+        usecase: usecase,
+        logger:  logger,
+    }
+}
+
+type CreateUserRequest struct {
+    Email    string `json:"email" binding:"required,email"`
+    Password string `json:"password" binding:"required,min=8"`
+}
+
+// CreateUser создает нового пользователя
+// @Summary Создать пользователя
+// @Description Создает нового пользователя в системе
+// @Tags users
+// @Accept json
+// @Produce json
+// @Param request body CreateUserRequest true "Данные пользователя"
+// @Success 201 {object} map[string]interface{}
+// @Failure 400 {object} map[string]string
+// @Failure 500 {object} map[string]string
+// @Router /users [post]
+func (h *UserHandler) CreateUser(c *gin.Context) {
+    var req CreateUserRequest
+    if err := c.ShouldBindJSON(&req); err != nil {
+        c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+        return
+    }
+    
+    user, err := h.usecase.CreateUser(c.Request.Context(), req.Email, req.Password)
+    if err != nil {
+        h.logger.Error("Failed to create user", zap.Error(err))
+        c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to create user"})
+        return
+    }
+    
+    c.JSON(http.StatusCreated, gin.H{"data": user})
+}
+```
+
+## File Naming Conventions
+
+### ✅ CORRECT:
+- `user_repository.go` (lowercase, snake_case)
+- `auth_handler.go`
+- `warehouse_usecase.go`
+- `order.go` (for models)
+
+### ❌ WRONG:
+- `UserRepository.go` (PascalCase)
+- `auth-handler.go` (hyphens)
+- `warehouseUseCase.go` (camelCase)
+
+## Package Naming
+
+- **Packages**: lowercase, singular: `user`, `auth`, `warehouse`
+- **NOT**: `users`, `handlers`, `repositories` (plural)
+
+## Error Handling
+
+### Repository Errors
+```go
+// repositories/errors.go
+var (
+    ErrNotFound = errors.New("record not found")
+    ErrDuplicate = errors.New("duplicate entry")
+)
+```
+
+### UseCase Error Handling
+```go
+// ✅ Wrap repository errors
+if err != nil {
+    if errors.Is(err, repositories.ErrNotFound) {
+        return nil, errors.New("user not found")
+    }
+    return nil, fmt.Errorf("failed to get user: %w", err)
+}
+```
+
+### Handler Error Handling
+```go
+// ✅ Convert to HTTP status
+if err != nil {
+    if errors.Is(err, someErr) {
+        c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+        return
+    }
+    c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
+    return
+}
+```
+
+## Context Usage
+
+### ✅ ALWAYS:
+- First parameter: `ctx context.Context`
+- Check context cancellation in long operations
+- Use `context.WithTimeout` for database operations
+
+```go
+func (r *repo) GetByID(ctx context.Context, id uuid.UUID) (*models.User, error) {
+    ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
+    defer cancel()
+    // ...
+}
+```
+
+## Dependency Injection
+
+### ✅ Constructor Pattern:
+```go
+// ✅ GOOD
+func NewUserUseCase(repo repositories.UserRepository) *UserUseCase {
+    return &UserUseCase{repo: repo}
+}
+
+// ❌ BAD - global variable
+var userRepo repositories.UserRepository
+```
+
+## Swagger Documentation
+
+### ✅ ALWAYS document handlers:
+```go
+// CreateUser создает нового пользователя
+// @Summary Создать пользователя
+// @Description Создает нового пользователя в системе
+// @Tags users
+// @Accept json
+// @Produce json
+// @Security Bearer
+// @Param request body CreateUserRequest true "Данные пользователя"
+// @Success 201 {object} map[string]interface{}
+// @Failure 400 {object} map[string]string
+// @Router /users [post]
+func (h *UserHandler) CreateUser(c *gin.Context) {
+    // ...
+}
+```
+
+## Testing Structure
+
+```
+repositories/
+  user_repository_test.go
+usecases/
+  user_usecase_test.go
+handlers/
+  user_handler_test.go
+```
+
+## Quick Commands for Cursor
+
+```
+"create user repository with GetByID and Create methods"
+"create user usecase with CreateUser business logic"
+"create user handler with CreateUser endpoint"
+"add Swagger documentation to CreateUser handler"
+"refactor this to follow clean architecture"
+```
+
+## Common Patterns
+
+### Repository Pattern
+```go
+type EntityRepository interface {
+    GetByID(ctx context.Context, id uuid.UUID) (*models.Entity, error)
+    List(ctx context.Context, filter *Filter) ([]*models.Entity, error)
+    Create(ctx context.Context, entity *models.Entity) error
+    Update(ctx context.Context, entity *models.Entity) error
+    Delete(ctx context.Context, id uuid.UUID) error
+}
+```
+
+### UseCase Pattern
+```go
+type EntityUseCase struct {
+    repo repositories.EntityRepository
+}
+
+func NewEntityUseCase(repo repositories.EntityRepository) *EntityUseCase {
+    return &EntityUseCase{repo: repo}
+}
+```
+
+### Handler Pattern
+```go
+type EntityHandler struct {
+    usecase *usecases.EntityUseCase
+    logger  *zap.Logger
+}
+
+func NewEntityHandler(usecase *usecases.EntityUseCase, logger *zap.Logger) *EntityHandler {
+    return &EntityHandler{
+        usecase: usecase,
+        logger:  logger,
+    }
+}
+```
+
+## CRITICAL: Layer Isolation
+
+### ❌ NEVER import across layers incorrectly:
+```go
+// ❌ WRONG - Handler importing Repository
+import "github.com/.../repositories"
+
+// ❌ WRONG - UseCase importing Handler
+import "github.com/.../handlers"
+
+// ❌ WRONG - Repository importing UseCase
+import "github.com/.../usecases"
+```
+
+### ✅ CORRECT imports:
+```go
+// ✅ Handler imports UseCase and Models
+import "github.com/.../usecases"
+import "github.com/.../models"
+
+// ✅ UseCase imports Repository and Models
+import "github.com/.../repositories"
+import "github.com/.../models"
+
+// ✅ Repository imports Models only
+import "github.com/.../models"
+```
+
+## Summary Checklist
+
+When creating new feature:
+1. ✅ Create model in `models/`
+2. ✅ Create repository interface + implementation in `repositories/`
+3. ✅ Create usecase in `usecases/` (depends on repository interface)
+4. ✅ Create handler in `handlers/` (depends on usecase)
+5. ✅ Add route in `router.go`
+6. ✅ Add Swagger annotations
+7. ✅ Add to repositories/usecases containers
+8. ✅ Write tests

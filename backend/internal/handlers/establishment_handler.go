@@ -43,6 +43,12 @@ type EstablishmentResponse struct {
 	TableCount *int `json:"table_count,omitempty" example:"10"`
 	// Type тип заведения: restaurant, cafe, fast_food, bar, pizzeria, bakery, coffee_shop, takeaway, delivery, other
 	Type string `json:"type" example:"cafe"`
+	// HasDelivery есть ли доставка
+	HasDelivery bool `json:"has_delivery" example:"false"`
+	// HasTakeaway есть ли на вынос
+	HasTakeaway bool `json:"has_takeaway" example:"true"`
+	// HasReservations принимаются ли бронирования
+	HasReservations bool `json:"has_reservations" example:"false"`
 	// Tables массив столов заведения (если есть сидячие места)
 	Tables []TableResponse `json:"tables,omitempty"`
 	// Active активность заведения
@@ -90,6 +96,9 @@ type UpdateEstablishmentRequest struct {
 	HasSeatingPlaces   *bool   `json:"has_seating_places,omitempty"`
 	TableCount       *int    `json:"table_count,omitempty"`
 	Type              *string `json:"type,omitempty"`
+	HasDelivery      *bool   `json:"has_delivery,omitempty"`
+	HasTakeaway      *bool   `json:"has_takeaway,omitempty"`
+	HasReservations  *bool   `json:"has_reservations,omitempty"`
 	Active            *bool   `json:"active,omitempty"`
 }
 
@@ -226,6 +235,15 @@ func (h *EstablishmentHandler) Update(c *gin.Context) {
 	}
 	if req.Type != nil {
 		e.Type = *req.Type
+	}
+	if req.HasDelivery != nil {
+		e.HasDelivery = *req.HasDelivery
+	}
+	if req.HasTakeaway != nil {
+		e.HasTakeaway = *req.HasTakeaway
+	}
+	if req.HasReservations != nil {
+		e.HasReservations = *req.HasReservations
 	}
 	if req.Active != nil {
 		e.Active = *req.Active
