@@ -18,6 +18,7 @@ type UseCases struct {
 	Statistics   *StatisticsUseCase
 	Order        *OrderUseCase
 	Onboarding   *OnboardingUseCase
+	Account      *AccountUseCase
 	Storage      *storage.MinIOClient
 }
 
@@ -29,15 +30,18 @@ func NewUseCases(repos *repositories.Repositories, cfg *config.Config) (*UseCase
 		return nil, fmt.Errorf("failed to initialize storage: %w", err)
 	}
 
+	accountUseCase := NewAccountUseCase(repos.Account, repos.AccountType)
+	
 	return &UseCases{
 		Auth:         NewAuthUseCase(repos.User, repos.Role, repos.Subscription, repos.Token, repos.Establishment, cfg),
 		Establishment: NewEstablishmentUseCase(repos.Establishment, repos.Table),
 		Menu:         NewMenuUseCase(repos.Product, repos.TechCard, repos.Ingredient, repos.Category, repos.IngredientCategory, repos.Warehouse),
 		Warehouse:    NewWarehouseUseCase(repos.Warehouse, repos.Supplier),
-		Finance:      NewFinanceUseCase(repos.Transaction, repos.Shift),
+		Finance:      NewFinanceUseCase(repos.Transaction, repos.Account, repos.Shift),
 		Statistics:   NewStatisticsUseCase(repos.Order),
 		Order:        NewOrderUseCase(repos.Order, repos.Warehouse),
-		Onboarding:   NewOnboardingUseCase(repos.Onboarding, repos.Establishment, repos.Table, repos.User),
+		Onboarding:   NewOnboardingUseCase(repos.Onboarding, repos.Establishment, repos.Table, repos.User, accountUseCase),
+		Account:      accountUseCase,
 		Storage:      storageClient,
 	}, nil
 }
