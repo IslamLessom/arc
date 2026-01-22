@@ -35,6 +35,14 @@ else
   echo "⚠️  Warning: Failed to seed onboarding questions, but continuing..."
 fi
 
+# Запускаем seed скрипт для типов счетов
+echo "🌱 Seeding account types..."
+if ./seed_account_types; then
+  echo "✅ Account types seeded successfully"
+else
+  echo "⚠️  Warning: Failed to seed account types, but continuing..."
+fi
+
 # Запускаем основное приложение
 echo "🚀 Starting application..."
 exec ./main
