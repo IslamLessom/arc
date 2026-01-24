@@ -66,6 +66,11 @@ func main() {
 	}
 	defer sqlDB.Close()
 
+	// Run database migrations
+	if err := database.RunMigrations(db, lg); err != nil {
+		lg.Fatal("failed to run database migrations", zap.Error(err))
+	}
+
 	// Initialize repositories
 	repos := repositories.NewRepositories(db)
 

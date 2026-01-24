@@ -915,19 +915,50 @@ func verifyAllEntities(t *testing.T, testData *TestData) {
 }
 
 func createCashAccount(t *testing.T, testData *TestData) {
+	// Сначала получаем список типов счетов, чтобы найти тип "наличные"
+	req, _ := http.NewRequest("GET", baseURL+"/finance/account-types", nil)
+	req.Header.Set("Authorization", "Bearer "+testData.AccessToken)
+	
+	resp := doRequest(t, req, http.StatusOK)
+	defer resp.Body.Close()
+	
+	var accountTypesResult struct {
+		Data []struct {
+			ID   string `json:"id"`
+			Name string `json:"name"`
+		} `json:"data"`
+	}
+	
+	err := json.NewDecoder(resp.Body).Decode(&accountTypesResult)
+	if err != nil {
+		t.Fatalf("Failed to decode account types response: %v", err)
+	}
+	
+	var cashAccountTypeID string
+	for _, at := range accountTypesResult.Data {
+		if at.Name == "наличные" {
+			cashAccountTypeID = at.ID
+			break
+		}
+	}
+	
+	if cashAccountTypeID == "" {
+		t.Fatal("Cash account type 'наличные' not found")
+	}
+	
 	reqBody := map[string]interface{}{
-		"name":           "Cash Box E2E",
-		"type_id":        "cash", // Assuming 'cash' account type exists
-		"establishment_id": testData.EstablishmentID,
+		"name":            "Cash Box E2E",
+		"currency":        "RUB",
+		"type_id":         cashAccountTypeID,
 		"initial_balance": 0.0,
 	}
 
 	body, _ := json.Marshal(reqBody)
-	req, _ := http.NewRequest("POST", baseURL+"/finance/accounts", bytes.NewBuffer(body))
+	req, _ = http.NewRequest("POST", baseURL+"/finance/accounts", bytes.NewBuffer(body))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+testData.AccessToken)
 
-	resp := doRequest(t, req, http.StatusCreated)
+	resp = doRequest(t, req, http.StatusCreated)
 	defer resp.Body.Close()
 
 	var result struct {
@@ -936,7 +967,7 @@ func createCashAccount(t *testing.T, testData *TestData) {
 		} `json:"data"`
 	}
 
-	err := json.NewDecoder(resp.Body).Decode(&result)
+	err = json.NewDecoder(resp.Body).Decode(&result)
 	if err != nil {
 		t.Fatalf("Failed to decode response: %v", err)
 	}
@@ -949,45 +980,73 @@ func createCashAccount(t *testing.T, testData *TestData) {
 }
 
 func createCashierUser(t *testing.T, testData *TestData) {
+	// Сначала получаем список ролей, чтобы найти роль для кассира (используем waiter, так как cashier нет в seed)
+	req, _ := http.NewRequest("GET", baseURL+"/roles", nil)
+	req.Header.Set("Authorization", "Bearer "+testData.AccessToken)
+	
+	resp := doRequest(t, req, http.StatusOK)
+	defer resp.Body.Close()
+	
+	var rolesResult []struct {
+		ID   string `json:"id"`
+		Name string `json:"name"`
+	}
+	
+	err := json.NewDecoder(resp.Body).Decode(&rolesResult)
+	if err != nil {
+		t.Fatalf("Failed to decode roles response: %v", err)
+	}
+	
+	var employeeRoleID string
+	for _, role := range rolesResult {
+		if role.Name == "employee" {
+			employeeRoleID = role.ID
+			break
+		}
+	}
+	
+	if employeeRoleID == "" {
+		t.Fatal("Employee role not found")
+	}
+	
 	pin := "1111"
 	reqBody := map[string]interface{}{
-		"name":           "Cashier User",
-		"phone":          "+79998887766",
-		"pin":            pin,
-		"role_id":        "cashier", // Assuming 'cashier' role exists
-		"establishment_id": testData.EstablishmentID,
+		"name":     "Cashier User",
+		"email":    "cashier@test.com",
+		"phone":    "+79998887766",
+		"pin":      pin,
+		"role_id":  employeeRoleID,
 	}
 
 	body, _ := json.Marshal(reqBody)
-	req, _ := http.NewRequest("POST", baseURL+"/users", bytes.NewBuffer(body))
+	req, _ = http.NewRequest("POST", baseURL+"/users", bytes.NewBuffer(body))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+testData.AccessToken)
 
-	resp := doRequest(t, req, http.StatusCreated)
+	resp = doRequest(t, req, http.StatusCreated)
 	defer resp.Body.Close()
 
 	var result struct {
-		Data struct {
-			ID string `json:"id"`
-		} `json:"data"`
+		ID string `json:"id"`
 	}
 
-	err := json.NewDecoder(resp.Body).Decode(&result)
+	err = json.NewDecoder(resp.Body).Decode(&result)
 	if err != nil {
 		t.Fatalf("Failed to decode response: %v", err)
 	}
-	if result.Data.ID == "" {
+	if result.ID == "" {
 		t.Fatal("Cashier User ID is empty")
 	}
 
-	testData.CashierUserID = result.Data.ID
+	testData.CashierUserID = result.ID
 	testData.CashierPIN = pin
 	t.Logf("Cashier user created: %s", testData.CashierUserID)
 }
 
 func cashierLogin(t *testing.T, testData *TestData) {
-	reqBody := map[string]string{
-		"pin":            testData.CashierPIN,
+	reqBody := map[string]interface{}{
+		"pin":             testData.CashierPIN,
+		"initial_cash":    1000.00,
 		"establishment_id": testData.EstablishmentID,
 	}
 
@@ -1018,7 +1077,8 @@ func cashierLogin(t *testing.T, testData *TestData) {
 
 func startShift(t *testing.T, testData *TestData) {
 	reqBody := map[string]interface{}{
-		"initial_cash": 1000.00,
+		"initial_cash":   1000.00,
+		"establishment_id": testData.EstablishmentID,
 	}
 
 	body, _ := json.Marshal(reqBody)
@@ -1050,9 +1110,8 @@ func startShift(t *testing.T, testData *TestData) {
 
 func createTable(t *testing.T, testData *TestData) {
 	reqBody := map[string]interface{}{
-		"number":           1,
-		"seats":            4,
-		"establishment_id": testData.EstablishmentID,
+		"number":   1,
+		"capacity": 4,
 	}
 
 	body, _ := json.Marshal(reqBody)
@@ -1064,20 +1123,18 @@ func createTable(t *testing.T, testData *TestData) {
 	defer resp.Body.Close()
 
 	var result struct {
-		Data struct {
-			ID string `json:"id"`
-		} `json:"data"`
+		ID string `json:"id"`
 	}
 
 	err := json.NewDecoder(resp.Body).Decode(&result)
 	if err != nil {
 		t.Fatalf("Failed to decode response: %v", err)
 	}
-	if result.Data.ID == "" {
+	if result.ID == "" {
 		t.Fatal("Table ID is empty")
 	}
 
-	testData.TableID = result.Data.ID
+	testData.TableID = result.ID
 	t.Logf("Table created: %s", testData.TableID)
 }
 
@@ -1323,7 +1380,7 @@ func TestPWACashierFlowE2E(t *testing.T) {
 	// PWA Cashier Flow
 	t.Run("11. Create Cashier User", func(t *testing.T) {
 		createCashierUser(t, testData)
-		if testData.CashierAccessToken == "" {
+		if testData.CashierUserID == "" {
 			t.Fatal("Cashier user creation failed - cannot continue")
 		}
 	})

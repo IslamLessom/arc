@@ -146,6 +146,36 @@ func main() {
 		log.Fatalf("Failed to migrate OrderItem: %v", err)
 	}
 	
+	// Финансовые модели
+	if err := migrateDB.AutoMigrate(&models.AccountType{}); err != nil {
+		log.Fatalf("Failed to migrate AccountType: %v", err)
+	}
+	if err := migrateDB.AutoMigrate(&models.Account{}); err != nil {
+		log.Fatalf("Failed to migrate Account: %v", err)
+	}
+	if err := migrateDB.AutoMigrate(&models.Transaction{}); err != nil {
+		log.Fatalf("Failed to migrate Transaction: %v", err)
+	}
+	
+	// Модели для смен
+	if err := migrateDB.AutoMigrate(&models.Shift{}); err != nil {
+		log.Fatalf("Failed to migrate Shift: %v", err)
+	}
+	
+	// Модели для клиентов
+	if err := migrateDB.AutoMigrate(&models.ClientGroup{}); err != nil {
+		log.Fatalf("Failed to migrate ClientGroup: %v", err)
+	}
+	if err := migrateDB.AutoMigrate(&models.LoyaltyProgram{}); err != nil {
+		log.Fatalf("Failed to migrate LoyaltyProgram: %v", err)
+	}
+	if err := migrateDB.AutoMigrate(&models.Client{}); err != nil {
+		log.Fatalf("Failed to migrate Client: %v", err)
+	}
+	if err := migrateDB.AutoMigrate(&models.Promotion{}); err != nil {
+		log.Fatalf("Failed to migrate Promotion: %v", err)
+	}
+	
 	log.Println("✅ Database migrations completed")
 
 	// Создаем роли
@@ -165,6 +195,14 @@ func main() {
 		{
 			Name:        "cook",
 			Permissions: `["orders", "menu"]`,
+		},
+		{
+			Name:        "employee",
+			Permissions: `["orders", "tables"]`, // Базовая роль для сотрудников (кассиры, официанты)
+		},
+		{
+			Name:        "cashier",
+			Permissions: `["orders", "tables", "shifts"]`, // Роль кассира с доступом к сменам
 		},
 	}
 
