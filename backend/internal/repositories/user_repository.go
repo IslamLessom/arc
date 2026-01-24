@@ -8,6 +8,7 @@ import (
 	"gorm.io/gorm"
 
 	"github.com/yourusername/arc/backend/internal/models"
+	"github.com/yourusername/arc/backend/pkg/auth"
 )
 
 type UserRepository interface {
@@ -73,14 +74,22 @@ func (r *userRepository) GetAllByEstablishmentID(ctx context.Context, establishm
 	return users, nil
 }
 
-func (r *userRepository) GetByPIN(ctx context.Context, pin string, establishmentID uuid.UUID) (*models.User, error) { // Изменена сигнатура и реализация
-	var user models.User
-	err := r.db.WithContext(ctx).Where("pin = ? AND establishment_id = ?", pin, establishmentID).First(&user).Error
+func (r *userRepository) GetByPIN(ctx context.Context, pin string, establishmentID uuid.UUID) (*models.User, error) {
+	// Получаем всех пользователей заведения с PIN
+	var users []models.User
+	err := r.db.WithContext(ctx).
+		Where("establishment_id = ? AND pin IS NOT NULL", establishmentID).
+		Find(&users).Error
 	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, ErrUserNotFound
-		}
 		return nil, err
 	}
-	return &user, nil
+
+	// Проверяем PIN для каждого пользователя (PIN хранится как хеш)
+	for i := range users {
+		if users[i].PIN != nil && auth.CheckPassword(pin, *users[i].PIN) {
+			return &users[i], nil
+		}
+	}
+
+	return nil, ErrUserNotFound
 }

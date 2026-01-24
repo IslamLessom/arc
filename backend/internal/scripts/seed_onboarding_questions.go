@@ -1,11 +1,7 @@
 package main
 
 import (
-	"fmt"
 	"log"
-
-	"gorm.io/driver/postgres"
-	"gorm.io/gorm"
 
 	"github.com/yourusername/arc/backend/internal/config"
 	"github.com/yourusername/arc/backend/internal/models"
@@ -37,48 +33,9 @@ func main() {
 	log.Println("✅ Successfully connected to database")
 
 	// Автоматически создаем таблицы, если их нет
-	// Важно: создаем новое соединение с отключенными внешними ключами для миграции
-	log.Println("Running database migrations (AutoMigrate)...")
-	
-	// Создаем новое соединение GORM с отключенными внешними ключами
-	dsn := fmt.Sprintf(
-		"host=%s port=%d user=%s password=%s dbname=%s sslmode=%s",
-		cfg.Database.Host,
-		cfg.Database.Port,
-		cfg.Database.User,
-		cfg.Database.Password,
-		cfg.Database.Name,
-		cfg.Database.SSLMode,
-	)
-	
-	migrateDB, err := gorm.Open(postgres.Open(dsn), &gorm.Config{
-		DisableForeignKeyConstraintWhenMigrating: true,
-	})
-	if err != nil {
-		log.Fatalf("Failed to create migration connection: %v", err)
+	if err := database.RunMigrations(db, nil); err != nil {
+		log.Fatalf("Failed to run database migrations: %v", err)
 	}
-	
-	// Мигрируем все таблицы onboarding в правильном порядке
-	// 1. Сначала независимые таблицы
-	if err := migrateDB.AutoMigrate(&models.OnboardingQuestion{}); err != nil {
-		log.Fatalf("Failed to migrate OnboardingQuestion: %v", err)
-	}
-	
-	// 2. Затем таблицы, зависящие от OnboardingQuestion
-	if err := migrateDB.AutoMigrate(&models.QuestionOption{}); err != nil {
-		log.Fatalf("Failed to migrate QuestionOption: %v", err)
-	}
-	
-	// 3. Затем таблицы, зависящие от User (OnboardingResponse, OnboardingAnswer)
-	// Эти таблицы нужны для работы onboarding API
-	if err := migrateDB.AutoMigrate(&models.OnboardingResponse{}); err != nil {
-		log.Fatalf("Failed to migrate OnboardingResponse: %v", err)
-	}
-	if err := migrateDB.AutoMigrate(&models.OnboardingAnswer{}); err != nil {
-		log.Fatalf("Failed to migrate OnboardingAnswer: %v", err)
-	}
-	
-	log.Println("✅ Database migrations completed")
 
 	// Создаем вопросы опросника
 	questions := []models.OnboardingQuestion{
