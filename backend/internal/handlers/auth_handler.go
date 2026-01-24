@@ -36,6 +36,12 @@ type LoginRequest struct {
 	Password string `json:"password" binding:"required"`
 }
 
+type EmployeeLoginRequest struct {
+	PIN           string  `json:"pin" binding:"required,numeric,len=4"`
+	InitialCash   float64 `json:"initial_cash" binding:"required,min=0"`
+	EstablishmentID string  `json:"establishment_id" binding:"required,uuid"` // Добавлено поле заведения
+}
+
 type RefreshRequest struct {
 	RefreshToken string `json:"refresh_token" binding:"required"`
 }
@@ -119,6 +125,67 @@ statusCode := http.StatusInternalServerError
 		if errors.Is(err, repositories.ErrUserNotFound) || errors.Is(err, repositories.ErrInvalidCredentials) {
 			statusCode = http.StatusUnauthorized
 			errorMessage = "Неверные учетные данные"
+		}
+		c.JSON(statusCode, gin.H{"error": errorMessage})
+		return
+	}
+
+	c.JSON(http.StatusOK, AuthResponse{
+		AccessToken:  accessToken,
+		RefreshToken: refreshToken,
+		User: gin.H{
+			"id":                   user.ID,
+			"email":                user.Email,
+			"name":                 user.Name,
+			"onboarding_completed": user.OnboardingCompleted,
+		},
+	})
+}
+
+// EmployeeLogin выполняет аутентификацию сотрудника по ПИН-коду и начинает смену
+// @Summary Вход сотрудника
+// @Description Аутентифицирует сотрудника по 4-значному ПИН-коду, начинает смену и возвращает токены доступа
+// @Tags auth
+// @Accept json
+// @Produce json
+// @Security Bearer
+// @Param request body EmployeeLoginRequest true "Данные для входа сотрудника"
+// @Success 200 {object} AuthResponse
+// @Failure 400 {object} map[string]string
+// @Failure 401 {object} map[string]string
+// @Failure 500 {object} map[string]string
+// @Router /auth/employee/login [post]
+func (h *AuthHandler) EmployeeLogin(c *gin.Context) {
+	var req EmployeeLoginRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	estID, err := uuid.Parse(req.EstablishmentID)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Неверный ID заведения"})
+		return
+	}
+
+	user, accessToken, refreshToken, err := h.usecase.LoginEmployee(c.Request.Context(), req.PIN, req.InitialCash, estID) // Передаем ID заведения
+	if err != nil {
+		h.logger.Error("Failed to login employee", zap.Error(err))
+		
+		statusCode := http.StatusInternalServerError
+		errorMessage := "Внутренняя ошибка сервера"
+
+		if errors.Is(err, repositories.ErrUserNotFound) {
+			statusCode = http.StatusUnauthorized
+			errorMessage = "Неверный ПИН-код или сотрудник не найден в этом заведении"
+		} else if strings.Contains(err.Error(), "employee not found in this establishment") {
+			statusCode = http.StatusUnauthorized
+			errorMessage = "Сотрудник не найден в этом заведении"
+		} else if strings.Contains(err.Error(), "employee is not assigned to an establishment") {
+			// This case might still be possible if GetByPIN returns a user without an establishment_id
+			// but the primary check is now in GetByPIN
+			statusCode = http.StatusBadRequest
+			errorMessage = "Сотрудник не привязан к заведению"
 		}
 		c.JSON(statusCode, gin.H{"error": errorMessage})
 		return

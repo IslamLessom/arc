@@ -19,6 +19,7 @@ type TransactionFilter struct {
 	StartDate       *time.Time
 	EndDate         *time.Time
 	Search          *string // Поиск по описанию
+	ShiftID         *uuid.UUID
 }
 
 type TransactionRepository interface {
@@ -86,6 +87,9 @@ func (r *transactionRepository) List(ctx context.Context, filter *TransactionFil
 		}
 		if filter.EndDate != nil {
 			query = query.Where("transaction_date <= ?", *filter.EndDate)
+		}
+		if filter.ShiftID != nil {
+			query = query.Where("shift_id = ?", *filter.ShiftID)
 		}
 		if filter.Search != nil && *filter.Search != "" {
 			search := "%" + strings.ToLower(*filter.Search) + "%"

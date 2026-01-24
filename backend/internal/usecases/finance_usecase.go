@@ -3,6 +3,7 @@ package usecases
 import (
 	"context"
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/google/uuid"
@@ -10,21 +11,31 @@ import (
 	"github.com/yourusername/arc/backend/internal/repositories"
 )
 
+type ShiftReportFilter struct {
+	StartDate       time.Time
+	EndDate         time.Time
+	EmployeeID      *uuid.UUID
+	IncludeProducts bool
+}
+
 type FinanceUseCase struct {
 	transactionRepo repositories.TransactionRepository
 	accountRepo     repositories.AccountRepository
 	shiftRepo       repositories.ShiftRepository
+	orderRepo       repositories.OrderRepository // Добавлен orderRepo
 }
 
 func NewFinanceUseCase(
 	transactionRepo repositories.TransactionRepository,
 	accountRepo repositories.AccountRepository,
 	shiftRepo repositories.ShiftRepository,
+	orderRepo repositories.OrderRepository, // Добавлен orderRepo
 ) *FinanceUseCase {
 	return &FinanceUseCase{
 		transactionRepo: transactionRepo,
 		accountRepo:     accountRepo,
 		shiftRepo:       shiftRepo,
+		orderRepo:       orderRepo,
 	}
 }
 
@@ -146,4 +157,149 @@ func (uc *FinanceUseCase) DeleteTransaction(ctx context.Context, id uuid.UUID, e
 	
 	// Удаляем транзакцию
 	return uc.transactionRepo.Delete(ctx, id)
+}
+
+// GetTotalTransactionsAmount возвращает общую сумму транзакций с фильтрацией
+func (uc *FinanceUseCase) GetTotalTransactionsAmount(ctx context.Context, establishmentID uuid.UUID, filter *repositories.TransactionFilter) (float64, error) {
+	if filter == nil {
+		filter = &repositories.TransactionFilter{}
+	}
+	filter.EstablishmentID = &establishmentID
+	transactions, err := uc.transactionRepo.List(ctx, filter)
+	if err != nil {
+		return 0, fmt.Errorf("failed to list transactions for total sum calculation: %w", err)
+	}
+
+	var total float64
+	for _, t := range transactions {
+		total += t.Amount
+	}
+	return total, nil
+}
+
+// ShiftReport представляет отчет о смене
+type ShiftReport struct {
+	ShiftID         uuid.UUID        `json:"shift_id"`
+	UserID          uuid.UUID        `json:"user_id"`
+	UserName        string           `json:"user_name"`
+	StartTime       time.Time        `json:"start_time"`
+	EndTime         *time.Time       `json:"end_time,omitempty"`
+	InitialCash     float64          `json:"initial_cash"`
+	FinalCash       *float64         `json:"final_cash,omitempty"`
+	Comment         *string          `json:"comment,omitempty"`
+	TotalOrders     int              `json:"total_orders"`
+	TotalAmount     float64          `json:"total_amount"`
+	TotalDiscounts  float64          `json:"total_discounts"`
+	AmountAfterDiscounts float64      `json:"amount_after_discounts"`
+	CashPayments    float64          `json:"cash_payments"`
+	CardPayments    float64          `json:"card_payments"`
+	Transactions    []models.Transaction `json:"transactions"`
+	OrderSummaries  []ShiftReportOrderSummary `json:"order_summaries,omitempty"`
+}
+
+// ShiftReportOrderSummary представляет краткую информацию о заказе для отчета
+type ShiftReportOrderSummary struct {
+	OrderID     uuid.UUID `json:"order_id"`
+	TableNumber *int      `json:"table_number,omitempty"`
+	Status      string    `json:"status"`
+	TotalAmount float64   `json:"total_amount"`
+	PaymentStatus string  `json:"payment_status"`
+	// Дополнительные поля, если IncludeProducts = true
+	Items []models.OrderItem `json:"items,omitempty"`
+}
+
+// GenerateShiftReport генерирует отчет о смене
+func (uc *FinanceUseCase) GenerateShiftReport(ctx context.Context, establishmentID uuid.UUID, filter ShiftReportFilter) (*ShiftReport, error) {
+	// Получаем смены по фильтру
+	shifts, err := uc.shiftRepo.ListByFilter(ctx, &repositories.ShiftFilter{
+		EstablishmentID: &establishmentID,
+		UserID:          filter.EmployeeID,
+		StartDate:       &filter.StartDate,
+		EndDate:         &filter.EndDate,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to list shifts for report: %w", err)
+	}
+
+	if len(shifts) == 0 {
+		return nil, errors.New("no shifts found for the specified period and employee")
+	}
+
+	// Assuming one shift per report for a single employee and period for simplicity
+	shift := shifts[0]
+
+	report := &ShiftReport{
+		ShiftID:         shift.ID,
+		UserID:          shift.UserID,
+		UserName:        shift.User.Name,
+		StartTime:       shift.StartTime,
+		EndTime:         shift.EndTime,
+		InitialCash:     shift.InitialCash,
+		FinalCash:       shift.FinalCash,
+		Comment:         shift.Comment,
+	}
+
+	// Fetch all transactions for the shift
+	transactions, err := uc.transactionRepo.List(ctx, &repositories.TransactionFilter{
+		EstablishmentID: &establishmentID,
+		StartDate:       &shift.StartTime,
+		EndDate:         shift.EndTime,
+		ShiftID:         &shift.ID,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to list transactions for shift report: %w", err)
+	}
+
+	convertedTransactions := make([]models.Transaction, len(transactions))
+	for i, tx := range transactions {
+		convertedTransactions[i] = *tx
+	}
+	report.Transactions = convertedTransactions
+
+	// Fetch orders related to this shift
+	orders, err := uc.orderRepo.ListByShiftIDAndEstablishmentIDAndDateRange(ctx, shift.ID, establishmentID, shift.StartTime, *shift.EndTime)
+	if err != nil {
+		return nil, fmt.Errorf("failed to list orders for shift report: %w", err)
+	}
+
+	report.TotalOrders = len(orders)
+	
+	var totalAmountFromOrders float64
+	var totalDiscountsFromOrders float64
+	var cashPaymentsFromOrders float64
+	var cardPaymentsFromOrders float64
+	var orderSummaries []ShiftReportOrderSummary
+
+	for _, order := range orders {
+		totalAmountFromOrders += order.TotalAmount
+		cashPaymentsFromOrders += order.CashAmount
+		cardPaymentsFromOrders += order.CardAmount
+		if order.Status == "cancelled" && order.ReasonForNoPayment != nil { // Assuming cancelled orders without payment are discounts/losses
+			totalDiscountsFromOrders += order.TotalAmount
+		}
+
+		// Populate OrderSummaries if IncludeProducts is true
+		if filter.IncludeProducts {
+			summary := ShiftReportOrderSummary{
+				OrderID:     order.ID,
+				Status:      order.Status,
+				TotalAmount: order.TotalAmount,
+				PaymentStatus: order.PaymentStatus,
+			}
+			if order.TableID != nil {
+				summary.TableNumber = &order.Table.Number
+			}
+			summary.Items = order.Items // Assuming OrderItem contains product/techcard info
+			orderSummaries = append(orderSummaries, summary)
+		}
+	}
+
+	report.TotalAmount = totalAmountFromOrders
+	report.TotalDiscounts = totalDiscountsFromOrders
+	report.AmountAfterDiscounts = report.TotalAmount - report.TotalDiscounts
+	report.CashPayments = cashPaymentsFromOrders
+	report.CardPayments = cardPaymentsFromOrders
+	report.OrderSummaries = orderSummaries
+
+	return report, nil
 }

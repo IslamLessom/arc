@@ -12,7 +12,9 @@ type User struct {
 	ID        uuid.UUID      `json:"id" gorm:"type:uuid;primaryKey;default:gen_random_uuid()"`
 	Email     string         `json:"email" gorm:"uniqueIndex;not null"`
 	Password  string         `json:"-" gorm:"not null"`
+	PIN       *string        `json:"-" gorm:"column:pin"`
 	Name      string         `json:"name"`
+	Phone     *string        `json:"phone,omitempty"` // Добавлено поле для номера телефона
 	RoleID    uuid.UUID      `json:"role_id" gorm:"type:uuid;not null"`
 	Role      *Role          `json:"role,omitempty" gorm:"foreignKey:RoleID"`
 	

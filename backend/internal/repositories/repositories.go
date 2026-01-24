@@ -51,3 +51,8 @@ func NewRepositories(db *gorm.DB) *Repositories {
 		AccountType:  NewAccountTypeRepository(db),
 	}
 }
+
+// BoolPtr возвращает указатель на булево значение
+func BoolPtr(b bool) *bool {
+	return &b
+}

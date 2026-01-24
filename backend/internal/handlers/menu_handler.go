@@ -118,6 +118,42 @@ func (h *MenuHandler) GetProducts(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"data": products})
 }
 
+// ListProductsByCategory возвращает список товаров по заданной категории
+// @Summary Получить список товаров по категории
+// @Description Возвращает список товаров, принадлежащих указанной категории.
+// @Tags menu
+// @Produce json
+// @Security Bearer
+// @Param category_id path string true "ID категории"
+// @Success 200 {object} map[string]interface{}
+// @Failure 400 {object} map[string]string
+// @Failure 403 {object} map[string]string
+// @Failure 500 {object} map[string]string
+// @Router /menu/categories/{category_id}/products [get]
+func (h *MenuHandler) ListProductsByCategory(c *gin.Context) {
+	estID, err := getEstablishmentID(c)
+	if err != nil {
+		c.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
+		return
+	}
+
+	categoryIDStr := c.Param("category_id")
+	categoryID, err := uuid.Parse(categoryIDStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Неверный ID категории"})
+		return
+	}
+
+	filter := &repositories.ProductFilter{EstablishmentID: &estID, CategoryID: &categoryID}
+	products, err := h.usecase.GetProducts(c.Request.Context(), filter)
+	if err != nil {
+		h.logger.Error("Failed to get products by category", zap.Error(err))
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Не удалось получить товары по категории"})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"data": products})
+}
+
 // GetProduct возвращает товар по ID
 // @Summary Получить товар по ID
 // @Description Возвращает товар по ID
@@ -129,6 +165,7 @@ func (h *MenuHandler) GetProducts(c *gin.Context) {
 // @Failure 400 {object} map[string]string
 // @Failure 403 {object} map[string]string
 // @Failure 404 {object} map[string]string
+// @Failure 500 {object} map[string]string
 // @Router /menu/products/{id} [get]
 func (h *MenuHandler) GetProduct(c *gin.Context) {
 	estID, err := getEstablishmentID(c)
@@ -145,6 +182,7 @@ func (h *MenuHandler) GetProduct(c *gin.Context) {
 
 	product, err := h.usecase.GetProductByID(c.Request.Context(), id, estID)
 	if err != nil {
+		h.logger.Error("Failed to get product", zap.Error(err))
 		c.JSON(http.StatusNotFound, gin.H{"error": "product not found"})
 		return
 	}
@@ -446,6 +484,42 @@ func (h *MenuHandler) GetTechCards(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"data": techCards})
 }
 
+// ListTechCardsByCategory возвращает список тех-карт по заданной категории
+// @Summary Получить список тех-карт по категории
+// @Description Возвращает список тех-карт, принадлежащих указанной категории.
+// @Tags menu
+// @Produce json
+// @Security Bearer
+// @Param category_id path string true "ID категории"
+// @Success 200 {object} map[string]interface{}
+// @Failure 400 {object} map[string]string
+// @Failure 403 {object} map[string]string
+// @Failure 500 {object} map[string]string
+// @Router /menu/categories/{category_id}/tech-cards [get]
+func (h *MenuHandler) ListTechCardsByCategory(c *gin.Context) {
+	estID, err := getEstablishmentID(c)
+	if err != nil {
+		c.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
+		return
+	}
+
+	categoryIDStr := c.Param("category_id")
+	categoryID, err := uuid.Parse(categoryIDStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Неверный ID категории"})
+		return
+	}
+
+	filter := &repositories.TechCardFilter{EstablishmentID: &estID, CategoryID: &categoryID}
+	techCards, err := h.usecase.GetTechCards(c.Request.Context(), filter)
+	if err != nil {
+		h.logger.Error("Failed to get tech cards by category", zap.Error(err))
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Не удалось получить тех-карты по категории"})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"data": techCards})
+}
+
 // GetTechCard возвращает тех-карту по ID
 // @Summary Получить тех-карту по ID
 // @Description Возвращает тех-карту по ID
@@ -457,6 +531,7 @@ func (h *MenuHandler) GetTechCards(c *gin.Context) {
 // @Failure 400 {object} map[string]string
 // @Failure 403 {object} map[string]string
 // @Failure 404 {object} map[string]string
+// @Failure 500 {object} map[string]string
 // @Router /menu/tech-cards/{id} [get]
 func (h *MenuHandler) GetTechCard(c *gin.Context) {
 	estID, err := getEstablishmentID(c)
@@ -473,6 +548,7 @@ func (h *MenuHandler) GetTechCard(c *gin.Context) {
 
 	techCard, err := h.usecase.GetTechCardByID(c.Request.Context(), id, estID)
 	if err != nil {
+		h.logger.Error("Failed to get tech card", zap.Error(err))
 		c.JSON(http.StatusNotFound, gin.H{"error": "tech card not found"})
 		return
 	}
@@ -828,6 +904,7 @@ func (h *MenuHandler) GetIngredients(c *gin.Context) {
 // @Failure 400 {object} map[string]string
 // @Failure 403 {object} map[string]string
 // @Failure 404 {object} map[string]string
+// @Failure 500 {object} map[string]string
 // @Router /menu/ingredients/{id} [get]
 func (h *MenuHandler) GetIngredient(c *gin.Context) {
 	estID, err := getEstablishmentID(c)
@@ -844,6 +921,7 @@ func (h *MenuHandler) GetIngredient(c *gin.Context) {
 
 	ingredient, err := h.usecase.GetIngredientByID(c.Request.Context(), id, estID)
 	if err != nil {
+		h.logger.Error("Failed to get ingredient", zap.Error(err))
 		c.JSON(http.StatusNotFound, gin.H{"error": "ingredient not found"})
 		return
 	}
@@ -1074,6 +1152,7 @@ func (h *MenuHandler) GetCategories(c *gin.Context) {
 // @Failure 400 {object} map[string]string
 // @Failure 403 {object} map[string]string
 // @Failure 404 {object} map[string]string
+// @Failure 500 {object} map[string]string
 // @Router /menu/categories/{id} [get]
 func (h *MenuHandler) GetCategory(c *gin.Context) {
 	estID, err := getEstablishmentID(c)
@@ -1088,6 +1167,7 @@ func (h *MenuHandler) GetCategory(c *gin.Context) {
 	}
 	cat, err := h.usecase.GetCategoryByID(c.Request.Context(), id, estID)
 	if err != nil {
+		h.logger.Error("Failed to get category", zap.Error(err))
 		c.JSON(http.StatusNotFound, gin.H{"error": "category not found"})
 		return
 	}
@@ -1155,6 +1235,7 @@ func (h *MenuHandler) UpdateCategory(c *gin.Context) {
 	}
 	cat, err := h.usecase.GetCategoryByID(c.Request.Context(), id, estID)
 	if err != nil {
+		h.logger.Error("Failed to get category", zap.Error(err))
 		c.JSON(http.StatusNotFound, gin.H{"error": "category not found"})
 		return
 	}
@@ -1256,6 +1337,7 @@ func (h *MenuHandler) GetIngredientCategories(c *gin.Context) {
 // @Failure 400 {object} map[string]string
 // @Failure 403 {object} map[string]string
 // @Failure 404 {object} map[string]string
+// @Failure 500 {object} map[string]string
 // @Router /menu/ingredient-categories/{id} [get]
 func (h *MenuHandler) GetIngredientCategory(c *gin.Context) {
 	estID, err := getEstablishmentID(c)
@@ -1270,6 +1352,7 @@ func (h *MenuHandler) GetIngredientCategory(c *gin.Context) {
 	}
 	cat, err := h.usecase.GetIngredientCategoryByID(c.Request.Context(), id, estID)
 	if err != nil {
+		h.logger.Error("Failed to get ingredient category", zap.Error(err))
 		c.JSON(http.StatusNotFound, gin.H{"error": "ingredient category not found"})
 		return
 	}
@@ -1337,6 +1420,7 @@ func (h *MenuHandler) UpdateIngredientCategory(c *gin.Context) {
 	}
 	cat, err := h.usecase.GetIngredientCategoryByID(c.Request.Context(), id, estID)
 	if err != nil {
+		h.logger.Error("Failed to get ingredient category", zap.Error(err))
 		c.JSON(http.StatusNotFound, gin.H{"error": "ingredient category not found"})
 		return
 	}
@@ -1366,6 +1450,7 @@ func (h *MenuHandler) UpdateIngredientCategory(c *gin.Context) {
 // @Success 200 {object} map[string]string
 // @Failure 400 {object} map[string]string
 // @Failure 403 {object} map[string]string
+// @Failure 404 {object} map[string]string
 // @Failure 500 {object} map[string]string
 // @Router /menu/ingredient-categories/{id} [delete]
 func (h *MenuHandler) DeleteIngredientCategory(c *gin.Context) {

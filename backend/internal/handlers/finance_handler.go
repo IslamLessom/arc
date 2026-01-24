@@ -306,6 +306,66 @@ func (h *FinanceHandler) DeleteTransaction(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "transaction deleted"})
 }
 
+// GetTotalTransactionsAmount возвращает общую сумму транзакций
+// @Summary Получить общую сумму транзакций
+// @Description Возвращает общую сумму транзакций заведения с возможностью фильтрации.
+// @Tags finance
+// @Produce json
+// @Security Bearer
+// @Param account_id query string false "ID счета"
+// @Param type query string false "Тип транзакции (income, expense, transfer)"
+// @Param category query string false "Категория"
+// @Param start_date query string false "Начальная дата (RFC3339)"
+// @Param end_date query string false "Конечная дата (RFC3339)"
+// @Param search query string false "Поиск по описанию и категории"
+// @Success 200 {object} map[string]interface{}
+// @Failure 403 {object} map[string]string
+// @Failure 500 {object} map[string]string
+// @Router /finance/transactions/total [get]
+func (h *FinanceHandler) GetTotalTransactionsAmount(c *gin.Context) {
+	estID, err := getEstablishmentID(c)
+	if err != nil {
+		c.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
+		return
+	}
+
+	filter := &repositories.TransactionFilter{}
+	
+	if accountID := c.Query("account_id"); accountID != "" {
+		if id, e := uuid.Parse(accountID); e == nil {
+			filter.AccountID = &id
+		}
+	}
+	if transactionType := c.Query("type"); transactionType != "" {
+		filter.Type = &transactionType
+	}
+	if category := c.Query("category"); category != "" {
+		filter.Category = &category
+	}
+	if startDateStr := c.Query("start_date"); startDateStr != "" {
+		if startDate, e := time.Parse(time.RFC3339, startDateStr); e == nil {
+			filter.StartDate = &startDate
+		}
+	}
+	if endDateStr := c.Query("end_date"); endDateStr != "" {
+		if endDate, e := time.Parse(time.RFC3339, endDateStr); e == nil {
+			filter.EndDate = &endDate
+		}
+	}
+	if search := c.Query("search"); search != "" {
+		filter.Search = &search
+	}
+
+	totalAmount, err := h.usecase.GetTotalTransactionsAmount(c.Request.Context(), estID, filter)
+	if err != nil {
+		h.logger.Error("Failed to get total transactions amount", zap.Error(err))
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Не удалось получить общую сумму транзакций"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"total_amount": totalAmount})
+}
+
 // GetShifts возвращает смены
 // @Summary Получить смены
 // @Description Возвращает список смен
@@ -349,4 +409,72 @@ func (h *FinanceHandler) GetPNL(c *gin.Context) {
 func (h *FinanceHandler) GetCashFlow(c *gin.Context) {
 	// TODO: Implement cash flow report logic
 	c.JSON(http.StatusOK, gin.H{"data": map[string]interface{}{}})
+}
+
+// GenerateShiftReport создает и возвращает отчет о смене
+// @Summary Сгенерировать отчет о смене
+// @Description Генерирует подробный отчет о смене кассира за указанный период, с возможностью фильтрации по сотруднику и включения списка товаров.
+// @Tags finance
+// @Produce json
+// @Security Bearer
+// @Param start_date query string true "Дата начала смены (RFC3339)"
+// @Param end_date query string true "Дата окончания смены (RFC3339)"
+// @Param employee_id query string false "ID сотрудника для фильтрации (UUID)"
+// @Param include_products query bool false "Включить детализацию товаров в отчет"
+// @Success 200 {object} usecases.ShiftReport
+// @Failure 400 {object} map[string]string
+// @Failure 403 {object} map[string]string
+// @Failure 404 {object} map[string]string
+// @Failure 500 {object} map[string]string
+// @Router /finance/reports/shift [get]
+func (h *FinanceHandler) GenerateShiftReport(c *gin.Context) {
+	estID, err := getEstablishmentID(c)
+	if err != nil {
+		c.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
+		return
+	}
+
+	startDateStr := c.Query("start_date")
+	endDateStr := c.Query("end_date")
+	employeeIDStr := c.Query("employee_id")
+	includeProductsStr := c.Query("include_products")
+
+	startDate, err := time.Parse(time.RFC3339, startDateStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Неверный формат start_date"})
+		return
+	}
+
+	endDate, err := time.Parse(time.RFC3339, endDateStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Неверный формат end_date"})
+		return
+	}
+
+	filter := usecases.ShiftReportFilter{
+		StartDate: startDate,
+		EndDate:   endDate,
+	}
+
+	if employeeIDStr != "" {
+		employeeID, err := uuid.Parse(employeeIDStr)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Неверный формат employee_id"})
+			return
+		}
+		filter.EmployeeID = &employeeID
+	}
+
+	if includeProductsStr == "true" {
+		filter.IncludeProducts = true
+	}
+
+	report, err := h.usecase.GenerateShiftReport(c.Request.Context(), estID, filter)
+	if err != nil {
+		h.logger.Error("Failed to generate shift report", zap.Error(err))
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, report)
 }
