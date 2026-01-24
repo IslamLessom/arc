@@ -36,6 +36,11 @@ type WarehouseRepository interface {
 	CreateStock(ctx context.Context, stock *models.Stock) error
 	UpdateStock(ctx context.Context, stock *models.Stock) error
 	UpdateStockLimit(ctx context.Context, id uuid.UUID, limit float64) error
+
+	// Product and TechCard retrievals
+	GetProductByID(ctx context.Context, id uuid.UUID) (*models.Product, error)
+	GetTechCardByID(ctx context.Context, id uuid.UUID) (*models.TechCard, error)
+
 	// Supply & WriteOff
 	CreateSupply(ctx context.Context, supply *models.Supply) error
 	GetSuppliesByIngredientOrProduct(ctx context.Context, establishmentID uuid.UUID, ingredientID *uuid.UUID, productID *uuid.UUID) ([]*models.Supply, error)
@@ -51,6 +56,24 @@ type warehouseRepository struct {
 
 func NewWarehouseRepository(db *gorm.DB) WarehouseRepository {
 	return &warehouseRepository{db: db}
+}
+
+func (r *warehouseRepository) GetProductByID(ctx context.Context, id uuid.UUID) (*models.Product, error) {
+	var product models.Product
+	err := r.db.WithContext(ctx).First(&product, "id = ?", id).Error
+	if err == gorm.ErrRecordNotFound {
+		return nil, nil
+	}
+	return &product, err
+}
+
+func (r *warehouseRepository) GetTechCardByID(ctx context.Context, id uuid.UUID) (*models.TechCard, error) {
+	var techCard models.TechCard
+	err := r.db.WithContext(ctx).First(&techCard, "id = ?", id).Error
+	if err == gorm.ErrRecordNotFound {
+		return nil, nil
+	}
+	return &techCard, err
 }
 
 func (r *warehouseRepository) CreateWarehouse(ctx context.Context, w *models.Warehouse) error {

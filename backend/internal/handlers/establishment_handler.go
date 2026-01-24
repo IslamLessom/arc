@@ -102,6 +102,44 @@ type UpdateEstablishmentRequest struct {
 	Active            *bool   `json:"active,omitempty"`
 }
 
+// GetEstablishmentSettings возвращает настройки заведения
+// @Summary Получить настройки заведения
+// @Description Возвращает настройки заведения текущего пользователя
+// @Tags establishments
+// @Produce json
+// @Security Bearer
+// @Success 200 {object} EstablishmentSettingsResponse
+// @Failure 401 {object} map[string]string
+// @Failure 403 {object} map[string]string
+// @Failure 404 {object} map[string]string
+// @Failure 500 {object} map[string]string
+// @Router /establishments/me/settings [get]
+func (h *EstablishmentHandler) GetEstablishmentSettings(c *gin.Context) {
+	estID, err := getEstablishmentID(c)
+	if err != nil {
+		c.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
+		return
+	}
+
+	establishment, err := h.usecase.GetByID(c.Request.Context(), estID)
+	if err != nil {
+		h.logger.Error("Failed to get establishment settings", zap.Error(err))
+		c.JSON(http.StatusNotFound, gin.H{"error": "Establishment settings not found"})
+		return
+	}
+
+	response := EstablishmentSettingsResponse{
+		HasSeatingPlaces: establishment.HasSeatingPlaces,
+		TableCount:       establishment.TableCount,
+		Type:             establishment.Type,
+		HasDelivery:      establishment.HasDelivery,
+		HasTakeaway:      establishment.HasTakeaway,
+		HasReservations:  establishment.HasReservations,
+	}
+
+	c.JSON(http.StatusOK, response)
+}
+
 // List возвращает заведение пользователя (создаётся при onboarding). 0 или 1 элемент.
 // @Summary Получить список заведений
 // @Description Возвращает заведения пользователя (обычно 0 или 1 элемент). Возвращает массив заведений с полями: id, owner_id, name, address, phone, email, has_seating_places, table_count, type, tables, active, created_at, updated_at
