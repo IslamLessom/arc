@@ -22,30 +22,50 @@ export const useSidebar = (props: SidebarProps): UseSidebarResult => {
 
   const getActiveItemId = (): MenuItemId => {
     if (!currentPath) return MenuItemId.GettingStarted;
-    
-    const pathMap: Record<string, MenuItemId> = {
-      '/': MenuItemId.GettingStarted,
-      '/statistics': MenuItemId.Statistics,
-      '/finance': MenuItemId.Finance,
-      '/menu': MenuItemId.Menu,
-      '/warehouse': MenuItemId.Warehouse,
-      '/warehouse/balances': MenuItemId.WarehouseBalances,
-      '/warehouse/deliveries': MenuItemId.WarehouseDeliveries,
-      '/warehouse/processing': MenuItemId.WarehouseProcessing,
-      '/warehouse/movements': MenuItemId.WarehouseMovements,
-      '/warehouse/write-offs': MenuItemId.WarehouseWriteOffs,
-      '/warehouse/movement-report': MenuItemId.WarehouseMovementReport,
-      '/warehouse/inventories': MenuItemId.WarehouseInventories,
-      '/warehouse/suppliers': MenuItemId.WarehouseSuppliers,
-      '/warehouse/warehouses': MenuItemId.WarehouseWarehouses,
-      '/warehouse/packaging': MenuItemId.WarehousePackaging,
-      '/marketing': MenuItemId.Marketing,
-      '/access': MenuItemId.Access,
-      '/all-applications': MenuItemId.AllApplications,
-      '/settings': MenuItemId.Settings,
-    };
 
-    return pathMap[currentPath] || MenuItemId.GettingStarted;
+    // Определяем пути с возможными параметрами (например, /warehouse/deliveries/:id)
+    // Формат: [basePath, menuItemId]
+    const pathPatterns: Array<[string, MenuItemId]> = [
+      ['/', MenuItemId.GettingStarted],
+      ['/statistics', MenuItemId.Statistics],
+      ['/finance', MenuItemId.Finance],
+      ['/menu', MenuItemId.Menu],
+      ['/menu/products', MenuItemId.MenuProducts],
+      ['/menu/tech-cards', MenuItemId.MenuTechCards],
+      ['/menu/semi-finished', MenuItemId.MenuSemiFinished],
+      ['/menu/ingredients', MenuItemId.MenuIngredients],
+      ['/menu/product-categories', MenuItemId.MenuProductCategories],
+      ['/menu/ingredient-categories', MenuItemId.MenuIngredientCategories],
+      ['/menu/workshops', MenuItemId.MenuWorkshops],
+      ['/warehouse', MenuItemId.Warehouse],
+      ['/warehouse/balances', MenuItemId.WarehouseBalances],
+      ['/warehouse/deliveries', MenuItemId.WarehouseDeliveries],
+      ['/warehouse/processing', MenuItemId.WarehouseProcessing],
+      ['/warehouse/movements', MenuItemId.WarehouseMovements],
+      ['/warehouse/write-offs', MenuItemId.WarehouseWriteOffs],
+      ['/warehouse/movement-report', MenuItemId.WarehouseMovementReport],
+      ['/warehouse/inventories', MenuItemId.WarehouseInventories],
+      ['/warehouse/suppliers', MenuItemId.WarehouseSuppliers],
+      ['/warehouse/warehouses', MenuItemId.WarehouseWarehouses],
+      ['/warehouse/packaging', MenuItemId.WarehousePackaging],
+      ['/marketing', MenuItemId.Marketing],
+      ['/access', MenuItemId.Access],
+      ['/all-applications', MenuItemId.AllApplications],
+      ['/settings', MenuItemId.Settings],
+    ];
+
+    // Ищем совпадение по префиксу (для путей с параметрами)
+    // Сортируем по длине пути убывающ, чтобы сначала проверять более конкретные пути
+    const sortedPatterns = pathPatterns.sort((a, b) => b[0].length - a[0].length);
+
+    for (const [basePath, menuItemId] of sortedPatterns) {
+      // Проверяем точное совпадение или совпадение с префиксом + "/"
+      if (currentPath === basePath || currentPath.startsWith(basePath + '/')) {
+        return menuItemId;
+      }
+    }
+
+    return MenuItemId.GettingStarted;
   };
 
   const [activeItemId, setActiveItemId] = useState<MenuItemId>(getActiveItemId());
@@ -71,8 +91,22 @@ export const useSidebar = (props: SidebarProps): UseSidebarResult => {
       MenuItemId.WarehousePackaging,
     ];
     
+    const menuSubItems = [
+      MenuItemId.MenuProducts,
+      MenuItemId.MenuTechCards,
+      MenuItemId.MenuSemiFinished,
+      MenuItemId.MenuIngredients,
+      MenuItemId.MenuProductCategories,
+      MenuItemId.MenuIngredientCategories,
+      MenuItemId.MenuWorkshops,
+    ];
+    
     if (warehouseSubItems.includes(activeId)) {
       setExpandedItems(prev => new Set(prev).add(MenuItemId.Warehouse));
+    }
+    
+    if (menuSubItems.includes(activeId)) {
+      setExpandedItems(prev => new Set(prev).add(MenuItemId.Menu));
     }
   }, [currentPath]);
 

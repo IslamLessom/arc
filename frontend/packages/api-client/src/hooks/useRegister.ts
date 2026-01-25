@@ -2,7 +2,7 @@ import { useMutation } from '@tanstack/react-query'
 import { apiClient } from '../client'
 import type { AuthUser, AuthResponse } from './useAuth'
 
-export interface RegisterRequest {
+interface RegisterRequest {
   email: string
   password: string
   name: string

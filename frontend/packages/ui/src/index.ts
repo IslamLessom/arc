@@ -1,4 +1,5 @@
 export { cn } from './utils';
+export { colors, type ColorPalette } from './theme';
 export { Button } from './button';
 export type { ButtonProps } from './button';
 export { ButtonVariant, ButtonSize } from './button';

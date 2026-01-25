@@ -16,6 +16,7 @@ type Repositories struct {
 	Category           CategoryRepository
 	IngredientCategory IngredientCategoryRepository
 	Warehouse          WarehouseRepository
+	Workshop           WorkshopRepository
 	Supplier           SupplierRepository
 	Order        OrderRepository
 	Transaction  TransactionRepository
@@ -40,6 +41,7 @@ func NewRepositories(db *gorm.DB) *Repositories {
 		Category:           NewCategoryRepository(db),
 		IngredientCategory: NewIngredientCategoryRepository(db),
 		Warehouse:          NewWarehouseRepository(db),
+		Workshop:           NewWorkshopRepository(db),
 		Supplier:           NewSupplierRepository(db),
 		Order:        NewOrderRepository(db),
 		Transaction:  NewTransactionRepository(db),

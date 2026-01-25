@@ -16,6 +16,7 @@ type UseCases struct {
 	Establishment *EstablishmentUseCase
 	Menu         *MenuUseCase
 	Warehouse    *WarehouseUseCase
+	Workshop     *WorkshopUseCase
 	Finance      *FinanceUseCase
 	Statistics   *StatisticsUseCase
 	Order        *OrderUseCase

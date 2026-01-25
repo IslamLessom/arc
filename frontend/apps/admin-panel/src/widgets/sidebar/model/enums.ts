@@ -8,6 +8,14 @@ export enum MenuItemId {
   Access = 'access',
   AllApplications = 'all-applications',
   Settings = 'settings',
+  // Menu sub-items
+  MenuProducts = 'menu-products',
+  MenuTechCards = 'menu-tech-cards',
+  MenuSemiFinished = 'menu-semi-finished',
+  MenuIngredients = 'menu-ingredients',
+  MenuProductCategories = 'menu-product-categories',
+  MenuIngredientCategories = 'menu-ingredient-categories',
+  MenuWorkshops = 'menu-workshops',
   // Warehouse sub-items
   WarehouseBalances = 'warehouse-balances',
   WarehouseDeliveries = 'warehouse-deliveries',

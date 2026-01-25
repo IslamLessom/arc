@@ -1,5 +1,5 @@
 import { useState, useCallback, useMemo, useEffect } from 'react'
-import { useOnboarding, useOnboardingQuestions } from '@restaurant-pos/api-client'
+import { useOnboarding, useOnboardingQuestions, useCurrentUser } from '@restaurant-pos/api-client'
 import type {
   UseOnboardingFormResult,
   OnboardingFormProps,
@@ -58,6 +58,7 @@ export function useOnboardingForm(
   const { onSubmit } = props
   const { data: questionsData, isLoading: isLoadingQuestions } = useOnboardingQuestions()
   const onboardingMutation = useOnboarding()
+  const { data: currentUser } = useCurrentUser()
   
   // Получаем все вопросы в плоском массиве, отсортированные по шагам
   const questions = useMemo(() => {
@@ -100,6 +101,19 @@ export function useOnboardingForm(
       })
     }
   }, [questions])
+
+  // Автоматически заполняем email из данных пользователя
+  useEffect(() => {
+    if (currentUser?.email && questions.length > 0) {
+      const emailQuestion = questions.find(q => q.key === 'email')
+      if (emailQuestion && !answers[emailQuestion.key]) {
+        setAnswers((prev) => ({
+          ...prev,
+          [emailQuestion.key]: currentUser.email,
+        }))
+      }
+    }
+  }, [currentUser, questions, answers])
   
   const [error, setError] = useState<string | null>(null)
   
@@ -156,9 +170,28 @@ export function useOnboardingForm(
           }
         }
       }
-      
+
+      // Дополнительная валидация для phone полей
+      for (const question of visibleQuestions) {
+        if (question.type === 'phone') {
+          const value = answers[question.key]
+          if (typeof value === 'string' && value && !/^\+7 \(\d{3}\) - \d{3} - \d{4}$/.test(value)) {
+            setError(`Поле "${question.label}" должно быть в формате +7 (___) - ___ - ____`)
+            return
+          }
+        }
+      }
+
       try {
+        // Подготовка данных для отправки: очищаем phone поля от маски
         const formData: OnboardingFormData = { ...answers }
+        Object.keys(formData).forEach(key => {
+          const question = questions.find(q => q.key === key)
+          if (question?.type === 'phone' && typeof formData[key] === 'string') {
+            // Удаляем все нецифровые символы кроме +
+            formData[key] = (formData[key] as string).replace(/[^\d+]/g, '')
+          }
+        })
         
         await onboardingMutation.mutateAsync({
           answers: formData,
