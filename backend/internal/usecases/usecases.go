@@ -3,6 +3,8 @@ package usecases
 import (
 	"fmt"
 
+	"go.uber.org/zap"
+
 	"github.com/yourusername/arc/backend/internal/config"
 	"github.com/yourusername/arc/backend/internal/repositories"
 	"github.com/yourusername/arc/backend/pkg/storage"
@@ -27,9 +29,9 @@ type UseCases struct {
 }
 
 // NewUseCases создает все use cases
-func NewUseCases(repos *repositories.Repositories, cfg *config.Config) (*UseCases, error) {
+func NewUseCases(repos *repositories.Repositories, cfg *config.Config, logger *zap.Logger) (*UseCases, error) {
 	// Инициализируем MinIO storage
-	storageClient, err := storage.NewMinIO(cfg.Storage)
+	storageClient, err := storage.NewMinIO(cfg.Storage, logger)
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize storage: %w", err)
 	}

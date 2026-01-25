@@ -58,7 +58,7 @@ type UpdateProductRequest struct {
 	CategoryID        *string `json:"category_id,omitempty" binding:"omitempty,uuid"`
 	WorkshopID        *string `json:"workshop_id,omitempty" binding:"omitempty,uuid"`
 	Description       string  `json:"description"`
-	CoverImage        string  `json:"cover_image"`
+	CoverImage        *string `json:"cover_image,omitempty"`
 	IsWeighted        bool    `json:"is_weighted"`
 	ExcludeFromDiscounts bool `json:"exclude_from_discounts"`
 	HasModifications  bool    `json:"has_modifications"`
@@ -328,7 +328,9 @@ func (h *MenuHandler) UpdateProduct(c *gin.Context) {
 		product.WorkshopID = &workshopID
 	}
 	product.Description = req.Description
-	product.CoverImage = req.CoverImage
+	if req.CoverImage != nil {
+		product.CoverImage = *req.CoverImage
+	}
 	product.IsWeighted = req.IsWeighted
 	product.ExcludeFromDiscounts = req.ExcludeFromDiscounts
 	product.HasModifications = req.HasModifications
@@ -425,7 +427,7 @@ type UpdateTechCardRequest struct {
 	CategoryID        *string                       `json:"category_id,omitempty" binding:"omitempty,uuid"`
 	WorkshopID        *string                       `json:"workshop_id,omitempty" binding:"omitempty,uuid"`
 	Description       string                        `json:"description"`
-	CoverImage        string                        `json:"cover_image"`
+	CoverImage        *string                       `json:"cover_image,omitempty"`
 	IsWeighted        bool                          `json:"is_weighted"`
 	ExcludeFromDiscounts bool                       `json:"exclude_from_discounts"`
 	CostPrice         float64                       `json:"cost_price"`
@@ -728,7 +730,9 @@ func (h *MenuHandler) UpdateTechCard(c *gin.Context) {
 		techCard.WorkshopID = &workshopID
 	}
 	techCard.Description = req.Description
-	techCard.CoverImage = req.CoverImage
+	if req.CoverImage != nil {
+		techCard.CoverImage = *req.CoverImage
+	}
 	techCard.IsWeighted = req.IsWeighted
 	techCard.ExcludeFromDiscounts = req.ExcludeFromDiscounts
 	techCard.CostPrice = req.CostPrice
