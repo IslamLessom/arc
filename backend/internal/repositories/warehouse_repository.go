@@ -43,6 +43,7 @@ type WarehouseRepository interface {
 
 	// Supply & WriteOff
 	CreateSupply(ctx context.Context, supply *models.Supply) error
+	DeleteSupply(ctx context.Context, id uuid.UUID) error
 	GetSuppliesByIngredientOrProduct(ctx context.Context, establishmentID uuid.UUID, ingredientID *uuid.UUID, productID *uuid.UUID) ([]*models.Supply, error)
 	GetSuppliesByWarehouse(ctx context.Context, establishmentID uuid.UUID, warehouseID *uuid.UUID) ([]*models.Supply, error)
 	CreateWriteOff(ctx context.Context, writeOff *models.WriteOff) error
@@ -224,12 +225,12 @@ func (r *warehouseRepository) CreateSupply(ctx context.Context, supply *models.S
 		// чтобы GORM не пытался создать их автоматически
 		items := supply.Items
 		supply.Items = nil
-		
+
 		// Создаем Supply без Items
 		if err := tx.Create(supply).Error; err != nil {
 			return err
 		}
-		
+
 		// Теперь создаем элементы по одному с явно установленными UUID
 		for i := range items {
 			items[i].SupplyID = supply.ID
@@ -241,10 +242,21 @@ func (r *warehouseRepository) CreateSupply(ctx context.Context, supply *models.S
 				return err
 			}
 		}
-		
+
 		// Восстанавливаем Items для возврата
 		supply.Items = items
 		return nil
+	})
+}
+
+func (r *warehouseRepository) DeleteSupply(ctx context.Context, id uuid.UUID) error {
+	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		// Сначала удаляем связанные SupplyItem
+		if err := tx.Where("supply_id = ?", id).Delete(&models.SupplyItem{}).Error; err != nil {
+			return err
+		}
+		// Затем удаляем саму Supply
+		return tx.Delete(&models.Supply{}, "id = ?", id).Error
 	})
 }
 

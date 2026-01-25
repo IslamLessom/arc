@@ -3,6 +3,8 @@ package usecases
 import (
 	"context"
 	"errors"
+	"fmt"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/yourusername/arc/backend/internal/models"
@@ -12,12 +14,14 @@ import (
 type WarehouseUseCase struct {
 	repo         repositories.WarehouseRepository
 	supplierRepo repositories.SupplierRepository
+	financeUC    *FinanceUseCase
 }
 
-func NewWarehouseUseCase(repo repositories.WarehouseRepository, supplierRepo repositories.SupplierRepository) *WarehouseUseCase {
+func NewWarehouseUseCase(repo repositories.WarehouseRepository, supplierRepo repositories.SupplierRepository, financeUC *FinanceUseCase) *WarehouseUseCase {
 	return &WarehouseUseCase{
 		repo:         repo,
 		supplierRepo: supplierRepo,
+		financeUC:    financeUC,
 	}
 }
 
@@ -117,6 +121,36 @@ func (uc *WarehouseUseCase) CreateSupply(ctx context.Context, supply *models.Sup
 
 	if err := uc.repo.CreateSupply(ctx, supply); err != nil {
 		return err
+	}
+
+	// Создаем транзакцию оплаты, если указан счет и сумма оплаты
+	if supply.PaymentStatus == "paid" || supply.PaymentStatus == "partial" {
+		if supply.AccountID != nil && supply.PaymentAmount > 0 {
+			paymentDate := time.Now()
+			if supply.PaymentDate != nil {
+				paymentDate = *supply.PaymentDate
+			}
+
+			description := fmt.Sprintf("Оплата поставки #%s от поставщика", supply.ID.String())
+			if supply.InvoiceNumber != "" {
+				description = fmt.Sprintf("Оплата счета %s от поставщика", supply.InvoiceNumber)
+			}
+
+			transaction := &models.Transaction{
+				AccountID:       *supply.AccountID,
+				Type:            "expense",
+				Category:        "supply_payment",
+				Amount:          supply.PaymentAmount,
+				Description:     description,
+				TransactionDate: paymentDate,
+			}
+
+			if err := uc.financeUC.CreateTransaction(ctx, transaction, establishmentID); err != nil {
+				// Если не удалось создать транзакцию, откатываем создание поставки
+				_ = uc.repo.DeleteSupply(ctx, supply.ID)
+				return fmt.Errorf("failed to create payment transaction: %w", err)
+			}
+		}
 	}
 
 	for _, it := range supply.Items {

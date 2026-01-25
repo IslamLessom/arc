@@ -323,6 +323,14 @@ type CreateSupplyRequest struct {
 	Status          string              `json:"status"`                                    // pending, completed
 	Comment         string              `json:"comment"`                                   // Комментарий
 	Items           []SupplyItemRequest `json:"items" binding:"required,min=1"`
+	// Поля для счета и оплаты
+	InvoiceNumber   string  `json:"invoice_number"`                           // Номер счета от поставщика
+	InvoiceDate     string  `json:"invoice_date"`                             // Дата счета (RFC3339)
+	TotalAmount     float64 `json:"total_amount"`                             // Общая сумма по счету
+	PaymentStatus   string  `json:"payment_status"`                           // none, pending, partial, paid
+	PaymentDate     string  `json:"payment_date"`                             // Дата оплаты (RFC3339)
+	PaymentAmount   float64 `json:"payment_amount"`                           // Сумма оплаты
+	AccountID       string  `json:"account_id"`                               // Счет для оплаты (опционально, для создания транзакции)
 }
 
 // CreateSupply создает новую поставку
@@ -402,6 +410,31 @@ func (h *WarehouseHandler) CreateSupply(c *gin.Context) {
 		items = append(items, item)
 	}
 
+	// Парсим опциональные даты
+	var invoiceDate, paymentDate *time.Time
+	if req.InvoiceDate != "" {
+		if t, err := time.Parse(time.RFC3339, req.InvoiceDate); err == nil {
+			invoiceDate = &t
+		}
+	}
+	if req.PaymentDate != "" {
+		if t, err := time.Parse(time.RFC3339, req.PaymentDate); err == nil {
+			paymentDate = &t
+		}
+	}
+
+	var accountID *uuid.UUID
+	if req.AccountID != "" {
+		if id, err := uuid.Parse(req.AccountID); err == nil {
+			accountID = &id
+		}
+	}
+
+	paymentStatus := req.PaymentStatus
+	if paymentStatus == "" {
+		paymentStatus = "none"
+	}
+
 	supply := &models.Supply{
 		WarehouseID:     whID,
 		SupplierID:      supID,
@@ -409,6 +442,13 @@ func (h *WarehouseHandler) CreateSupply(c *gin.Context) {
 		Status:          status,
 		Comment:         req.Comment,
 		Items:           items,
+		InvoiceNumber:   req.InvoiceNumber,
+		InvoiceDate:     invoiceDate,
+		TotalAmount:     req.TotalAmount,
+		PaymentStatus:   paymentStatus,
+		PaymentDate:     paymentDate,
+		PaymentAmount:   req.PaymentAmount,
+		AccountID:       accountID,
 	}
 	if err := h.usecase.CreateSupply(c.Request.Context(), supply, estID); err != nil {
 		h.logger.Error("Failed to create supply", zap.Error(err))
