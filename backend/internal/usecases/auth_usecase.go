@@ -3,6 +3,7 @@ package usecases
 import (
 	"context"
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/google/uuid"
@@ -12,12 +13,16 @@ import (
 	"github.com/yourusername/arc/backend/pkg/auth"
 )
 
+var ErrUserAlreadyExists = errors.New("user with this email already exists")
+var ErrEmailRequired = errors.New("email is required")
+
 type AuthUseCase struct {
 	userRepo         repositories.UserRepository
 	roleRepo         repositories.RoleRepository
 	subscriptionRepo repositories.SubscriptionRepository
 	tokenRepo        repositories.TokenRepository
 	establishmentRepo repositories.EstablishmentRepository
+	shiftUseCase     *ShiftUseCase // Заменено на ShiftUseCase
 	config           *config.Config
 }
 
@@ -27,6 +32,7 @@ func NewAuthUseCase(
 	subscriptionRepo repositories.SubscriptionRepository,
 	tokenRepo repositories.TokenRepository,
 	establishmentRepo repositories.EstablishmentRepository,
+	shiftUseCase *ShiftUseCase, // Заменено на ShiftUseCase
 	cfg *config.Config,
 ) *AuthUseCase {
 	return &AuthUseCase{
@@ -35,6 +41,7 @@ func NewAuthUseCase(
 		subscriptionRepo: subscriptionRepo,
 		tokenRepo:        tokenRepo,
 		establishmentRepo: establishmentRepo,
+		shiftUseCase:     shiftUseCase, // Присвоение ShiftUseCase
 		config:           cfg,
 	}
 }
@@ -42,9 +49,13 @@ func NewAuthUseCase(
 // Register создает нового пользователя и автоматически создает подписку на 14 дней
 func (uc *AuthUseCase) Register(ctx context.Context, email, password, name string) (*models.User, string, string, error) {
 	// Проверяем, существует ли пользователь
+	if email == "" {
+				return nil, "", "", ErrEmailRequired
+	}
+
 	existingUser, _ := uc.userRepo.GetByEmail(ctx, email)
 	if existingUser != nil {
-		return nil, "", "", errors.New("user with this email already exists")
+				return nil, "", "", ErrUserAlreadyExists
 	}
 
 	// Хешируем пароль
@@ -117,12 +128,12 @@ func (uc *AuthUseCase) Register(ctx context.Context, email, password, name strin
 func (uc *AuthUseCase) Login(ctx context.Context, email, password string) (*models.User, string, string, error) {
 	user, err := uc.userRepo.GetByEmail(ctx, email)
 	if err != nil {
-		return nil, "", "", errors.New("invalid email or password")
+		return nil, "", "", repositories.ErrUserNotFound
 	}
 
 	// Проверяем пароль
 	if !auth.CheckPassword(password, user.Password) {
-		return nil, "", "", errors.New("invalid email or password")
+		return nil, "", "", repositories.ErrInvalidCredentials
 	}
 
 	// Генерируем токены
@@ -139,17 +150,48 @@ func (uc *AuthUseCase) Login(ctx context.Context, email, password string) (*mode
 	return user, accessToken, refreshToken, nil
 }
 
+func (uc *AuthUseCase) LoginEmployee(ctx context.Context, pin string, initialCash float64, establishmentID uuid.UUID) (*models.User, string, string, error) { // Изменена сигнатура
+	user, err := uc.userRepo.GetByPIN(ctx, pin, establishmentID) // Передаем establishmentID
+	if err != nil {
+		return nil, "", "", repositories.ErrUserNotFound
+	}
+
+	// Check if user has an establishment (this check is now redundant but kept for safety)
+	if user.EstablishmentID == nil || *user.EstablishmentID != establishmentID {
+		return nil, "", "", errors.New("employee not found in this establishment") // Более точное сообщение об ошибке
+	}
+
+	// Create a new shift
+	_, err = uc.shiftUseCase.StartShift(ctx, user.ID, *user.EstablishmentID, initialCash)
+	if err != nil {
+		return nil, "", "", fmt.Errorf("failed to start shift: %w", err)
+	}
+
+	// Generate tokens
+	accessToken, err := auth.GenerateToken(user.ID, user.Email, uc.config.JWT.Secret, uc.config.JWT.Expiration)
+	if err != nil {
+		return nil, "", "", err
+	}
+
+	refreshToken, err := auth.GenerateRefreshToken(user.ID, user.Email, uc.config.JWT.Secret)
+	if err != nil {
+		return nil, "", "", err
+	}
+
+	return user, accessToken, refreshToken, nil
+}
+
 // RefreshToken обновляет access token используя refresh token
 func (uc *AuthUseCase) RefreshToken(ctx context.Context, refreshTokenString string) (string, string, error) {
 	claims, err := auth.ValidateToken(refreshTokenString, uc.config.JWT.Secret)
-	if err != nil {
+		if err != nil {
 		return "", "", errors.New("invalid refresh token")
 	}
 
 	// Получаем пользователя
 	user, err := uc.userRepo.GetByID(ctx, claims.UserID)
 	if err != nil {
-		return "", "", errors.New("user not found")
+		return "", "", repositories.ErrUserNotFound
 	}
 
 	// Генерируем новые токены

@@ -93,7 +93,11 @@ func (h *UploadHandler) UploadImage(c *gin.Context) {
 	// Загружаем в MinIO
 	url, err := h.storage.UploadImage(c.Request.Context(), src, file.Filename, contentType)
 	if err != nil {
-		h.logger.Error("Failed to upload image", zap.Error(err))
+		h.logger.Error("Failed to upload image", 
+			zap.Error(err),
+			zap.String("filename", file.Filename),
+			zap.String("content_type", contentType),
+			zap.Int64("size", file.Size))
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to upload image"})
 		return
 	}
@@ -168,7 +172,10 @@ func (h *UploadHandler) UploadImageFromBase64(c *gin.Context) {
 	// Загружаем в MinIO (decoded уже []byte, преобразуем в Reader)
 	url, err := h.storage.UploadImage(c.Request.Context(), bytes.NewReader(decoded), "image"+ext, contentType)
 	if err != nil {
-		h.logger.Error("Failed to upload image from base64", zap.Error(err))
+		h.logger.Error("Failed to upload image from base64", 
+			zap.Error(err),
+			zap.String("content_type", contentType),
+			zap.Int("size", len(decoded)))
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to upload image"})
 		return
 	}

@@ -48,6 +48,7 @@ func NewRouter(usecases *usecases.UseCases, cfg *config.Config, logger *zap.Logg
 		{
 			auth.POST("/register", authHandler.Register) // Публичный endpoint
 			auth.POST("/login", authHandler.Login)      // Публичный endpoint
+			auth.POST("/employee/login", authHandler.EmployeeLogin) // Публичный endpoint
 			auth.POST("/refresh", authHandler.Refresh)  // Публичный endpoint
 			auth.GET("/me", middleware.Auth(cfg.JWT.Secret, usecases.Auth.GetTokenRepo()), authHandler.GetCurrentUser)
 			auth.POST("/logout", middleware.Auth(cfg.JWT.Secret, usecases.Auth.GetTokenRepo()), authHandler.Logout)
@@ -67,13 +68,48 @@ func NewRouter(usecases *usecases.UseCases, cfg *config.Config, logger *zap.Logg
 		{
 			// Upload routes (для загрузки изображений)
 			uploadHandler := NewUploadHandler(usecases.Storage, logger)
+			shiftHandler := NewShiftHandler(usecases.Shift, logger)
+			userHandler := NewUserHandler(usecases.User, logger)
+			roleHandler := NewRoleHandler(usecases.Role, logger)
 			upload := protected.Group("/upload")
 			{
 				upload.POST("/image", uploadHandler.UploadImage)
 				upload.POST("/image/base64", uploadHandler.UploadImageFromBase64)
 			}
+
+			// Shift routes
+			shifts := protected.Group("/shifts")
+			{
+				shifts.GET("/me/active", shiftHandler.GetCurrentActiveShift)
+				shifts.POST("/start", shiftHandler.StartShift)
+				shifts.POST("/end", shiftHandler.EndShift)
+			}
+
+			// User routes (для управления сотрудниками)
+			users := protected.Group("/users")
+			users.Use(middleware.RequireEstablishment(usecases.Auth))
+			{
+				users.POST("", userHandler.CreateEmployee)
+				users.GET("", userHandler.ListEmployees)
+				users.GET("/:id", userHandler.GetEmployee)
+				users.PUT("/:id", userHandler.UpdateEmployee)
+				users.DELETE("/:id", userHandler.DeleteEmployee)
+			}
+
+			// Role routes (для управления ролями)
+			roles := protected.Group("/roles")
+			roles.Use(middleware.RequireEstablishment(usecases.Auth))
+			{
+				roles.POST("", roleHandler.CreateRole)
+				roles.GET("", roleHandler.ListRoles)
+				roles.GET("/:id", roleHandler.GetRole)
+				roles.PUT("/:id", roleHandler.UpdateRole)
+				roles.DELETE("/:id", roleHandler.DeleteRole)
+			}
+
 			// Establishments (заведение создаётся при onboarding; здесь — просмотр/редактирование)
 			establishmentHandler := NewEstablishmentHandler(usecases.Establishment, logger)
+			tableHandler := NewTableHandler(usecases.Table, logger)
 			establishments := protected.Group("/establishments")
 			establishments.Use(middleware.RequireEstablishment(usecases.Auth))
 			{
@@ -82,6 +118,18 @@ func NewRouter(usecases *usecases.UseCases, cfg *config.Config, logger *zap.Logg
 				establishments.POST("", establishmentHandler.Create)
 				establishments.PUT("/:id", establishmentHandler.Update)
 				establishments.DELETE("/:id", establishmentHandler.Delete)
+				establishments.GET("/me/settings", establishmentHandler.GetEstablishmentSettings)
+
+
+				// Tables
+				tables := establishments.Group("/:id/tables")
+				{
+					tables.GET("", tableHandler.ListTables)
+					tables.POST("", tableHandler.CreateTable)
+					tables.GET("/:id", tableHandler.GetTable)
+					tables.PUT("/:id", tableHandler.UpdateTable)
+					tables.DELETE("/:id", tableHandler.DeleteTable)
+				}
 			}
 
 			// Menu / Products (требуется заведение — onboarding завершён)
@@ -98,6 +146,25 @@ func NewRouter(usecases *usecases.UseCases, cfg *config.Config, logger *zap.Logg
 					products.PUT("/:id", menuHandler.UpdateProduct)
 					products.DELETE("/:id", menuHandler.DeleteProduct)
 				}
+				// Categories (для товаров и тех-карт)
+				categories := menu.Group("/categories")
+				{
+				categories.GET("", menuHandler.GetCategories) // Маршрут для получения всех категорий
+				categories.POST("", menuHandler.CreateCategory) // Маршрут для создания категории
+
+				// Группа маршрутов для операций с конкретной категорией по ID
+				categoryByID := categories.Group("/:id")
+				{
+					categoryByID.GET("", menuHandler.GetCategory)       // GET /api/v1/menu/categories/:id
+					categoryByID.PUT("", menuHandler.UpdateCategory)    // PUT /api/v1/menu/categories/:id
+					categoryByID.DELETE("", menuHandler.DeleteCategory) // DELETE /api/v1/menu/categories/:id
+
+					// Продукты по категории
+					categoryByID.GET("/products", menuHandler.ListProductsByCategory)    // GET /api/v1/menu/categories/:id/products
+					categoryByID.GET("/tech-cards", menuHandler.ListTechCardsByCategory) // GET /api/v1/menu/categories/:id/tech-cards
+				}
+				}
+
 				// Tech Cards
 				techCards := menu.Group("/tech-cards")
 				{
@@ -115,15 +182,6 @@ func NewRouter(usecases *usecases.UseCases, cfg *config.Config, logger *zap.Logg
 					ingredients.POST("", menuHandler.CreateIngredient)
 					ingredients.PUT("/:id", menuHandler.UpdateIngredient)
 					ingredients.DELETE("/:id", menuHandler.DeleteIngredient)
-				}
-				// Categories (для товаров и тех-карт)
-				categories := menu.Group("/categories")
-				{
-					categories.GET("", menuHandler.GetCategories)
-					categories.GET("/:id", menuHandler.GetCategory)
-					categories.POST("", menuHandler.CreateCategory)
-					categories.PUT("/:id", menuHandler.UpdateCategory)
-					categories.DELETE("/:id", menuHandler.DeleteCategory)
 				}
 				// Ingredient categories
 				ingredientCategories := menu.Group("/ingredient-categories")
@@ -183,12 +241,36 @@ func NewRouter(usecases *usecases.UseCases, cfg *config.Config, logger *zap.Logg
 
 			// Finance
 			financeHandler := NewFinanceHandler(usecases.Finance, logger)
+			accountHandler := NewAccountHandler(usecases.Account, logger)
 			finance := protected.Group("/finance")
+			finance.Use(middleware.RequireEstablishment(usecases.Auth))
 			{
-				finance.GET("/transactions", financeHandler.GetTransactions)
+				// Transactions
+				transactions := finance.Group("/transactions")
+				{
+					transactions.GET("", financeHandler.ListTransactions)
+					transactions.GET("/:id", financeHandler.GetTransaction)
+					transactions.POST("", financeHandler.CreateTransaction)
+					transactions.PUT("/:id", financeHandler.UpdateTransaction)
+					transactions.DELETE("/:id", financeHandler.DeleteTransaction)
+					transactions.GET("/total", financeHandler.GetTotalTransactionsAmount)
+				}
+				// Accounts
+				accounts := finance.Group("/accounts")
+				{
+					accounts.GET("", accountHandler.ListAccounts)
+					accounts.GET("/:id", accountHandler.GetAccount)
+					accounts.POST("", accountHandler.CreateAccount)
+					accounts.PUT("/:id", accountHandler.UpdateAccount)
+					accounts.DELETE("/:id", accountHandler.DeleteAccount)
+				}
+				// Account Types
+				finance.GET("/account-types", accountHandler.GetAccountTypes)
+				// Other finance endpoints
 				finance.GET("/shifts", financeHandler.GetShifts)
 				finance.GET("/pnl", financeHandler.GetPNL)
 				finance.GET("/cash-flow", financeHandler.GetCashFlow)
+				finance.GET("/reports/shift", financeHandler.GenerateShiftReport)
 			}
 
 			// Statistics
@@ -205,10 +287,14 @@ func NewRouter(usecases *usecases.UseCases, cfg *config.Config, logger *zap.Logg
 			orders := protected.Group("/orders")
 			{
 				orders.GET("", orderHandler.List)
-				orders.GET("/:id", orderHandler.Get)
+				orders.GET("/active", orderHandler.ListActiveOrdersByEstablishment)
+				orders.GET("/:order_id", orderHandler.Get)
 				orders.POST("", orderHandler.Create)
-				orders.PUT("/:id", orderHandler.Update)
-				orders.POST("/:id/pay", orderHandler.Pay)
+				orders.POST("/:order_id/items", orderHandler.AddOrderItem)
+				orders.PUT("/:order_id/items/:item_id", orderHandler.UpdateOrderItemQuantity)
+				orders.PUT("/:order_id", orderHandler.Update)
+				orders.POST("/:order_id/pay", orderHandler.ProcessOrderPayment)
+				orders.POST("/:order_id/close-without-payment", orderHandler.CloseOrderWithoutPayment)
 			}
 		}
 	}

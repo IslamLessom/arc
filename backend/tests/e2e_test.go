@@ -15,6 +15,7 @@ import (
 
 const (
 	baseURL = "http://localhost:8080/api/v1"
+	healthCheckURL = "http://localhost:8080/health"
 )
 
 // TestData хранит данные, созданные в процессе теста
@@ -33,6 +34,18 @@ type TestData struct {
 	TechCardIDs           []string
 	StockIDs              []string
 	SupplyIDs              []string
+
+	// PWA Specific Fields
+	CashierAccessToken string
+	CashierRefreshToken string
+	CashierUserID       string
+	CashierPIN          string
+	CurrentShiftID      string
+	TableID             string
+	OrderID             string
+	ShiftStartTime      time.Time
+	ShiftEndTime        time.Time
+	CashAccountID       string
 }
 
 // APIResponse представляет стандартный ответ API
@@ -179,12 +192,21 @@ func TestEstablishmentCreationE2E(t *testing.T) {
 // Helper functions
 
 func isServerRunning() bool {
-	resp, err := http.Get("http://localhost:8080/health")
-	if err != nil {
-		return false
+	const maxRetries = 10
+	const retryDelay = 2 * time.Second
+
+	for i := 0; i < maxRetries; i++ {
+		resp, err := http.Get(healthCheckURL)
+		if err == nil && resp.StatusCode == http.StatusOK {
+			resp.Body.Close()
+			return true
+		}
+		if resp != nil {
+			resp.Body.Close()
+		}
+		time.Sleep(retryDelay)
 	}
-	defer resp.Body.Close()
-	return resp.StatusCode == http.StatusOK
+	return false
 }
 
 // doRequest выполняет HTTP запрос и возвращает ответ с автоматическим закрытием body
@@ -892,5 +914,510 @@ func verifyAllEntities(t *testing.T, testData *TestData) {
 	t.Log("All entities verified successfully")
 }
 
-// Для запуска теста используйте:
+func createCashAccount(t *testing.T, testData *TestData) {
+	// Сначала получаем список типов счетов, чтобы найти тип "наличные"
+	req, _ := http.NewRequest("GET", baseURL+"/finance/account-types", nil)
+	req.Header.Set("Authorization", "Bearer "+testData.AccessToken)
+	
+	resp := doRequest(t, req, http.StatusOK)
+	defer resp.Body.Close()
+	
+	var accountTypesResult struct {
+		Data []struct {
+			ID   string `json:"id"`
+			Name string `json:"name"`
+		} `json:"data"`
+	}
+	
+	err := json.NewDecoder(resp.Body).Decode(&accountTypesResult)
+	if err != nil {
+		t.Fatalf("Failed to decode account types response: %v", err)
+	}
+	
+	var cashAccountTypeID string
+	for _, at := range accountTypesResult.Data {
+		if at.Name == "наличные" {
+			cashAccountTypeID = at.ID
+			break
+		}
+	}
+	
+	if cashAccountTypeID == "" {
+		t.Fatal("Cash account type 'наличные' not found")
+	}
+	
+	reqBody := map[string]interface{}{
+		"name":            "Cash Box E2E",
+		"currency":        "RUB",
+		"type_id":         cashAccountTypeID,
+		"initial_balance": 0.0,
+	}
+
+	body, _ := json.Marshal(reqBody)
+	req, _ = http.NewRequest("POST", baseURL+"/finance/accounts", bytes.NewBuffer(body))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+testData.AccessToken)
+
+	resp = doRequest(t, req, http.StatusCreated)
+	defer resp.Body.Close()
+
+	var result struct {
+		Data struct {
+			ID string `json:"id"`
+		} `json:"data"`
+	}
+
+	err = json.NewDecoder(resp.Body).Decode(&result)
+	if err != nil {
+		t.Fatalf("Failed to decode response: %v", err)
+	}
+	if result.Data.ID == "" {
+		t.Fatal("Cash Account ID is empty")
+	}
+
+	testData.CashAccountID = result.Data.ID
+	t.Logf("Cash account created: %s", testData.CashAccountID)
+}
+
+func createCashierUser(t *testing.T, testData *TestData) {
+	// Сначала получаем список ролей, чтобы найти роль для кассира (используем waiter, так как cashier нет в seed)
+	req, _ := http.NewRequest("GET", baseURL+"/roles", nil)
+	req.Header.Set("Authorization", "Bearer "+testData.AccessToken)
+	
+	resp := doRequest(t, req, http.StatusOK)
+	defer resp.Body.Close()
+	
+	var rolesResult []struct {
+		ID   string `json:"id"`
+		Name string `json:"name"`
+	}
+	
+	err := json.NewDecoder(resp.Body).Decode(&rolesResult)
+	if err != nil {
+		t.Fatalf("Failed to decode roles response: %v", err)
+	}
+	
+	var employeeRoleID string
+	for _, role := range rolesResult {
+		if role.Name == "employee" {
+			employeeRoleID = role.ID
+			break
+		}
+	}
+	
+	if employeeRoleID == "" {
+		t.Fatal("Employee role not found")
+	}
+	
+	pin := "1111"
+	reqBody := map[string]interface{}{
+		"name":     "Cashier User",
+		"email":    "cashier@test.com",
+		"phone":    "+79998887766",
+		"pin":      pin,
+		"role_id":  employeeRoleID,
+	}
+
+	body, _ := json.Marshal(reqBody)
+	req, _ = http.NewRequest("POST", baseURL+"/users", bytes.NewBuffer(body))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+testData.AccessToken)
+
+	resp = doRequest(t, req, http.StatusCreated)
+	defer resp.Body.Close()
+
+	var result struct {
+		ID string `json:"id"`
+	}
+
+	err = json.NewDecoder(resp.Body).Decode(&result)
+	if err != nil {
+		t.Fatalf("Failed to decode response: %v", err)
+	}
+	if result.ID == "" {
+		t.Fatal("Cashier User ID is empty")
+	}
+
+	testData.CashierUserID = result.ID
+	testData.CashierPIN = pin
+	t.Logf("Cashier user created: %s", testData.CashierUserID)
+}
+
+func cashierLogin(t *testing.T, testData *TestData) {
+	reqBody := map[string]interface{}{
+		"pin":             testData.CashierPIN,
+		"initial_cash":    1000.00,
+		"establishment_id": testData.EstablishmentID,
+	}
+
+	body, _ := json.Marshal(reqBody)
+	req, _ := http.NewRequest("POST", baseURL+"/auth/employee/login", bytes.NewBuffer(body))
+	req.Header.Set("Content-Type", "application/json")
+
+	resp := doRequest(t, req, http.StatusOK)
+	defer resp.Body.Close()
+
+	var result struct {
+		AccessToken  string `json:"access_token"`
+		RefreshToken string `json:"refresh_token"`
+	}
+
+	err := json.NewDecoder(resp.Body).Decode(&result)
+	if err != nil {
+		t.Fatalf("Failed to decode response: %v", err)
+	}
+	if result.AccessToken == "" {
+		t.Fatal("Cashier Access token is empty")
+	}
+
+	testData.CashierAccessToken = result.AccessToken
+	testData.CashierRefreshToken = result.RefreshToken
+	t.Logf("Cashier logged in. User ID: %s", testData.CashierUserID)
+}
+
+func startShift(t *testing.T, testData *TestData) {
+	reqBody := map[string]interface{}{
+		"initial_cash":   1000.00,
+		"establishment_id": testData.EstablishmentID,
+	}
+
+	body, _ := json.Marshal(reqBody)
+	req, _ := http.NewRequest("POST", baseURL+"/shifts/start", bytes.NewBuffer(body))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+testData.CashierAccessToken)
+
+	resp := doRequest(t, req, http.StatusCreated)
+	defer resp.Body.Close()
+
+	var result struct {
+		Data struct {
+			ID string `json:"id"`
+		} `json:"data"`
+	}
+
+	err := json.NewDecoder(resp.Body).Decode(&result)
+	if err != nil {
+		t.Fatalf("Failed to decode response: %v", err)
+	}
+	if result.Data.ID == "" {
+		t.Fatal("Shift ID is empty")
+	}
+
+	testData.CurrentShiftID = result.Data.ID
+	testData.ShiftStartTime = time.Now()
+	t.Logf("Shift started: %s with initial cash 1000.00", testData.CurrentShiftID)
+}
+
+func createTable(t *testing.T, testData *TestData) {
+	reqBody := map[string]interface{}{
+		"number":   1,
+		"capacity": 4,
+	}
+
+	body, _ := json.Marshal(reqBody)
+	req, _ := http.NewRequest("POST", baseURL+"/establishments/"+testData.EstablishmentID+"/tables", bytes.NewBuffer(body))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+testData.AccessToken)
+
+	resp := doRequest(t, req, http.StatusCreated)
+	defer resp.Body.Close()
+
+	var result struct {
+		ID string `json:"id"`
+	}
+
+	err := json.NewDecoder(resp.Body).Decode(&result)
+	if err != nil {
+		t.Fatalf("Failed to decode response: %v", err)
+	}
+	if result.ID == "" {
+		t.Fatal("Table ID is empty")
+	}
+
+	testData.TableID = result.ID
+	t.Logf("Table created: %s", testData.TableID)
+}
+
+func createOrder(t *testing.T, testData *TestData) {
+	reqBody := map[string]interface{}{
+		"table_id":         testData.TableID,
+		"guests":           2,
+		"establishment_id": testData.EstablishmentID,
+	}
+
+	body, _ := json.Marshal(reqBody)
+	req, _ := http.NewRequest("POST", baseURL+"/orders", bytes.NewBuffer(body))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+testData.CashierAccessToken)
+
+	resp := doRequest(t, req, http.StatusCreated)
+	defer resp.Body.Close()
+
+	var result struct {
+		Data struct {
+			ID string `json:"id"`
+		} `json:"data"`
+	}
+
+	err := json.NewDecoder(resp.Body).Decode(&result)
+	if err != nil {
+		t.Fatalf("Failed to decode response: %v", err)
+	}
+	if result.Data.ID == "" {
+		t.Fatal("Order ID is empty")
+	}
+
+	testData.OrderID = result.Data.ID
+	t.Logf("Order created: %s for table %s", testData.OrderID, testData.TableID)
+}
+
+func addProductToOrder(t *testing.T, testData *TestData) {
+	if len(testData.ProductIDs) == 0 {
+		t.Fatal("No products available to add to order")
+	}
+
+	productID := testData.ProductIDs[0] // Add the first created product
+
+	reqBody := map[string]interface{}{
+		"product_id": productID,
+		"quantity":   2,
+		"guest_id":   1, // Assuming guest ID 1 for simplicity
+	}
+
+	body, _ := json.Marshal(reqBody)
+	req, _ := http.NewRequest("POST", baseURL+"/orders/"+testData.OrderID+"/items", bytes.NewBuffer(body))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+testData.CashierAccessToken)
+
+	resp := doRequest(t, req, http.StatusCreated)
+	defer resp.Body.Close()
+
+	var result struct {
+		Data struct {
+			ID string `json:"id"`
+		} `json:"data"`
+	}
+
+	err := json.NewDecoder(resp.Body).Decode(&result)
+	if err != nil {
+		t.Fatalf("Failed to decode response: %v", err)
+	}
+
+	t.Logf("Product %s added to order %s", productID, testData.OrderID)
+}
+
+func payAndCloseOrder(t *testing.T, testData *TestData) {
+	reqBody := map[string]interface{}{
+		"payment_type": "cash",
+		"amount":       150.00, // Assuming a total of 150 for 2 products
+		"paid_amount":  200.00, // Customer pays 200
+	}
+
+	body, _ := json.Marshal(reqBody)
+	req, _ := http.NewRequest("POST", baseURL+"/orders/"+testData.OrderID+"/pay", bytes.NewBuffer(body))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+testData.CashierAccessToken)
+
+	resp := doRequest(t, req, http.StatusOK)
+	defer resp.Body.Close()
+
+	var result struct {
+		Data struct {
+			ID string `json:"id"`
+		} `json:"data"`
+	}
+
+	err := json.NewDecoder(resp.Body).Decode(&result)
+	if err != nil {
+		t.Fatalf("Failed to decode response: %v", err)
+	}
+
+	t.Logf("Order %s paid and closed", testData.OrderID)
+}
+
+func closeShift(t *testing.T, testData *TestData) {
+	reqBody := map[string]interface{}{
+		"shift_id":   testData.CurrentShiftID,
+		"final_cash": 1150.00, // Initial 1000 + 150 from order
+		"comment":    "End of shift test",
+		"cash_account_id": testData.CashAccountID,
+	}
+
+	body, _ := json.Marshal(reqBody)
+	req, _ := http.NewRequest("POST", baseURL+"/shifts/end", bytes.NewBuffer(body))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+testData.CashierAccessToken)
+
+	resp := doRequest(t, req, http.StatusOK)
+	defer resp.Body.Close()
+
+	var result struct {
+		Message string `json:"message"`
+	}
+
+	err := json.NewDecoder(resp.Body).Decode(&result)
+	if err != nil {
+		t.Fatalf("Failed to decode response: %v", err)
+	}
+	if !strings.Contains(result.Message, "Shift closed successfully") {
+		t.Fatalf("Expected shift to be closed, got: %s", result.Message)
+	}
+	testData.ShiftEndTime = time.Now()
+	t.Logf("Shift %s closed with final cash 1150.00", testData.CurrentShiftID)
+}
+
+func getShiftReport(t *testing.T, testData *TestData) {
+	startDate := testData.ShiftStartTime.Format(time.RFC3339)
+	endDate := testData.ShiftEndTime.Format(time.RFC3339)
+	employeeID := testData.CashierUserID
+	req, _ := http.NewRequest("GET", fmt.Sprintf(baseURL+"/finance/reports/shift?start_date=%s&end_date=%s&employee_id=%s&include_products=true", startDate, endDate, employeeID), nil)
+	req.Header.Set("Authorization", "Bearer "+testData.AccessToken) // Owner token to get report
+
+	resp := doRequest(t, req, http.StatusOK)
+	defer resp.Body.Close()
+
+	var result struct {
+		Data struct {
+			ShiftID string  `json:"shift_id"`
+			TotalOrders int     `json:"total_orders"`
+			TotalAmount float64 `json:"total_amount"`
+			CashPayments float64 `json:"cash_payments"`
+			CardPayments float64 `json:"card_payments"`
+		} `json:"data"`
+	}
+
+	err := json.NewDecoder(resp.Body).Decode(&result)
+	if err != nil {
+		t.Fatalf("Failed to decode response: %v", err)
+	}
+
+	if result.Data.ShiftID != testData.CurrentShiftID { t.Errorf("Expected shift ID %s, got %s", testData.CurrentShiftID, result.Data.ShiftID) }
+	if result.Data.TotalOrders != 1 { t.Errorf("Expected 1 order, got %d", result.Data.TotalOrders) }
+	if result.Data.TotalAmount != 150.00 { t.Errorf("Expected total amount 150.00, got %f", result.Data.TotalAmount) }
+	if result.Data.CashPayments != 150.00 { t.Errorf("Expected cash payments 150.00, got %f", result.Data.CashPayments) }
+	if result.Data.CardPayments != 0.00 { t.Errorf("Expected card payments 0.00, got %f", result.Data.CardPayments) }
+
+	t.Logf("Shift report for %s verified. Total orders: %d, Total amount: %f",
+		testData.CurrentShiftID, result.Data.TotalOrders, result.Data.TotalAmount)
+}
+
+// TestPWACashierFlowE2E - полный e2e тест функционала кассира в PWA
+func TestPWACashierFlowE2E(t *testing.T) {
+	if testing.Short() {
+		t.Skip("Skipping e2e test in short mode")
+	}
+
+	if !isServerRunning() {
+		t.Fatal("❌ Server is not running. Start the server before running e2e tests.\n" +
+			"   Run: docker-compose up -d\n" +
+			"   Or: cd backend && go run cmd/api/main.go")
+	}
+
+	t.Log("ℹ️  Make sure you have seeded the database before running this test:")
+	t.Log("   1. go run backend/internal/scripts/seed_roles_and_subscriptions.go")
+	t.Log("   2. go run backend/internal/scripts/seed_onboarding_questions.go")
+
+	testData := &TestData{}
+
+	// Critical steps - must be sequential
+	t.Run("1. Register Owner User", func(t *testing.T) {
+		registerUser(t, testData)
+		if testData.AccessToken == "" {
+			t.Fatal("Registration failed - cannot continue without access token")
+		}
+	})
+
+	t.Run("2. Submit Onboarding Answers", func(t *testing.T) {
+		if testData.AccessToken == "" {
+			t.Fatal("Cannot submit onboarding - no access token")
+		}
+		submitOnboardingAnswers(t, testData)
+		if testData.EstablishmentID == "" {
+			t.Fatal("Establishment creation failed - cannot continue")
+		}
+	})
+
+	t.Run("2.5. Create Cash Account", func(t *testing.T) {
+		createCashAccount(t, testData)
+		if testData.CashAccountID == "" {
+			t.Fatal("Cash account creation failed - cannot continue")
+		}
+	})
+
+	// Setup for PWA cashier flow
+	t.Run("3. Create Ingredient Category", func(t *testing.T) {
+		createIngredientCategory(t, testData)
+	})
+
+	t.Run("4. Create Product Category", func(t *testing.T) {
+		createProductCategory(t, testData)
+	})
+
+	t.Run("5. Create Tech Card Category", func(t *testing.T) {
+		createTechCardCategory(t, testData)
+	})
+
+	t.Run("6. Create Warehouse", func(t *testing.T) {
+		createWarehouse(t, testData)
+	})
+
+	t.Run("7. Create Supplier", func(t *testing.T) {
+		createSupplier(t, testData)
+	})
+
+	t.Run("8. Create Ingredients", func(t *testing.T) {
+		createIngredients(t, testData)
+	})
+
+	t.Run("9. Create Products", func(t *testing.T) {
+		createProducts(t, testData)
+	})
+
+	t.Run("10. Create Tech Cards", func(t *testing.T) {
+		createTechCards(t, testData)
+	})
+
+	// PWA Cashier Flow
+	t.Run("11. Create Cashier User", func(t *testing.T) {
+		createCashierUser(t, testData)
+		if testData.CashierUserID == "" {
+			t.Fatal("Cashier user creation failed - cannot continue")
+		}
+	})
+
+	t.Run("12. Cashier Login", func(t *testing.T) {
+		cashierLogin(t, testData)
+	})
+
+	t.Run("13. Start Shift and Set Initial Cash", func(t *testing.T) {
+		startShift(t, testData)
+	})
+
+	t.Run("14. Create Table", func(t *testing.T) {
+		createTable(t, testData)
+	})
+
+	t.Run("15. Create Order", func(t *testing.T) {
+		createOrder(t, testData)
+	})
+
+	t.Run("16. Add Product to Order", func(t *testing.T) {
+		addProductToOrder(t, testData)
+	})
+
+	t.Run("17. Pay and Close Order", func(t *testing.T) {
+		payAndCloseOrder(t, testData)
+	})
+
+	t.Run("18. Close Shift", func(t *testing.T) {
+		closeShift(t, testData)
+	})
+
+	t.Run("19. Get Shift Report", func(t *testing.T) {
+		getShiftReport(t, testData)
+	})
+}
+
+// Для запуска тестов используйте:
 // go test -v -short=false -run TestEstablishmentCreationE2E ./e2e_test.go
+// go test -v -short=false -run TestPWACashierFlowE2E ./e2e_test.go

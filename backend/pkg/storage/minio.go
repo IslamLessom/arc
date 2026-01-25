@@ -10,6 +10,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/minio/minio-go/v7"
 	"github.com/minio/minio-go/v7/pkg/credentials"
+	"go.uber.org/zap"
 
 	"github.com/yourusername/arc/backend/internal/config"
 )
@@ -18,9 +19,10 @@ type MinIOClient struct {
 	client   *minio.Client
 	bucket   string
 	publicURL string
+	logger   *zap.Logger
 }
 
-func NewMinIO(cfg config.StorageConfig) (*MinIOClient, error) {
+func NewMinIO(cfg config.StorageConfig, logger *zap.Logger) (*MinIOClient, error) {
 	// Initialize minio client
 	client, err := minio.New(cfg.Endpoint, &minio.Options{
 		Creds:  credentials.NewStaticV4(cfg.AccessKeyID, cfg.SecretAccessKey, ""),
@@ -42,6 +44,9 @@ func NewMinIO(cfg config.StorageConfig) (*MinIOClient, error) {
 		if err != nil {
 			return nil, fmt.Errorf("failed to create bucket: %w", err)
 		}
+		if logger != nil {
+			logger.Info("Created MinIO bucket", zap.String("bucket", cfg.BucketName))
+		}
 	}
 
 	// Set bucket policy for public read access
@@ -61,13 +66,33 @@ func NewMinIO(cfg config.StorageConfig) (*MinIOClient, error) {
 	if err != nil {
 		// Не критично, если не удалось установить политику
 		// Логируем, но продолжаем работу
-		fmt.Printf("Warning: failed to set bucket policy: %v\n", err)
+		if logger != nil {
+			logger.Warn("Failed to set bucket policy", 
+				zap.Error(err),
+				zap.String("bucket", cfg.BucketName))
+		}
+	} else if logger != nil {
+		logger.Info("Set bucket policy for public read access", zap.String("bucket", cfg.BucketName))
+	}
+
+	// Проверяем подключение, пытаясь получить информацию о bucket
+	_, err = client.GetBucketLocation(ctx, cfg.BucketName)
+	if err != nil {
+		return nil, fmt.Errorf("failed to verify MinIO connection: %w", err)
+	}
+
+	if logger != nil {
+		logger.Info("MinIO client initialized successfully",
+			zap.String("endpoint", cfg.Endpoint),
+			zap.String("bucket", cfg.BucketName),
+			zap.String("public_url", cfg.PublicURL))
 	}
 
 	return &MinIOClient{
 		client:    client,
 		bucket:    cfg.BucketName,
 		publicURL: cfg.PublicURL,
+		logger:    logger,
 	}, nil
 }
 
@@ -78,16 +103,31 @@ func (m *MinIOClient) UploadImage(ctx context.Context, file io.Reader, filename 
 	objectName := fmt.Sprintf("images/%s%s", uuid.New().String(), ext)
 
 	// Загружаем файл
-	_, err := m.client.PutObject(ctx, m.bucket, objectName, file, -1, minio.PutObjectOptions{
+	// Используем -1 для автоматического определения размера
+	info, err := m.client.PutObject(ctx, m.bucket, objectName, file, -1, minio.PutObjectOptions{
 		ContentType: contentType,
 	})
 	if err != nil {
+		if m.logger != nil {
+			m.logger.Error("Failed to upload image to MinIO",
+				zap.Error(err),
+				zap.String("object_name", objectName),
+				zap.String("content_type", contentType))
+		}
 		return "", fmt.Errorf("failed to upload file: %w", err)
 	}
 
 	// Возвращаем публичный URL
 	// Формат: http://localhost:9000/arc-images/images/uuid.jpg
 	url := fmt.Sprintf("%s/%s/%s", m.publicURL, m.bucket, objectName)
+	
+	if m.logger != nil {
+		m.logger.Info("Image uploaded successfully",
+			zap.String("object_name", objectName),
+			zap.String("url", url),
+			zap.Int64("size", info.Size))
+	}
+	
 	return url, nil
 }
 

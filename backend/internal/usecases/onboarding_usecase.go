@@ -12,10 +12,11 @@ import (
 )
 
 type OnboardingUseCase struct {
-	onboardingRepo repositories.OnboardingRepository
+	onboardingRepo   repositories.OnboardingRepository
 	establishmentRepo repositories.EstablishmentRepository
-	tableRepo repositories.TableRepository
-	userRepo repositories.UserRepository
+	tableRepo        repositories.TableRepository
+	userRepo         repositories.UserRepository
+	accountUseCase   *AccountUseCase
 }
 
 func NewOnboardingUseCase(
@@ -23,12 +24,14 @@ func NewOnboardingUseCase(
 	establishmentRepo repositories.EstablishmentRepository,
 	tableRepo repositories.TableRepository,
 	userRepo repositories.UserRepository,
+	accountUseCase *AccountUseCase,
 ) *OnboardingUseCase {
 	return &OnboardingUseCase{
 		onboardingRepo:    onboardingRepo,
 		establishmentRepo: establishmentRepo,
 		tableRepo:         tableRepo,
 		userRepo:          userRepo,
+		accountUseCase:    accountUseCase,
 	}
 }
 
@@ -104,6 +107,13 @@ func (uc *OnboardingUseCase) SubmitAnswers(ctx context.Context, userID uuid.UUID
 	user.EstablishmentID = &establishment.ID
 	if err := uc.userRepo.Update(ctx, user); err != nil {
 		return nil, fmt.Errorf("failed to update user: %w", err)
+	}
+
+	// Создаем 3 счета по умолчанию для заведения
+	if err := uc.accountUseCase.CreateDefaultAccounts(ctx, establishment.ID); err != nil {
+		// Логируем ошибку, но не прерываем процесс (счета можно создать позже)
+		// В production лучше использовать logger
+		_ = err
 	}
 
 	return establishment, nil

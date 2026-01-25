@@ -66,11 +66,16 @@ func main() {
 	}
 	defer sqlDB.Close()
 
+	// Run database migrations
+	if err := database.RunMigrations(db, lg); err != nil {
+		lg.Fatal("failed to run database migrations", zap.Error(err))
+	}
+
 	// Initialize repositories
 	repos := repositories.NewRepositories(db)
 
 	// Initialize use cases
-	usecases, err := usecases.NewUseCases(repos, cfg)
+	usecases, err := usecases.NewUseCases(repos, cfg, lg)
 	if err != nil {
 		lg.Fatal("failed to initialize use cases", zap.Error(err))
 	}

@@ -24,6 +24,8 @@ type Repositories struct {
 	Onboarding   OnboardingRepository
 	Subscription SubscriptionRepository
 	Token        TokenRepository
+	Account     AccountRepository
+	AccountType AccountTypeRepository
 }
 
 // NewRepositories создает все репозитории
@@ -47,5 +49,12 @@ func NewRepositories(db *gorm.DB) *Repositories {
 		Onboarding:   NewOnboardingRepository(db),
 		Subscription: NewSubscriptionRepository(db),
 		Token:        NewTokenRepository(db),
+		Account:      NewAccountRepository(db),
+		AccountType:  NewAccountTypeRepository(db),
 	}
+}
+
+// BoolPtr возвращает указатель на булево значение
+func BoolPtr(b bool) *bool {
+	return &b
 }
