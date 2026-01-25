@@ -13,7 +13,12 @@ import { Warehouses } from './pages/warehouses'
 import { Supplies } from './pages/supplies'
 import { AddSupply } from './pages/add-supply'
 import { Suppliers } from './pages/suppliers'
+import { WriteOffs } from './pages/write-offs'
+import { AddWriteOff } from './pages/add-write-off'
+import { MovementReport } from './pages/movement-report'
+import { Movements } from './pages/movements'
 import { Products } from './pages/products'
+import { Inventories } from './pages/inventories'
 import { Sidebar } from './widgets/sidebar'
 import { OnboardingModal } from './widgets/onboarding-modal'
 import { useOnboardingStatus } from './shared/hooks/useOnboardingStatus'
@@ -55,6 +60,11 @@ export function App() {
           <Route path="/warehouse/deliveries/:id/edit" element={<AddSupply />} />
           <Route path="/warehouse/deliveries/:id" element={<AddSupply />} />
           <Route path="/warehouse/suppliers" element={<Suppliers />} />
+          <Route path="/warehouse/write-offs" element={<WriteOffs />} />
+          <Route path="/warehouse/write-offs/add" element={<AddWriteOff />} />
+          <Route path="/warehouse/movements" element={<Movements />} />
+          <Route path="/warehouse/movement-report" element={<MovementReport />} />
+          <Route path="/warehouse/inventories" element={<Inventories />} />
           <Route path="/menu/products" element={<Products />} />
           <Route path="/menu/product-categories" element={<ProductCategories />} />
           <Route path="/menu/ingredient-categories" element={<IngredientCategories />} />
