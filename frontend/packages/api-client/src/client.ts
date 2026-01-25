@@ -44,6 +44,7 @@ apiClient.interceptors.response.use(
     if (error.response?.status === 401 && typeof window !== 'undefined') {
       // Refresh token logic
       localStorage.removeItem('auth_token')
+      window.location.href = '/login'
     }
     return Promise.reject(error)
   }

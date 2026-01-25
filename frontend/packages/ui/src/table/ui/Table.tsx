@@ -57,12 +57,12 @@ export const Table = <T extends Record<string, unknown>>({
 
   const totalPages = pagination === false
     ? 1
-    : Math.ceil((pagination?.total ?? dataSource.length) / pageSize);
+    : Math.ceil((pagination?.total ?? dataSource?.length ?? 0) / pageSize);
 
   const renderPagination = () => {
     if (pagination === false) return null;
 
-    const total = pagination?.total ?? dataSource.length;
+    const total = pagination?.total ?? dataSource?.length ?? 0;
     const showSizeChanger = pagination?.showSizeChanger ?? false;
     const pageSizeOptions = pagination?.pageSizeOptions ?? ['10', '20', '50', '100'];
 

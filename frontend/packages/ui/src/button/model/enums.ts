@@ -1,8 +1,10 @@
 export enum ButtonVariant {
   Default = 'default',
+  Primary = 'primary',
   Destructive = 'destructive',
   Outline = 'outline',
-  Link = 'link'
+  Link = 'link',
+  Ghost = 'ghost'
 }
 
 export enum ButtonSize {

@@ -8,9 +8,9 @@ import { StyledButton } from '../styled';
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
   (props, ref) => {
     const { antdProps } = useButton(props);
-    const { variant } = props;
+    const { variant, icon } = props;
 
-    return <StyledButton {...antdProps} $variant={variant} ref={ref} />;
+    return <StyledButton {...antdProps} icon={icon} $variant={variant} ref={ref} />;
   }
 );
 

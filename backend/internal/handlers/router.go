@@ -149,12 +149,26 @@ func NewRouter(usecases *usecases.UseCases, cfg *config.Config, logger *zap.Logg
 				warehouses.PUT("/:id", warehouseHandler.UpdateWarehouse)
 				warehouses.DELETE("/:id", warehouseHandler.DeleteWarehouse)
 			}
+
+			// Workshops (цехи)
+			workshopHandler := NewWorkshopHandler(usecases.Workshop, logger)
+			workshops := protected.Group("/workshops")
+			workshops.Use(middleware.RequireEstablishment(usecases.Auth))
+			{
+				workshops.GET("", workshopHandler.ListWorkshops)
+				workshops.GET("/:id", workshopHandler.GetWorkshop)
+				workshops.POST("", workshopHandler.CreateWorkshop)
+				workshops.PUT("/:id", workshopHandler.UpdateWorkshop)
+				workshops.DELETE("/:id", workshopHandler.DeleteWorkshop)
+			}
 			warehouse := protected.Group("/warehouse")
 			warehouse.Use(middleware.RequireEstablishment(usecases.Auth))
 			{
 				warehouse.GET("/stock", warehouseHandler.GetStock)
 				warehouse.PUT("/stock/:id/limit", warehouseHandler.UpdateStockLimit)
-				warehouse.GET("/supplies", warehouseHandler.GetSuppliesByItem) // ?ingredient_id=xxx или ?product_id=xxx
+				warehouse.GET("/supplies", warehouseHandler.ListSupplies) // Список всех поставок, опционально ?warehouse_id=xxx
+				warehouse.GET("/supplies/:id", warehouseHandler.GetSupply) // Получить поставку по ID
+				warehouse.GET("/supplies/by-item", warehouseHandler.GetSuppliesByItem) // ?ingredient_id=xxx или ?product_id=xxx
 				warehouse.POST("/supplies", warehouseHandler.CreateSupply)
 				warehouse.GET("/write-offs", warehouseHandler.ListWriteOffs)
 				warehouse.GET("/write-offs/:id", warehouseHandler.GetWriteOff)

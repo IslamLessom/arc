@@ -1,36 +1,36 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { apiClient } from '../client'
 
-export interface StockFilter {
+interface StockFilter {
   warehouse_id?: string
   search?: string
   type?: 'ingredient' | 'product'
   category_id?: string
 }
 
-export interface Category {
+interface Category {
   id: string
   name: string
 }
 
-export interface Ingredient {
-  id: string
-  name: string
-  category: Category
-}
-
-export interface Product {
+interface Ingredient {
   id: string
   name: string
   category: Category
 }
 
-export interface Warehouse {
+interface Product {
+  id: string
+  name: string
+  category: Category
+}
+
+interface Warehouse {
   id: string
   name: string
 }
 
-export interface Stock {
+interface Stock {
   id: string
   warehouse_id: string
   warehouse: Warehouse

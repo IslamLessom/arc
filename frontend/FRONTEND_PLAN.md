@@ -176,7 +176,7 @@
 Учитывая ваш опыт с PWA и Next.js, такая архитектура позволит создать масштабируемый продукт без затрат на поддержку нативных приложений, с мгновенными обновлениями и работой на всех платформах.[7][4]
 
 Источники
-[1] Poster POS — программа автоматизации общепита на планшете — Poster POS https://joinposter.com
+[1] ARCE POS — программа автоматизации общепита на планшете — ARCE POS https://joinposter.com
 [2] Is Your POS System Ready for 2026? https://www.poshighway.com/blog/is-your-pos-system-ready-for-2026/
 [3] Top PWA POS System - ConnectPOS https://www.connectpos.com/top-pwa-pos-system/
 [4] Why PWA is the Future of the Food & Beverage Industry? https://digitalaptech.com/blogs/why-progressive-web-app-is-the-future-of-the-food-beverage-industry/

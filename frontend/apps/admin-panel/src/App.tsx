@@ -1,13 +1,28 @@
 import { useState, useEffect } from 'react'
+import { Routes, Route, useLocation } from 'react-router-dom'
 import { Home } from './pages/home'
 import { Auth } from './pages/auth'
 import { Balances } from './pages/balances'
+import { ProductCategories } from './pages/product-categories'
+import { IngredientCategories } from './pages/ingredient-categories'
+import { SemiFinished } from './pages/semi-finished'
+import { AddSemiFinished } from './pages/add-semi-finished'
+import { Ingredients } from './pages/ingredients'
+import { TechnicalCards } from './pages/technical-cards'
+import { Warehouses } from './pages/warehouses'
+import { Supplies } from './pages/supplies'
+import { AddSupply } from './pages/add-supply'
+import { Suppliers } from './pages/suppliers'
+import { Products } from './pages/products'
 import { Sidebar } from './widgets/sidebar'
 import { OnboardingModal } from './widgets/onboarding-modal'
 import { useOnboardingStatus } from './shared/hooks/useOnboardingStatus'
+import { Workshops } from './pages/workshops'
+import { NotFound } from './pages/not-found'
 
 export function App() {
-  const currentPath = window.location.pathname
+  const location = useLocation()
+  const currentPath = location.pathname
   const isAuthPage = currentPath === '/auth'
   const { needsOnboarding, isLoading } = useOnboardingStatus()
   const [showOnboardingModal, setShowOnboardingModal] = useState(false)
@@ -24,16 +39,6 @@ export function App() {
     return <Auth />
   }
 
-  const renderPage = () => {
-    switch (currentPath) {
-      case '/warehouse/balances':
-        return <Balances />
-      case '/':
-      default:
-        return <Home />
-    }
-  }
-
   return (
     <>
       <OnboardingModal
@@ -42,7 +47,25 @@ export function App() {
       />
       <Sidebar currentPath={currentPath} userName="Maki" />
       <div style={{ marginLeft: '280px' }}>
-        {renderPage()}
+        <Routes>
+          <Route path="/warehouse/balances" element={<Balances />} />
+          <Route path="/warehouse/warehouses" element={<Warehouses />} />
+          <Route path="/warehouse/deliveries" element={<Supplies />} />
+          <Route path="/warehouse/deliveries/add" element={<AddSupply />} />
+          <Route path="/warehouse/deliveries/:id/edit" element={<AddSupply />} />
+          <Route path="/warehouse/deliveries/:id" element={<AddSupply />} />
+          <Route path="/warehouse/suppliers" element={<Suppliers />} />
+          <Route path="/menu/products" element={<Products />} />
+          <Route path="/menu/product-categories" element={<ProductCategories />} />
+          <Route path="/menu/ingredient-categories" element={<IngredientCategories />} />
+          <Route path="/menu/semi-finished" element={<SemiFinished />} />
+          <Route path="/menu/semi-finished/add" element={<AddSemiFinished />} />
+          <Route path="/menu/ingredients" element={<Ingredients />} />
+          <Route path="/menu/tech-cards" element={<TechnicalCards />} />
+          <Route path="/menu/workshops" element={<Workshops />} />
+          <Route path="/" element={<Home />} />
+          <Route path="*" element={<NotFound />} />
+        </Routes>
       </div>
     </>
   )
