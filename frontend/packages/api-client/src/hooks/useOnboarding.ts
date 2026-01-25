@@ -1,12 +1,12 @@
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { apiClient } from '../client'
 
-export interface QuestionOption {
+interface QuestionOption {
   value: string
   label: string
 }
 
-export interface OnboardingQuestion {
+interface OnboardingQuestion {
   id: string
   key: string
   type: 'text' | 'email' | 'phone' | 'number' | 'boolean' | 'select'
@@ -19,20 +19,20 @@ export interface OnboardingQuestion {
   options?: QuestionOption[]
 }
 
-export interface QuestionsResponse {
+interface QuestionsResponse {
   data: Record<string, OnboardingQuestion[]>
   steps: number
 }
 
-export interface OnboardingAnswers {
+interface OnboardingAnswers {
   [key: string]: string | number | boolean
 }
 
-export interface OnboardingRequest {
+interface OnboardingRequest {
   answers: OnboardingAnswers
 }
 
-export interface OnboardingResponse {
+interface OnboardingResponse {
   message: string
   establishment_id: string
 }

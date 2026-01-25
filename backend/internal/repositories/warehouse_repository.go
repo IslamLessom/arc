@@ -44,6 +44,7 @@ type WarehouseRepository interface {
 	// Supply & WriteOff
 	CreateSupply(ctx context.Context, supply *models.Supply) error
 	DeleteSupply(ctx context.Context, id uuid.UUID) error
+	GetSupplyByID(ctx context.Context, id uuid.UUID, establishmentID *uuid.UUID) (*models.Supply, error)
 	GetSuppliesByIngredientOrProduct(ctx context.Context, establishmentID uuid.UUID, ingredientID *uuid.UUID, productID *uuid.UUID) ([]*models.Supply, error)
 	GetSuppliesByWarehouse(ctx context.Context, establishmentID uuid.UUID, warehouseID *uuid.UUID) ([]*models.Supply, error)
 	CreateWriteOff(ctx context.Context, writeOff *models.WriteOff) error
@@ -226,10 +227,12 @@ func (r *warehouseRepository) CreateSupply(ctx context.Context, supply *models.S
 		items := supply.Items
 		supply.Items = nil
 
+
 		// Создаем Supply без Items
 		if err := tx.Create(supply).Error; err != nil {
 			return err
 		}
+
 
 		// Теперь создаем элементы по одному с явно установленными UUID
 		for i := range items {
@@ -242,6 +245,7 @@ func (r *warehouseRepository) CreateSupply(ctx context.Context, supply *models.S
 				return err
 			}
 		}
+
 
 		// Восстанавливаем Items для возврата
 		supply.Items = items
@@ -258,6 +262,27 @@ func (r *warehouseRepository) DeleteSupply(ctx context.Context, id uuid.UUID) er
 		// Затем удаляем саму Supply
 		return tx.Delete(&models.Supply{}, "id = ?", id).Error
 	})
+}
+
+func (r *warehouseRepository) GetSupplyByID(ctx context.Context, id uuid.UUID, establishmentID *uuid.UUID) (*models.Supply, error) {
+	var supply models.Supply
+	query := r.db.WithContext(ctx).
+		Preload("Warehouse").
+		Preload("Supplier").
+		Preload("Items.Ingredient").
+		Preload("Items.Product").
+		Joins("JOIN warehouses ON supplies.warehouse_id = warehouses.id").
+		Where("supplies.id = ?", id)
+
+	if establishmentID != nil {
+		query = query.Where("warehouses.establishment_id = ?", *establishmentID)
+	}
+
+	err := query.First(&supply).Error
+	if err == gorm.ErrRecordNotFound {
+		return nil, nil
+	}
+	return &supply, err
 }
 
 func (r *warehouseRepository) GetSuppliesByIngredientOrProduct(ctx context.Context, establishmentID uuid.UUID, ingredientID *uuid.UUID, productID *uuid.UUID) ([]*models.Supply, error) {

@@ -1,6 +1,28 @@
 import * as Styled from '../ui/styled'
 import type { OnboardingQuestion } from '@restaurant-pos/api-client'
 
+// Phone mask function for Russian format: +7 (___) - ___ - ____
+function formatPhoneNumber(value: string): string {
+  // Remove all non-digit characters except +
+  const cleaned = value.replace(/[^\d+]/g, '')
+
+  // Ensure it starts with +7
+  let formatted = '+7'
+  const digits = cleaned.replace(/^\+7/, '').replace(/\D/g, '')
+
+  if (digits.length >= 1) {
+    formatted += ` (${digits.slice(0, 3)}`
+  }
+  if (digits.length >= 4) {
+    formatted += `) - ${digits.slice(3, 6)}`
+  }
+  if (digits.length >= 7) {
+    formatted += ` - ${digits.slice(6, 10)}`
+  }
+
+  return formatted
+}
+
 export function renderQuestionField(
   question: OnboardingQuestion,
   value: string | number | boolean,
@@ -12,16 +34,32 @@ export function renderQuestionField(
   switch (question.type) {
     case 'text':
     case 'email':
-    case 'phone':
       return (
         <Styled.Input
           id={fieldId}
-          type={question.type === 'phone' ? 'tel' : question.type}
+          type={question.type}
           value={String(value)}
           onChange={(e) => onChange(e.target.value)}
           placeholder={question.placeholder}
           disabled={disabled}
           required={question.required}
+        />
+      )
+
+    case 'phone':
+      return (
+        <Styled.Input
+          id={fieldId}
+          type="tel"
+          value={String(value)}
+          onChange={(e) => {
+            const formatted = formatPhoneNumber(e.target.value)
+            onChange(formatted)
+          }}
+          placeholder="+7 (___) - ___ - ____"
+          disabled={disabled}
+          required={question.required}
+          maxLength={21} // +7 (123) - 456 - 7890 = 21 characters
         />
       )
     

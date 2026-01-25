@@ -16,6 +16,7 @@ type UseCases struct {
 	Establishment *EstablishmentUseCase
 	Menu         *MenuUseCase
 	Warehouse    *WarehouseUseCase
+	Workshop     *WorkshopUseCase
 	Finance      *FinanceUseCase
 	Statistics   *StatisticsUseCase
 	Order        *OrderUseCase
@@ -50,8 +51,9 @@ func NewUseCases(repos *repositories.Repositories, cfg *config.Config, logger *z
 		Auth:         NewAuthUseCase(repos.User, repos.Role, repos.Subscription, repos.Token, repos.Establishment, shiftUseCase, cfg),
 		Establishment: NewEstablishmentUseCase(repos.Establishment, repos.Table),
 		Menu:         NewMenuUseCase(repos.Product, repos.TechCard, repos.Ingredient, repos.Category, repos.IngredientCategory, repos.Warehouse),
-		Warehouse:    warehouseUseCase,
-		Finance:      financeUseCase,
+		Warehouse:    NewWarehouseUseCase(repos.Warehouse, repos.Supplier),
+		Workshop:     NewWorkshopUseCase(repos.Workshop),
+		Finance:      NewFinanceUseCase(repos.Transaction, repos.Shift),
 		Statistics:   NewStatisticsUseCase(repos.Order),
 		Order:        NewOrderUseCase(repos.Order, repos.Warehouse, repos.Transaction, accountUseCase),
 		Shift:        NewShiftUseCase(repos.Shift, repos.User, repos.Transaction),

@@ -227,6 +227,16 @@ func (uc *WarehouseUseCase) GetSuppliesByIngredientOrProduct(ctx context.Context
 	return uc.repo.GetSuppliesByIngredientOrProduct(ctx, establishmentID, ingredientID, productID)
 }
 
+// GetSupply возвращает поставку по ID
+func (uc *WarehouseUseCase) GetSupply(ctx context.Context, id uuid.UUID, establishmentID uuid.UUID) (*models.Supply, error) {
+	return uc.repo.GetSupplyByID(ctx, id, &establishmentID)
+}
+
+// GetSupplies возвращает список поставок
+func (uc *WarehouseUseCase) GetSupplies(ctx context.Context, establishmentID uuid.UUID, warehouseID *uuid.UUID) ([]*models.Supply, error) {
+	return uc.repo.GetSuppliesByWarehouse(ctx, establishmentID, warehouseID)
+}
+
 // GetWriteOffs возвращает список списаний
 func (uc *WarehouseUseCase) GetWriteOffs(ctx context.Context, establishmentID uuid.UUID, warehouseID *uuid.UUID) ([]*models.WriteOff, error) {
 	return uc.repo.GetWriteOffsByWarehouse(ctx, establishmentID, warehouseID)

@@ -18,7 +18,13 @@ export const useButton = (props: ButtonProps): UseButtonResult => {
       ? 'link'
       : variant === ButtonVariant.Outline
         ? 'default'
-        : 'primary';
+        : variant === ButtonVariant.Ghost
+          ? 'text'
+          : variant === ButtonVariant.Primary
+            ? 'primary'
+            : variant === ButtonVariant.Default
+              ? 'default'
+              : 'primary';
 
   const danger = variant === ButtonVariant.Destructive;
 

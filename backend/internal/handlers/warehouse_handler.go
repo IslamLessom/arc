@@ -624,6 +624,77 @@ func (h *WarehouseHandler) GetWriteOff(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"data": wo})
 }
 
+// ListSupplies возвращает список всех поставок
+// @Summary Получить список поставок
+// @Description Возвращает список всех поставок заведения, опционально фильтруя по складу
+// @Tags warehouse
+// @Produce json
+// @Security Bearer
+// @Param warehouse_id query string false "ID склада"
+// @Success 200 {object} map[string]interface{}
+// @Failure 403 {object} map[string]string
+// @Failure 500 {object} map[string]string
+// @Router /warehouse/supplies [get]
+func (h *WarehouseHandler) ListSupplies(c *gin.Context) {
+	estID, err := getEstablishmentID(c)
+	if err != nil {
+		c.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
+		return
+	}
+
+	var warehouseID *uuid.UUID
+	if whID := c.Query("warehouse_id"); whID != "" {
+		if id, e := uuid.Parse(whID); e == nil {
+			warehouseID = &id
+		}
+	}
+
+	supplies, err := h.usecase.GetSupplies(c.Request.Context(), estID, warehouseID)
+	if err != nil {
+		h.logger.Error("Failed to list supplies", zap.Error(err))
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"data": supplies})
+}
+
+// GetSupply возвращает поставку по ID
+// @Summary Получить поставку по ID
+// @Description Возвращает поставку по ID
+// @Tags warehouse
+// @Produce json
+// @Security Bearer
+// @Param id path string true "ID поставки"
+// @Success 200 {object} map[string]interface{}
+// @Failure 400 {object} map[string]string
+// @Failure 403 {object} map[string]string
+// @Failure 404 {object} map[string]string
+// @Router /warehouse/supplies/{id} [get]
+func (h *WarehouseHandler) GetSupply(c *gin.Context) {
+	estID, err := getEstablishmentID(c)
+	if err != nil {
+		c.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
+		return
+	}
+	id, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id"})
+		return
+	}
+	supply, err := h.usecase.GetSupply(c.Request.Context(), id, estID)
+	if err != nil {
+		h.logger.Error("Failed to get supply", zap.Error(err))
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to get supply"})
+		return
+	}
+	if supply == nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "supply not found"})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"data": supply})
+}
+
 // GetSuppliesByItem возвращает поставки по ингредиенту или товару
 // @Summary Получить поставки по позиции
 // @Description Возвращает список поставок по ингредиенту или товару
@@ -635,7 +706,7 @@ func (h *WarehouseHandler) GetWriteOff(c *gin.Context) {
 // @Success 200 {object} map[string]interface{}
 // @Failure 403 {object} map[string]string
 // @Failure 500 {object} map[string]string
-// @Router /warehouse/supplies [get]
+// @Router /warehouse/supplies/by-item [get]
 func (h *WarehouseHandler) GetSuppliesByItem(c *gin.Context) {
 	estID, err := getEstablishmentID(c)
 	if err != nil {
@@ -653,11 +724,6 @@ func (h *WarehouseHandler) GetSuppliesByItem(c *gin.Context) {
 		if id, e := uuid.Parse(prodID); e == nil {
 			productID = &id
 		}
-	}
-
-	if ingredientID == nil && productID == nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "ingredient_id or product_id must be provided"})
-		return
 	}
 
 	supplies, err := h.usecase.GetSuppliesByIngredientOrProduct(c.Request.Context(), estID, ingredientID, productID)

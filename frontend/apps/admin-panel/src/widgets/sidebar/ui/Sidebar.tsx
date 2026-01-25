@@ -2,7 +2,6 @@ import { useSidebar } from '../hooks/useSidebar';
 import type { SidebarProps } from '../model/types';
 import { menuItems } from '../lib/constants';
 import * as Styled from '../styled';
-import { Button } from '@restaurant-pos/ui';
 
 export const Sidebar = (props: SidebarProps) => {
   const {
@@ -16,14 +15,25 @@ export const Sidebar = (props: SidebarProps) => {
     handleLogout,
     userDropdownRef,
   } = useSidebar(props);
-  const { userName = 'Maki' } = props;
+
+  const { userName = 'Admin', userRole = 'Administrator' } = props;
+
+  const getUserInitials = (name: string): string => {
+    return name
+      .split(' ')
+      .map((n) => n[0])
+      .join('')
+      .toUpperCase()
+      .slice(0, 2);
+  };
 
   return (
     <Styled.SidebarContainer>
       <Styled.Header>
-        <Styled.BackButton>←</Styled.BackButton>
-        <Button>Poster</Button>
-        <Styled.LampIcon>💡</Styled.LampIcon>
+        <Styled.LogoContainer>
+          <Styled.LogoIcon>P</Styled.LogoIcon>
+          <Styled.LogoText>ARCE</Styled.LogoText>
+        </Styled.LogoContainer>
       </Styled.Header>
 
       <Styled.MenuList>
@@ -44,7 +54,7 @@ export const Sidebar = (props: SidebarProps) => {
                   }
                 }}
               >
-                <Styled.MenuIcon>{item.icon}</Styled.MenuIcon>
+                <Styled.MenuIconWrapper>{item.icon}</Styled.MenuIconWrapper>
                 <Styled.MenuLabel>{item.label}</Styled.MenuLabel>
                 {item.badge && typeof item.badge === 'number' && (
                   <Styled.Badge>{item.badge}</Styled.Badge>
@@ -61,6 +71,7 @@ export const Sidebar = (props: SidebarProps) => {
                       $isActive={isItemActive(child.id)}
                       onClick={() => handleItemClick(child.id, child.path)}
                     >
+                      <Styled.SubMenuDot $isActive={isItemActive(child.id)} />
                       <Styled.MenuLabel>{child.label}</Styled.MenuLabel>
                       {child.badge && typeof child.badge === 'string' && (
                         <Styled.NewBadge>{child.badge}</Styled.NewBadge>
@@ -76,18 +87,29 @@ export const Sidebar = (props: SidebarProps) => {
 
       <Styled.UserDropdownContainer ref={userDropdownRef}>
         <Styled.Footer onClick={handleToggleUserDropdown}>
-          <Styled.UserIcon>👤</Styled.UserIcon>
-          <Styled.UserName>{userName}</Styled.UserName>
+          <Styled.UserAvatar>{getUserInitials(userName)}</Styled.UserAvatar>
+          <Styled.UserInfo>
+            <Styled.UserName>{userName}</Styled.UserName>
+            <Styled.UserRole>{userRole}</Styled.UserRole>
+          </Styled.UserInfo>
           <Styled.DropdownArrow $isOpen={isUserDropdownOpen}>▼</Styled.DropdownArrow>
         </Styled.Footer>
         <Styled.UserDropdownMenu $isOpen={isUserDropdownOpen}>
-          <Styled.UserDropdownItem onClick={handleLogout}>
-            <Styled.LogoutIcon>🚪</Styled.LogoutIcon>
-            <span>Выйти</span>
+          <Styled.UserDropdownItem>
+            <Styled.DropdownIcon>👤</Styled.DropdownIcon>
+            <span>Профиль</span>
           </Styled.UserDropdownItem>
+          <Styled.UserDropdownItem>
+            <Styled.DropdownIcon>⚙️</Styled.DropdownIcon>
+            <span>Настройки</span>
+          </Styled.UserDropdownItem>
+          <Styled.Divider />
+          <Styled.LogoutItem onClick={handleLogout}>
+            <Styled.DropdownIcon>🚪</Styled.DropdownIcon>
+            <span>Выйти</span>
+          </Styled.LogoutItem>
         </Styled.UserDropdownMenu>
       </Styled.UserDropdownContainer>
     </Styled.SidebarContainer>
   );
 };
-

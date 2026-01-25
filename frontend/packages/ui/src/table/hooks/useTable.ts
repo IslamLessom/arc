@@ -1,6 +1,6 @@
 import { useMemo, useState, useCallback } from 'react';
 import type { TableProps, TableColumn } from '../model/types';
-import type { TableSortOrder } from '../model/enums';
+import { TableSortOrder } from '../model/enums';
 
 interface SortState {
   columnKey: string;
@@ -56,16 +56,18 @@ export const useTable = <T extends Record<string, unknown>>(
   );
 
   const sortedData = useMemo(() => {
+    const data = dataSource ?? [];
+
     if (!sortState || !sortState.order) {
-      return dataSource;
+      return data;
     }
 
     const column = columns.find((col) => col.key === sortState.columnKey);
     if (!column || !column.sorter) {
-      return dataSource;
+      return data;
     }
 
-    const sorted = [...dataSource].sort((a, b) => {
+    const sorted = [...data].sort((a, b) => {
       if (typeof column.sorter === 'function') {
         return column.sorter(a, b);
       }

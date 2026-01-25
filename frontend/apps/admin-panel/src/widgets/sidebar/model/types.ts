@@ -13,5 +13,5 @@ export interface MenuItem {
 export interface SidebarProps {
   currentPath?: string;
   userName?: string;
+  userRole?: string;
 }
-
