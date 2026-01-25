@@ -1,0 +1,149 @@
+import { useInventories } from '../hooks/useInventories'
+import { Table } from '@restaurant-pos/ui'
+import { AddInventoryModal } from '../../../features/add-inventory-modal'
+import { getInventoriesTableColumns } from '../lib/constants'
+import * as Styled from './styled'
+
+export const Inventories = () => {
+  const {
+    inventories,
+    isLoading,
+    error,
+    searchQuery,
+    filters,
+    warehouses,
+    totalCount,
+    handleSearchChange,
+    handleFilterChange,
+    handleBack,
+    handleAdd,
+    handleEdit,
+    handleExport,
+    handlePrint,
+    handleColumns,
+    isModalOpen,
+    handleCloseModal,
+    handleSuccess,
+  } = useInventories()
+
+  const columns = getInventoriesTableColumns({
+    onEdit: handleEdit,
+  })
+
+  if (isLoading) {
+    return (
+      <Styled.PageContainer>
+        <Styled.LoadingContainer>Загрузка инвентаризаций...</Styled.LoadingContainer>
+      </Styled.PageContainer>
+    )
+  }
+
+  if (error) {
+    return (
+      <Styled.PageContainer>
+        <Styled.ErrorContainer>
+          Ошибка при загрузке инвентаризаций: {error.message}
+        </Styled.ErrorContainer>
+      </Styled.PageContainer>
+    )
+  }
+
+  return (
+    <Styled.PageContainer>
+      <Styled.Header>
+        <Styled.HeaderLeft>
+          <Styled.BackButton onClick={handleBack}>←</Styled.BackButton>
+          <Styled.Title>Инвентаризации {totalCount}</Styled.Title>
+        </Styled.HeaderLeft>
+        <Styled.HeaderActions>
+          <Styled.ActionButton onClick={handleColumns}>
+            <span>📋</span>
+            Столбцы
+          </Styled.ActionButton>
+          <Styled.ActionButton onClick={handleExport}>
+            <span>📤</span>
+            Экспорт
+          </Styled.ActionButton>
+          <Styled.ActionButton onClick={handlePrint}>
+            <span>🖨️</span>
+            Печать
+          </Styled.ActionButton>
+          <Styled.AddButton onClick={handleAdd}>Добавить</Styled.AddButton>
+        </Styled.HeaderActions>
+      </Styled.Header>
+
+      {totalCount === 0 && (
+        <Styled.InfoSection style={{ position: 'relative' }}>
+          <Styled.InfoIcon>🥕</Styled.InfoIcon>
+          <Styled.InfoContent>
+            <Styled.InfoTitle>Добавьте инвентаризацию</Styled.InfoTitle>
+            <Styled.InfoText>
+              Чтобы сравнить планируемые и фактические остатки продуктов на складе, создайте
+              инвентаризацию. Poster покажет результат проверки — разницу между остатками в
+              количестве и деньгах.
+            </Styled.InfoText>
+            <Styled.InfoLink href="#" onClick={(e) => {
+              e.preventDefault()
+              handleAdd()
+            }}>
+              <span>▶</span>
+              Смотреть видео
+            </Styled.InfoLink>
+          </Styled.InfoContent>
+        </Styled.InfoSection>
+      )}
+
+      <Styled.SearchContainer>
+        <Styled.SearchInputWrapper>
+          <Styled.SearchIcon>🔍</Styled.SearchIcon>
+          <Styled.SearchInput
+            placeholder="Быстрый поиск"
+            value={searchQuery}
+            onChange={(e) => handleSearchChange(e.target.value)}
+          />
+        </Styled.SearchInputWrapper>
+        <Styled.FilterSelect
+          value={filters.warehouse_id || ''}
+          onChange={(e) =>
+            handleFilterChange({ warehouse_id: e.target.value || undefined })
+          }
+        >
+          <option value="">Склад</option>
+          {warehouses.map((warehouse) => (
+            <option key={warehouse.id} value={warehouse.id}>
+              {warehouse.name}
+            </option>
+          ))}
+        </Styled.FilterSelect>
+        <Styled.FilterButton>+ Фильтр</Styled.FilterButton>
+      </Styled.SearchContainer>
+
+      <Styled.TableContainer>
+        {totalCount === 0 ? (
+          <Styled.EmptyState>
+            <Styled.EmptyStateTitle>Здесь будут инвентаризации</Styled.EmptyStateTitle>
+            <Styled.EmptyStateText>
+              Создавайте склады и проверяйте остатки продуктов, которые на них хранятся. Poster
+              покажет излишки или недостачи и поможет найти причины расхождений.
+            </Styled.EmptyStateText>
+          </Styled.EmptyState>
+        ) : (
+          <Table
+            columns={columns}
+            dataSource={inventories}
+            rowKey="id"
+            pagination={false}
+            onRowClick={(record) => handleEdit(record.id)}
+          />
+        )}
+      </Styled.TableContainer>
+
+      <AddInventoryModal
+        isOpen={isModalOpen}
+        onClose={handleCloseModal}
+        onSuccess={handleSuccess}
+      />
+    </Styled.PageContainer>
+  )
+}
+

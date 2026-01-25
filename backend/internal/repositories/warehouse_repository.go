@@ -253,6 +253,10 @@ func (r *warehouseRepository) CreateSupply(ctx context.Context, supply *models.S
 	})
 }
 
+func (r *warehouseRepository) DeleteSupply(ctx context.Context, id uuid.UUID) error {
+	return r.db.WithContext(ctx).Delete(&models.Supply{}, "id = ?", id).Error
+}
+
 func (r *warehouseRepository) GetSupplyByID(ctx context.Context, id uuid.UUID, establishmentID *uuid.UUID) (*models.Supply, error) {
 	var supply models.Supply
 	query := r.db.WithContext(ctx).
