@@ -24,8 +24,9 @@ type Repositories struct {
 	Onboarding   OnboardingRepository
 	Subscription SubscriptionRepository
 	Token        TokenRepository
-	Account     AccountRepository
-	AccountType AccountTypeRepository
+	Account      AccountRepository
+	AccountType  AccountTypeRepository
+	Inventory    InventoryRepository
 }
 
 // NewRepositories создает все репозитории
@@ -51,6 +52,7 @@ func NewRepositories(db *gorm.DB) *Repositories {
 		Token:        NewTokenRepository(db),
 		Account:      NewAccountRepository(db),
 		AccountType:  NewAccountTypeRepository(db),
+		Inventory:    NewInventoryRepository(db),
 	}
 }
 

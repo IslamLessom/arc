@@ -63,6 +63,15 @@ type Supply struct {
 	Status          string       `json:"status" gorm:"not null;index"`              // pending, completed, cancelled
 	Comment         string       `json:"comment"`                             // Комментарий
 	Items           []SupplyItem  `json:"items,omitempty" gorm:"foreignKey:SupplyID"`
+	// Поля для счета и оплаты
+	InvoiceNumber   string       `json:"invoice_number"`                           // Номер счета от поставщика
+	InvoiceDate     *time.Time   `json:"invoice_date"`                             // Дата счета
+	TotalAmount     float64      `json:"total_amount" gorm:"default:0"`            // Общая сумма по счету
+	PaymentStatus   string       `json:"payment_status" gorm:"default:none"`       // none, pending, partial, paid
+	PaymentDate     *time.Time   `json:"payment_date"`                             // Дата оплаты
+	PaymentAmount   float64      `json:"payment_amount" gorm:"default:0"`          // Сумма оплаты
+	AccountID       *uuid.UUID   `json:"account_id,omitempty" gorm:"type:uuid"`    // Счет для оплаты
+	Account         *Account     `json:"account,omitempty" gorm:"foreignKey:AccountID"`
 	CreatedAt       time.Time    `json:"created_at" gorm:"index"`
 	UpdatedAt       time.Time    `json:"updated_at"`
 }

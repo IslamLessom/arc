@@ -239,6 +239,21 @@ func NewRouter(usecases *usecases.UseCases, cfg *config.Config, logger *zap.Logg
 				warehouse.DELETE("/suppliers/:id", warehouseHandler.DeleteSupplier)
 			}
 
+			// Inventory (инвентаризация)
+			inventoryHandler := NewInventoryHandler(usecases.Inventory, logger)
+			inventory := protected.Group("/inventory")
+			inventory.Use(middleware.RequireEstablishment(usecases.Auth))
+			{
+				inventory.GET("", inventoryHandler.List)
+				inventory.GET("/:id", inventoryHandler.GetByID)
+				inventory.POST("", inventoryHandler.Create)
+				inventory.PUT("/:id/status", inventoryHandler.UpdateStatus)
+				inventory.DELETE("/:id", inventoryHandler.Delete)
+				inventory.GET("/stock-snapshot", inventoryHandler.GetStockSnapshot)
+				inventory.PUT("/:id/items/:item_id", inventoryHandler.UpdateItem)
+				inventory.DELETE("/:id/items/:item_id", inventoryHandler.DeleteItem)
+			}
+
 			// Finance
 			financeHandler := NewFinanceHandler(usecases.Finance, logger)
 			accountHandler := NewAccountHandler(usecases.Account, logger)

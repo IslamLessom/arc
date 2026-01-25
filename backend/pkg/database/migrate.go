@@ -119,6 +119,12 @@ func RunMigrations(db *gorm.DB, logger *zap.Logger) error {
 	if err := migrateDB.AutoMigrate(&models.WriteOffItem{}); err != nil {
 		return fmt.Errorf("failed to migrate WriteOffItem: %w", err)
 	}
+	if err := migrateDB.AutoMigrate(&models.Inventory{}); err != nil {
+		return fmt.Errorf("failed to migrate Inventory: %w", err)
+	}
+	if err := migrateDB.AutoMigrate(&models.InventoryItem{}); err != nil {
+		return fmt.Errorf("failed to migrate InventoryItem: %w", err)
+	}
 
 	// 8. Модели для заказов
 	if err := migrateDB.AutoMigrate(&models.Order{}); err != nil {

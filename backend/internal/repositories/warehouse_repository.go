@@ -43,6 +43,7 @@ type WarehouseRepository interface {
 
 	// Supply & WriteOff
 	CreateSupply(ctx context.Context, supply *models.Supply) error
+	DeleteSupply(ctx context.Context, id uuid.UUID) error
 	GetSupplyByID(ctx context.Context, id uuid.UUID, establishmentID *uuid.UUID) (*models.Supply, error)
 	GetSuppliesByIngredientOrProduct(ctx context.Context, establishmentID uuid.UUID, ingredientID *uuid.UUID, productID *uuid.UUID) ([]*models.Supply, error)
 	GetSuppliesByWarehouse(ctx context.Context, establishmentID uuid.UUID, warehouseID *uuid.UUID) ([]*models.Supply, error)
@@ -226,10 +227,12 @@ func (r *warehouseRepository) CreateSupply(ctx context.Context, supply *models.S
 		items := supply.Items
 		supply.Items = nil
 
+
 		// Создаем Supply без Items
 		if err := tx.Create(supply).Error; err != nil {
 			return err
 		}
+
 
 		// Теперь создаем элементы по одному с явно установленными UUID
 		for i := range items {
@@ -242,6 +245,7 @@ func (r *warehouseRepository) CreateSupply(ctx context.Context, supply *models.S
 				return err
 			}
 		}
+
 
 		// Восстанавливаем Items для возврата
 		supply.Items = items

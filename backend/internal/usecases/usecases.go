@@ -26,6 +26,7 @@ type UseCases struct {
 	Table        *TableUseCase
 	User         *UserUseCase
 	Role         *RoleUseCase // Добавлен новый UseCase для управления ролями
+	Inventory    *InventoryUseCase
 	Storage      *storage.MinIOClient
 }
 
@@ -41,13 +42,17 @@ func NewUseCases(repos *repositories.Repositories, cfg *config.Config, logger *z
 	userUseCase := NewUserUseCase(repos.User, repos.Role)
 	roleUseCase := NewRoleUseCase(repos.Role)
 	shiftUseCase := NewShiftUseCase(repos.Shift, repos.User, repos.Transaction) // Инициализация ShiftUseCase
-	
+	inventoryUseCase := NewInventoryUseCase(repos.Inventory, repos.Warehouse)
+
+	financeUseCase := NewFinanceUseCase(repos.Transaction, repos.Account, repos.Shift, repos.Order)
+	warehouseUseCase := NewWarehouseUseCase(repos.Warehouse, repos.Supplier, financeUseCase)
+
 	return &UseCases{
 		Auth:         NewAuthUseCase(repos.User, repos.Role, repos.Subscription, repos.Token, repos.Establishment, shiftUseCase, cfg),
 		Establishment: NewEstablishmentUseCase(repos.Establishment, repos.Table),
 		Menu:         NewMenuUseCase(repos.Product, repos.TechCard, repos.Ingredient, repos.Category, repos.IngredientCategory, repos.Warehouse),
-		Warehouse:    NewWarehouseUseCase(repos.Warehouse, repos.Supplier),
-		Finance:      NewFinanceUseCase(repos.Transaction, repos.Account, repos.Shift, repos.Order),
+		Warehouse:    warehouseUseCase,
+		Finance:      financeUseCase,
 		Statistics:   NewStatisticsUseCase(repos.Order),
 		Order:        NewOrderUseCase(repos.Order, repos.Warehouse, repos.Transaction, accountUseCase),
 		Shift:        NewShiftUseCase(repos.Shift, repos.User, repos.Transaction),
@@ -56,6 +61,7 @@ func NewUseCases(repos *repositories.Repositories, cfg *config.Config, logger *z
 		Table:        NewTableUseCase(repos.Table),
 		User:         userUseCase,
 		Role:         roleUseCase, // Присвоение нового RoleUseCase
+		Inventory:    inventoryUseCase,
 		Storage:      storageClient,
 	}, nil
 }
