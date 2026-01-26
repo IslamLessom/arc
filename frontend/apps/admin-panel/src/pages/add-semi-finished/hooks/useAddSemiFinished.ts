@@ -23,8 +23,8 @@ export const useAddSemiFinished = (): UseAddSemiFinishedResult => {
   const ingredients = useMemo(() => {
     return apiIngredients.map(ing => ({
       id: ing.id,
-      name: `${ing.name}${ing.unit ? `, ${ing.unit}` : ''}`,
-      unit: ing.unit || 'шт'
+      name: ing.name,
+      unit: (ing.unit || 'шт') as 'шт' | 'л' | 'кг'
     }))
   }, [apiIngredients])
 
@@ -118,13 +118,28 @@ export const useAddSemiFinished = (): UseAddSemiFinishedResult => {
       ingredients: prev.ingredients.map(ing => {
         if (ing.id === id) {
           const updated = { ...ing, ...updates }
-          
+
           // Если выбран ингредиент, обновляем название и единицу измерения
           if (updates.ingredient_id) {
             const selectedIngredient = ingredients.find(ing => ing.id === updates.ingredient_id)
             if (selectedIngredient) {
               updated.ingredient_name = selectedIngredient.name
-              updated.unit = selectedIngredient.unit
+
+              // Конвертируем единицы: кг → г, л → мл, шт → шт
+              if (selectedIngredient.unit === 'кг') {
+                updated.unit = 'г'
+                // Конвертируем существующие значения брутто и нетто
+                updated.gross = updated.gross * 1000
+                updated.net = updated.net * 1000
+              } else if (selectedIngredient.unit === 'л') {
+                updated.unit = 'мл'
+                // Конвертируем существующие значения брутто и нетто
+                updated.gross = updated.gross * 1000
+                updated.net = updated.net * 1000
+              } else if (selectedIngredient.unit === 'шт') {
+                updated.unit = 'шт'
+                // Конвертация не нужна
+              }
             }
           }
 
@@ -143,8 +158,17 @@ export const useAddSemiFinished = (): UseAddSemiFinishedResult => {
           // Пересчитываем себестоимость на основе нетто и цены ингредиента
           if (updated.ingredient_id && updated.net > 0) {
             const pricePerUnit = getIngredientPrice(updated.ingredient_id)
+
+            // Конвертируем нетто обратно в исходные единицы для расчета себестоимости
+            let netForCost = updated.net
+            if (updated.unit === 'г') {
+              netForCost = updated.net / 1000 // Конвертируем г в кг
+            } else if (updated.unit === 'мл') {
+              netForCost = updated.net / 1000 // Конвертируем мл в л
+            }
+
             // Себестоимость = нетто * цена за единицу
-            updated.cost = updated.net * pricePerUnit
+            updated.cost = netForCost * pricePerUnit
           } else if (updates.net !== undefined && updated.net === 0) {
             updated.cost = 0
           }
@@ -168,20 +192,34 @@ export const useAddSemiFinished = (): UseAddSemiFinishedResult => {
     if (!isFormValid) return
 
     try {
-      // Пока используем упрощенную структуру, так как бэкенд еще не поддерживает полную
-      // В будущем нужно будет расширить CreateSemiFinishedRequest
+      // Подготавливаем ингредиенты для отправки
+      const ingredientsPayload = formData.ingredients
+        .filter(ing => ing.ingredient_id) // Только с выбранным ингредиентом
+        .map(ing => ({
+          ingredient_id: ing.ingredient_id,
+          preparation_method: ing.preparation_method,
+          gross: ing.gross,
+          net: ing.net,
+          unit: ing.unit
+        }))
+
+      // Определяем единицу измерения для выхода
+      // Пока используем г по умолчанию
+      let unit: 'кг' | 'г' | 'л' | 'мл' | 'шт' = 'г'
+
       await createMutation.mutateAsync({
         name: formData.name,
-        category: '', // TODO: добавить выбор категории
-        unit: 'gram' as const,
+        category_id: formData.category_id || '',
+        cooking_process: formData.cooking_process,
+        unit: unit,
         quantity: totalYield,
-        cost: totalCost
+        ingredients: ingredientsPayload
       })
       navigate('/menu/semi-finished')
     } catch (err) {
       console.error('Failed to create semi-finished product:', err)
     }
-  }, [formData, isFormValid, createMutation, navigate, totalCost, totalYield])
+  }, [formData, isFormValid, createMutation, navigate, totalYield])
 
   const handleBack = useCallback(() => {
     navigate('/menu/semi-finished')

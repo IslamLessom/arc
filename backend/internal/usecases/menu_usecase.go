@@ -12,6 +12,7 @@ import (
 type MenuUseCase struct {
 	productRepo          repositories.ProductRepository
 	techCardRepo         repositories.TechCardRepository
+	semiFinishedRepo     repositories.SemiFinishedRepository
 	ingredientRepo       repositories.IngredientRepository
 	categoryRepo         repositories.CategoryRepository
 	ingredientCategoryRepo repositories.IngredientCategoryRepository
@@ -21,6 +22,7 @@ type MenuUseCase struct {
 func NewMenuUseCase(
 	productRepo repositories.ProductRepository,
 	techCardRepo repositories.TechCardRepository,
+	semiFinishedRepo repositories.SemiFinishedRepository,
 	ingredientRepo repositories.IngredientRepository,
 	categoryRepo repositories.CategoryRepository,
 	ingredientCategoryRepo repositories.IngredientCategoryRepository,
@@ -29,6 +31,7 @@ func NewMenuUseCase(
 	return &MenuUseCase{
 		productRepo:           productRepo,
 		techCardRepo:          techCardRepo,
+		semiFinishedRepo:      semiFinishedRepo,
 		ingredientRepo:        ingredientRepo,
 		categoryRepo:          categoryRepo,
 		ingredientCategoryRepo: ingredientCategoryRepo,
@@ -303,4 +306,87 @@ func (uc *MenuUseCase) DeleteIngredientCategory(ctx context.Context, id uuid.UUI
 		return err
 	}
 	return uc.ingredientCategoryRepo.Delete(ctx, id)
+}
+
+// ——— SemiFinishedProducts (полуфабрикаты) ———
+
+func (uc *MenuUseCase) GetSemiFinishedProducts(ctx context.Context, filter *repositories.SemiFinishedFilter) ([]*models.SemiFinishedProduct, error) {
+	return uc.semiFinishedRepo.List(ctx, filter)
+}
+
+func (uc *MenuUseCase) GetSemiFinishedByID(ctx context.Context, id uuid.UUID, establishmentID uuid.UUID) (*models.SemiFinishedProduct, error) {
+	return uc.semiFinishedRepo.GetByID(ctx, id, &establishmentID)
+}
+
+func (uc *MenuUseCase) CreateSemiFinished(ctx context.Context, semiFinished *models.SemiFinishedProduct, warehouseID, establishmentID uuid.UUID) error {
+	semiFinished.EstablishmentID = establishmentID
+	if len(semiFinished.Ingredients) > 0 {
+		cost, err := uc.CalculateSemiFinishedCost(ctx, semiFinished, warehouseID, establishmentID)
+		if err == nil {
+			semiFinished.CostPrice = cost
+		}
+	}
+	return uc.semiFinishedRepo.Create(ctx, semiFinished)
+}
+
+func (uc *MenuUseCase) UpdateSemiFinished(ctx context.Context, semiFinished *models.SemiFinishedProduct, warehouseID, establishmentID uuid.UUID) error {
+	if len(semiFinished.Ingredients) > 0 {
+		cost, err := uc.CalculateSemiFinishedCost(ctx, semiFinished, warehouseID, establishmentID)
+		if err == nil {
+			semiFinished.CostPrice = cost
+		}
+	}
+	return uc.semiFinishedRepo.Update(ctx, semiFinished)
+}
+
+func (uc *MenuUseCase) DeleteSemiFinished(ctx context.Context, id uuid.UUID, establishmentID uuid.UUID) error {
+	if _, err := uc.semiFinishedRepo.GetByID(ctx, id, &establishmentID); err != nil {
+		return err
+	}
+	return uc.semiFinishedRepo.Delete(ctx, id)
+}
+
+func (uc *MenuUseCase) CalculateSemiFinishedCost(ctx context.Context, semiFinished *models.SemiFinishedProduct, warehouseID, establishmentID uuid.UUID) (float64, error) {
+	var totalCost float64
+
+	for _, ingredient := range semiFinished.Ingredients {
+		stock, err := uc.warehouseRepo.GetStockByIngredientAndWarehouse(ctx, ingredient.IngredientID, warehouseID)
+		if err != nil {
+			return 0, err
+		}
+		if stock == nil {
+			continue
+		}
+
+		// Проверяем существование ингредиента
+		_, err = uc.ingredientRepo.GetByID(ctx, ingredient.IngredientID, &establishmentID)
+		if err != nil {
+			return 0, err
+		}
+
+		// Конвертируем количество ингредиента в нужную единицу измерения
+		ingredientQuantity := ingredient.Net
+		ingredientUnit := ingredient.Unit
+
+		// Если единицы измерения разные, конвертируем
+		pricePerUnit := stock.PricePerUnit
+
+		// Конвертируем в базовые единицы (кг, л, шт) для расчета стоимости
+		netForCost := ingredientQuantity
+		if ingredientUnit == "г" {
+			netForCost = ingredientQuantity / 1000 // конвертируем г в кг
+		} else if ingredientUnit == "мл" {
+			netForCost = ingredientQuantity / 1000 // конвертируем мл в л
+		}
+
+		ingredientCost := netForCost * pricePerUnit
+		totalCost += ingredientCost
+	}
+
+	return totalCost, nil
+}
+
+// GetWarehouses возвращает список складов для заведения
+func (uc *MenuUseCase) GetWarehouses(ctx context.Context, establishmentID uuid.UUID) ([]*models.Warehouse, error) {
+	return uc.warehouseRepo.ListWarehouses(ctx, establishmentID)
 }

@@ -254,14 +254,7 @@ func (r *warehouseRepository) CreateSupply(ctx context.Context, supply *models.S
 }
 
 func (r *warehouseRepository) DeleteSupply(ctx context.Context, id uuid.UUID) error {
-	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		// Сначала удаляем связанные SupplyItem
-		if err := tx.Where("supply_id = ?", id).Delete(&models.SupplyItem{}).Error; err != nil {
-			return err
-		}
-		// Затем удаляем саму Supply
-		return tx.Delete(&models.Supply{}, "id = ?", id).Error
-	})
+	return r.db.WithContext(ctx).Delete(&models.Supply{}, "id = ?", id).Error
 }
 
 func (r *warehouseRepository) GetSupplyByID(ctx context.Context, id uuid.UUID, establishmentID *uuid.UUID) (*models.Supply, error) {

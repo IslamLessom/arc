@@ -206,8 +206,9 @@ func NewRouter(usecases *usecases.UseCases, cfg *config.Config, logger *zap.Logg
 					ingredientCategories.PUT("/:id", menuHandler.UpdateIngredientCategory)
 					ingredientCategories.DELETE("/:id", menuHandler.DeleteIngredientCategory)
 				}
-				// Semi-finished (полуфабрикаты — пока пустой список)
+				// Semi-finished (полуфабрикаты)
 				menu.GET("/semi-finished", menuHandler.GetSemiFinished)
+				menu.POST("/semi-finished", menuHandler.CreateSemiFinished)
 			}
 
 			// Warehouses (склады) + Stock, Supply, WriteOff, Suppliers

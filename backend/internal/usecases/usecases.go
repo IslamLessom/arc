@@ -50,8 +50,9 @@ func NewUseCases(repos *repositories.Repositories, cfg *config.Config, logger *z
 	return &UseCases{
 		Auth:         NewAuthUseCase(repos.User, repos.Role, repos.Subscription, repos.Token, repos.Establishment, shiftUseCase, cfg),
 		Establishment: NewEstablishmentUseCase(repos.Establishment, repos.Table),
-		Menu:         NewMenuUseCase(repos.Product, repos.TechCard, repos.Ingredient, repos.Category, repos.IngredientCategory, repos.Warehouse),
+		Menu:         NewMenuUseCase(repos.Product, repos.TechCard, repos.SemiFinished, repos.Ingredient, repos.Category, repos.IngredientCategory, repos.Warehouse),
 		Warehouse:    warehouseUseCase,
+		Workshop:     NewWorkshopUseCase(repos.Workshop),
 		Finance:      financeUseCase,
 		Statistics:   NewStatisticsUseCase(repos.Order),
 		Order:        NewOrderUseCase(repos.Order, repos.Warehouse, repos.Transaction, accountUseCase),

@@ -1,6 +1,7 @@
 import { useBalances } from '../hooks/useBalances'
 import * as Styled from './styled'
 import type { Stock } from '@restaurant-pos/api-client'
+import { translateUnit } from '../../technical-cards/lib/unitTranslator'
 
 export const Balances = () => {
   const {
@@ -126,7 +127,7 @@ export const Balances = () => {
                 <Styled.TableCell>{getCategoryName(item)}</Styled.TableCell>
                 <Styled.TableCell>{item.warehouse.name}</Styled.TableCell>
                 <Styled.TableCell>{item.quantity}</Styled.TableCell>
-                <Styled.TableCell>{item.unit}</Styled.TableCell>
+                <Styled.TableCell>{translateUnit(item.unit)}</Styled.TableCell>
                 <Styled.TableCell>
                   {item.price_per_unit.toFixed(2)} ₽
                 </Styled.TableCell>
