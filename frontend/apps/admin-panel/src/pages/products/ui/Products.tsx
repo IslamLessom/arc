@@ -84,8 +84,6 @@ export const Products = () => {
 
       <Styled.SearchContainer>
         <Styled.SearchInputWrapper>
-          <Styled.SearchBadge>0</Styled.SearchBadge>
-          <Styled.SearchIcon>🔍</Styled.SearchIcon>
           <Styled.SearchInput
             placeholder="Быстрый поиск"
             value={searchQuery}
