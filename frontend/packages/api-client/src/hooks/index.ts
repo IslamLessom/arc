@@ -79,6 +79,16 @@ export {
   useDeleteWorkshop,
 } from './useWorkshops'
 export type { Workshop, CreateWorkshopRequest, UpdateWorkshopRequest } from './useWorkshops'
+export {
+  useGetEmployees,
+  useGetEmployee,
+  useCreateEmployee,
+  useUpdateEmployee,
+  useDeleteEmployee,
+} from './useEmployees'
+export type { Employee } from './useEmployees'
+export { useGetRoles } from './useRoles'
+export type { Role } from './useRoles'
 
 // Types
 export * from '../types'

@@ -18,6 +18,11 @@ import { Sidebar } from './widgets/sidebar'
 import { OnboardingModal } from './widgets/onboarding-modal'
 import { useOnboardingStatus } from './shared/hooks/useOnboardingStatus'
 import { Workshops } from './pages/workshops'
+import { Employees } from './pages/employees'
+import { Positions } from './pages/positions'
+import { CashRegisters } from './pages/cash-registers'
+import { Establishments } from './pages/establishments'
+import { Integrations } from './pages/integrations'
 import { NotFound } from './pages/not-found'
 
 export function App() {
@@ -63,6 +68,11 @@ export function App() {
           <Route path="/menu/ingredients" element={<Ingredients />} />
           <Route path="/menu/tech-cards" element={<TechnicalCards />} />
           <Route path="/menu/workshops" element={<Workshops />} />
+          <Route path="/access/employees" element={<Employees />} />
+          <Route path="/access/positions" element={<Positions />} />
+          <Route path="/access/cash-registers" element={<CashRegisters />} />
+          <Route path="/access/establishments" element={<Establishments />} />
+          <Route path="/access/integrations" element={<Integrations />} />
           <Route path="/" element={<Home />} />
           <Route path="*" element={<NotFound />} />
         </Routes>

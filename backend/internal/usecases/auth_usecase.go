@@ -74,7 +74,7 @@ func (uc *AuthUseCase) Register(ctx context.Context, email, password, name strin
 
 	// Создаем пользователя
 	user := &models.User{
-		Email:                email,
+		Email:                &email,
 		Password:             hashedPassword,
 		Name:                 name,
 		RoleID:               roleID,
@@ -111,12 +111,12 @@ func (uc *AuthUseCase) Register(ctx context.Context, email, password, name strin
 	}
 
 	// Генерируем токены
-	accessToken, err := auth.GenerateToken(user.ID, user.Email, uc.config.JWT.Secret, uc.config.JWT.Expiration)
+	accessToken, err := auth.GenerateToken(user.ID, *user.Email, uc.config.JWT.Secret, uc.config.JWT.Expiration)
 	if err != nil {
 		return nil, "", "", err
 	}
 
-	refreshToken, err := auth.GenerateRefreshToken(user.ID, user.Email, uc.config.JWT.Secret)
+	refreshToken, err := auth.GenerateRefreshToken(user.ID, *user.Email, uc.config.JWT.Secret)
 	if err != nil {
 		return nil, "", "", err
 	}
@@ -137,12 +137,12 @@ func (uc *AuthUseCase) Login(ctx context.Context, email, password string) (*mode
 	}
 
 	// Генерируем токены
-	accessToken, err := auth.GenerateToken(user.ID, user.Email, uc.config.JWT.Secret, uc.config.JWT.Expiration)
+	accessToken, err := auth.GenerateToken(user.ID, *user.Email, uc.config.JWT.Secret, uc.config.JWT.Expiration)
 	if err != nil {
 		return nil, "", "", err
 	}
 
-	refreshToken, err := auth.GenerateRefreshToken(user.ID, user.Email, uc.config.JWT.Secret)
+	refreshToken, err := auth.GenerateRefreshToken(user.ID, *user.Email, uc.config.JWT.Secret)
 	if err != nil {
 		return nil, "", "", err
 	}
@@ -168,12 +168,12 @@ func (uc *AuthUseCase) LoginEmployee(ctx context.Context, pin string, initialCas
 	}
 
 	// Generate tokens
-	accessToken, err := auth.GenerateToken(user.ID, user.Email, uc.config.JWT.Secret, uc.config.JWT.Expiration)
+	accessToken, err := auth.GenerateToken(user.ID, *user.Email, uc.config.JWT.Secret, uc.config.JWT.Expiration)
 	if err != nil {
 		return nil, "", "", err
 	}
 
-	refreshToken, err := auth.GenerateRefreshToken(user.ID, user.Email, uc.config.JWT.Secret)
+	refreshToken, err := auth.GenerateRefreshToken(user.ID, *user.Email, uc.config.JWT.Secret)
 	if err != nil {
 		return nil, "", "", err
 	}
@@ -195,12 +195,12 @@ func (uc *AuthUseCase) RefreshToken(ctx context.Context, refreshTokenString stri
 	}
 
 	// Генерируем новые токены
-	accessToken, err := auth.GenerateToken(user.ID, user.Email, uc.config.JWT.Secret, uc.config.JWT.Expiration)
+	accessToken, err := auth.GenerateToken(user.ID, *user.Email, uc.config.JWT.Secret, uc.config.JWT.Expiration)
 	if err != nil {
 		return "", "", err
 	}
 
-	newRefreshToken, err := auth.GenerateRefreshToken(user.ID, user.Email, uc.config.JWT.Secret)
+	newRefreshToken, err := auth.GenerateRefreshToken(user.ID, *user.Email, uc.config.JWT.Secret)
 	if err != nil {
 		return "", "", err
 	}

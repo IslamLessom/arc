@@ -108,7 +108,7 @@ func (h *RoleHandler) ListRoles(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, roles)
+	c.JSON(http.StatusOK, gin.H{"data": roles})
 }
 
 // UpdateRole обновляет данные роли

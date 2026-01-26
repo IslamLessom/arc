@@ -10,12 +10,12 @@ import (
 // User представляет пользователя системы
 type User struct {
 	ID        uuid.UUID      `json:"id" gorm:"type:uuid;primaryKey;default:gen_random_uuid()"`
-	Email     string         `json:"email" gorm:"uniqueIndex;not null"`
+	Email     *string        `json:"email,omitempty" gorm:"uniqueIndex"`
 	Password  string         `json:"-" gorm:"not null"`
-	PIN       *string        `json:"-" gorm:"column:pin"`
+	PIN       *string        `json:"pin" gorm:"column:pin"`
 	Name      string         `json:"name"`
 	Phone     *string        `json:"phone,omitempty"` // Добавлено поле для номера телефона
-	RoleID    uuid.UUID      `json:"role_id" gorm:"type:uuid;not null"`
+	RoleID    uuid.UUID      `json:"-" gorm:"type:uuid;not null"` // Убран из JSON чтобы не дублироваться
 	Role      *Role          `json:"role,omitempty" gorm:"foreignKey:RoleID"`
 	
 	// Связь с заведением (один пользователь = одно заведение)
