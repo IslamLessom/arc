@@ -5,7 +5,7 @@ export interface SemiFinishedIngredient {
   preparation_method?: string
   gross: number
   net: number
-  unit: string
+  unit: 'г' | 'мл' | 'шт'
   cost: number
 }
 
@@ -13,6 +13,8 @@ export interface AddSemiFinishedFormData {
   name: string
   cooking_process: string
   ingredients: SemiFinishedIngredient[]
+  category_id?: string
+  workshop_id?: string
 }
 
 export interface FieldErrors {
@@ -25,7 +27,7 @@ export interface UseAddSemiFinishedResult {
   error: string | null
   fieldErrors: FieldErrors
   isFormValid: boolean
-  ingredients: Array<{ id: string; name: string; unit: string }>
+  ingredients: Array<{ id: string; name: string; unit: 'шт' | 'л' | 'кг' }>
   totalCost: number
   totalYield: number
   handleFieldChange: (field: keyof AddSemiFinishedFormData, value: string) => void

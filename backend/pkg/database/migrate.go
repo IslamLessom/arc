@@ -84,6 +84,12 @@ func RunMigrations(db *gorm.DB, logger *zap.Logger) error {
 	if err := migrateDB.AutoMigrate(&models.Product{}); err != nil {
 		return fmt.Errorf("failed to migrate Product: %w", err)
 	}
+	if err := migrateDB.AutoMigrate(&models.SemiFinishedProduct{}); err != nil {
+		return fmt.Errorf("failed to migrate SemiFinishedProduct: %w", err)
+	}
+	if err := migrateDB.AutoMigrate(&models.SemiFinishedIngredient{}); err != nil {
+		return fmt.Errorf("failed to migrate SemiFinishedIngredient: %w", err)
+	}
 	if err := migrateDB.AutoMigrate(&models.TechCard{}); err != nil {
 		return fmt.Errorf("failed to migrate TechCard: %w", err)
 	}

@@ -1,5 +1,6 @@
 import { useAddSupply } from '../hooks/useAddSupply'
 import { AccountType, AccountTypeLabel } from '../model/enums'
+import { translateUnit } from '../../technical-cards/lib/unitTranslator'
 import * as Styled from './styled'
 
 export const AddSupply = () => {
@@ -301,7 +302,7 @@ export const AddSupply = () => {
                       <optgroup label="Ингредиенты">
                         {availableItems.ingredients.map(ing => (
                           <option key={ing.id} value={ing.id}>
-                            {ing.name} ({ing.unit})
+                            {ing.name} ({translateUnit(ing.unit)})
                           </option>
                         ))}
                       </optgroup>
@@ -309,7 +310,7 @@ export const AddSupply = () => {
                         <optgroup label="Товары">
                           {availableItems.products.map(prod => (
                             <option key={prod.id} value={prod.id}>
-                              {prod.name} ({prod.unit})
+                              {prod.name} ({translateUnit(prod.unit)})
                             </option>
                           ))}
                         </optgroup>

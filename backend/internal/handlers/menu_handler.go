@@ -1476,7 +1476,144 @@ func (h *MenuHandler) DeleteIngredientCategory(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "ingredient category deleted"})
 }
 
-// GetSemiFinished — полуфабрикаты (тех-карты как промежуточный продукт). Пока пустой список.
+// GetSemiFinished — полуфабрикаты (тех-карты как промежуточный продукт)
 func (h *MenuHandler) GetSemiFinished(c *gin.Context) {
-	c.JSON(http.StatusOK, gin.H{"data": []interface{}{}})
+	estID, err := getEstablishmentID(c)
+	if err != nil {
+		c.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
+		return
+	}
+
+	filter := &repositories.SemiFinishedFilter{EstablishmentID: &estID}
+	if categoryID := c.Query("category_id"); categoryID != "" {
+		if id, err := uuid.Parse(categoryID); err == nil {
+			filter.CategoryID = &id
+		}
+	}
+	if workshopID := c.Query("workshop_id"); workshopID != "" {
+		if id, err := uuid.Parse(workshopID); err == nil {
+			filter.WorkshopID = &id
+		}
+	}
+	if search := c.Query("search"); search != "" {
+		filter.Search = &search
+	}
+	if active := c.Query("active"); active != "" {
+		activeBool := active == "true"
+		filter.Active = &activeBool
+	}
+
+	semiFinished, err := h.usecase.GetSemiFinishedProducts(c.Request.Context(), filter)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"data": semiFinished})
+}
+
+type CreateSemiFinishedRequest struct {
+	Name            string                         `json:"name" binding:"required"`
+	WorkshopID      *string                        `json:"workshop_id,omitempty" binding:"omitempty,uuid"`
+	Description     string                         `json:"description"`
+	CookingProcess  string                         `json:"cooking_process"`
+	CoverImage      string                         `json:"cover_image"`
+	Unit            string                         `json:"unit" binding:"required"` // kg, gram, liter, ml, piece
+	Quantity        float64                        `json:"quantity"`
+	Ingredients     []CreateSemiFinishedIngredient `json:"ingredients"`
+}
+
+type CreateSemiFinishedIngredient struct {
+	IngredientID      string  `json:"ingredient_id" binding:"required,uuid"`
+	PreparationMethod *string `json:"preparation_method"`
+	Gross             float64 `json:"gross" binding:"required"`
+	Net               float64 `json:"net" binding:"required"`
+	Unit              string  `json:"unit" binding:"required"` // г, мл, шт
+}
+
+// CreateSemiFinished создает полуфабрикат
+func (h *MenuHandler) CreateSemiFinished(c *gin.Context) {
+	estID, err := getEstablishmentID(c)
+	if err != nil {
+		c.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
+		return
+	}
+
+	var req CreateSemiFinishedRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	var workshopID *uuid.UUID
+	if req.WorkshopID != nil {
+		parsed, err := uuid.Parse(*req.WorkshopID)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid workshop_id"})
+			return
+		}
+		workshopID = &parsed
+	}
+
+	// Конвертируем unit из frontend format в backend format
+	var unit string
+	switch req.Unit {
+	case "кг":
+		unit = "kg"
+	case "г":
+		unit = "gram"
+	case "л":
+		unit = "liter"
+	case "мл":
+		unit = "ml"
+	case "шт":
+		unit = "piece"
+	default:
+		unit = req.Unit
+	}
+
+	semiFinished := &models.SemiFinishedProduct{
+		EstablishmentID: estID,
+		Name:            req.Name,
+		WorkshopID:      workshopID,
+		Description:     req.Description,
+		CookingProcess:  req.CookingProcess,
+		CoverImage:      req.CoverImage,
+		Unit:            unit,
+		Quantity:        req.Quantity,
+		Active:          true,
+	}
+
+	// Добавляем ингредиенты
+	for _, ingReq := range req.Ingredients {
+		ingredientID, err := uuid.Parse(ingReq.IngredientID)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid ingredient_id"})
+			return
+		}
+
+		semiFinished.Ingredients = append(semiFinished.Ingredients, models.SemiFinishedIngredient{
+			IngredientID:      ingredientID,
+			PreparationMethod: ingReq.PreparationMethod,
+			Gross:             ingReq.Gross,
+			Net:               ingReq.Net,
+			Unit:              ingReq.Unit,
+		})
+	}
+
+	// Получаем склад по умолчанию для заведения (берем первый доступный)
+	warehouses, err := h.usecase.GetWarehouses(c.Request.Context(), estID)
+	if err != nil || len(warehouses) == 0 {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to get warehouse"})
+		return
+	}
+	warehouseID := warehouses[0].ID
+
+
+	if err := h.usecase.CreateSemiFinished(c.Request.Context(), semiFinished, warehouseID, estID); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusCreated, gin.H{"data": semiFinished})
 }

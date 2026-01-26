@@ -12,6 +12,7 @@ type Repositories struct {
 	Table        TableRepository
 	Product            ProductRepository
 	TechCard           TechCardRepository
+	SemiFinished       SemiFinishedRepository
 	Ingredient         IngredientRepository
 	Category           CategoryRepository
 	IngredientCategory IngredientCategoryRepository
@@ -38,6 +39,7 @@ func NewRepositories(db *gorm.DB) *Repositories {
 		Table:        NewTableRepository(db),
 		Product:            NewProductRepository(db),
 		TechCard:           NewTechCardRepository(db),
+		SemiFinished:       NewSemiFinishedRepository(db),
 		Ingredient:         NewIngredientRepository(db),
 		Category:           NewCategoryRepository(db),
 		IngredientCategory: NewIngredientCategoryRepository(db),

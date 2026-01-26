@@ -3,20 +3,35 @@ import { apiClient } from '../client'
 
 interface SemiFinishedFilter {
   search?: string
-  category?: string
+  category_id?: string
   active?: boolean
+}
+
+interface SemiFinishedIngredient {
+  id: string
+  ingredient_id: string
+  preparation_method?: string
+  gross: number
+  net: number
+  unit: string
 }
 
 interface SemiFinishedProduct {
   id: string
   establishment_id: string
+  category_id: string
+  workshop_id?: string
   name: string
-  category: string
+  description?: string
+  cooking_process?: string
+  cover_image?: string
   unit: 'kg' | 'gram' | 'liter' | 'ml' | 'piece'
   quantity: number
-  cost: number
+  cost_price: number
   active: boolean
+  ingredients?: SemiFinishedIngredient[]
   created_at: string
+  updated_at: string
 }
 
 interface SemiFinishedResponse {
@@ -29,19 +44,40 @@ interface SingleSemiFinishedResponse {
 
 interface CreateSemiFinishedRequest {
   name: string
-  category: string
-  unit: 'kg' | 'gram' | 'liter' | 'ml' | 'piece'
-  quantity: number
-  cost: number
+  category_id: string
+  workshop_id?: string
+  description?: string
+  cooking_process?: string
+  cover_image?: string
+  unit: 'кг' | 'г' | 'л' | 'мл' | 'шт'
+  quantity?: number
+  ingredients?: Array<{
+    ingredient_id: string
+    preparation_method?: string
+    gross: number
+    net: number
+    unit: string
+  }>
 }
 
 interface UpdateSemiFinishedRequest {
   name?: string
-  category?: string
-  unit?: 'kg' | 'gram' | 'liter' | 'ml' | 'piece'
+  category_id?: string
+  workshop_id?: string
+  description?: string
+  cooking_process?: string
+  cover_image?: string
+  unit?: 'кг' | 'г' | 'л' | 'мл' | 'шт'
   quantity?: number
-  cost?: number
+  cost_price?: number
   active?: boolean
+  ingredients?: Array<{
+    ingredient_id: string
+    preparation_method?: string
+    gross: number
+    net: number
+    unit: string
+  }>
 }
 
 export function useGetSemiFinishedProducts(filter?: SemiFinishedFilter) {
@@ -50,7 +86,7 @@ export function useGetSemiFinishedProducts(filter?: SemiFinishedFilter) {
     queryFn: async (): Promise<SemiFinishedProduct[]> => {
       const params = new URLSearchParams()
       if (filter?.search) params.append('search', filter.search)
-      if (filter?.category) params.append('category', filter.category)
+      if (filter?.category_id) params.append('category_id', filter.category_id)
       if (filter?.active !== undefined) params.append('active', filter.active.toString())
 
       const response = await apiClient.get<SemiFinishedResponse>(

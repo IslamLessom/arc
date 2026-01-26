@@ -4,6 +4,7 @@ import type { AddTechnicalCardModalProps } from '../model/types'
 import { Button, Input, ButtonSize, ButtonVariant } from '@restaurant-pos/ui'
 import { Checkbox, Alert, Spin } from 'antd'
 import { useGetCategories } from '@restaurant-pos/api-client'
+import { translateUnit } from '../../../pages/technical-cards/lib/unitTranslator'
 import * as Styled from './styled'
 
 export const AddTechnicalCardModal = (props: AddTechnicalCardModalProps) => {
@@ -356,7 +357,7 @@ export const AddTechnicalCardModal = (props: AddTechnicalCardModalProps) => {
                                                         step="0.01"
                                                         disabled={isSubmitting}
                                                     />
-                                                    <Styled.UnitLabel>{ingredient.unit || 'г'}</Styled.UnitLabel>
+                                                    <Styled.UnitLabel>{translateUnit(ingredient.unit)}</Styled.UnitLabel>
                                                 </Styled.NetInputWrapper>
                                             </div>
                                             <div>

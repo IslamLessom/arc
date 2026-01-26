@@ -1,6 +1,7 @@
 import { useNavigate } from 'react-router-dom'
 import { useSemiFinished } from '../hooks/useSemiFinished'
 import { Button, Input } from '@restaurant-pos/ui'
+import { translateUnit } from '../../technical-cards/lib/unitTranslator'
 import * as Styled from './styled'
 
 export const SemiFinished = () => {
@@ -118,7 +119,7 @@ export const SemiFinished = () => {
               <Styled.SemiFinishedRow key={product.id}>
                 <Styled.SemiFinishedName>{product.name}</Styled.SemiFinishedName>
                 <Styled.SemiFinishedCategory>{product.category}</Styled.SemiFinishedCategory>
-                <Styled.SemiFinishedUnit>{product.unit}</Styled.SemiFinishedUnit>
+                <Styled.SemiFinishedUnit>{translateUnit(product.unit)}</Styled.SemiFinishedUnit>
                 <Styled.SemiFinishedQuantity>{product.quantity}</Styled.SemiFinishedQuantity>
                 <Styled.SemiFinishedCost>{product.cost} ₽</Styled.SemiFinishedCost>
                 <Styled.SemiFinishedActions>

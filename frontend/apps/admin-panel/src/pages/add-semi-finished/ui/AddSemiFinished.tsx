@@ -1,5 +1,6 @@
 import { useAddSemiFinished } from '../hooks/useAddSemiFinished'
 import { PreparationMethod, PreparationMethodLabels } from '../model/enums'
+import { translateUnit } from '../../technical-cards/lib/unitTranslator'
 import * as Styled from './styled'
 
 export const AddSemiFinished = () => {
@@ -138,7 +139,7 @@ export const AddSemiFinished = () => {
                           min="0"
                           step="0.01"
                         />
-                        <Styled.UnitLabel>{ingredient.unit || 'г'}</Styled.UnitLabel>
+                        <Styled.UnitLabel>{translateUnit(ingredient.unit)}</Styled.UnitLabel>
                       </Styled.NetInputWrapper>
                     </div>
                     <div>
