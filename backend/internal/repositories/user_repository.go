@@ -8,7 +8,6 @@ import (
 	"gorm.io/gorm"
 
 	"github.com/yourusername/arc/backend/internal/models"
-	"github.com/yourusername/arc/backend/pkg/auth"
 )
 
 type UserRepository interface {
@@ -31,7 +30,7 @@ func NewUserRepository(db *gorm.DB) UserRepository {
 
 func (r *userRepository) GetByID(ctx context.Context, id uuid.UUID) (*models.User, error) {
 	var user models.User
-	err := r.db.WithContext(ctx).First(&user, "id = ?", id).Error
+	err := r.db.WithContext(ctx).Preload("Role").First(&user, "id = ?", id).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, ErrUserNotFound
@@ -75,21 +74,15 @@ func (r *userRepository) GetAllByEstablishmentID(ctx context.Context, establishm
 }
 
 func (r *userRepository) GetByPIN(ctx context.Context, pin string, establishmentID uuid.UUID) (*models.User, error) {
-	// Получаем всех пользователей заведения с PIN
-	var users []models.User
+	var user models.User
 	err := r.db.WithContext(ctx).
-		Where("establishment_id = ? AND pin IS NOT NULL", establishmentID).
-		Find(&users).Error
+		Where("establishment_id = ? AND pin = ?", establishmentID, pin).
+		First(&user).Error
 	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, ErrUserNotFound
+		}
 		return nil, err
 	}
-
-	// Проверяем PIN для каждого пользователя (PIN хранится как хеш)
-	for i := range users {
-		if users[i].PIN != nil && auth.CheckPassword(pin, *users[i].PIN) {
-			return &users[i], nil
-		}
-	}
-
-	return nil, ErrUserNotFound
+	return &user, nil
 }

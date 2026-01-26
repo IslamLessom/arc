@@ -96,6 +96,20 @@ func NewRouter(usecases *usecases.UseCases, cfg *config.Config, logger *zap.Logg
 				users.DELETE("/:id", userHandler.DeleteEmployee)
 			}
 
+			// Access routes (алиас для users, для фронтенда)
+			access := protected.Group("/access")
+			access.Use(middleware.RequireEstablishment(usecases.Auth))
+			{
+				employees := access.Group("/employees")
+				{
+					employees.POST("", userHandler.CreateEmployee)
+					employees.GET("", userHandler.ListEmployees)
+					employees.GET("/:id", userHandler.GetEmployee)
+					employees.PUT("/:id", userHandler.UpdateEmployee)
+					employees.DELETE("/:id", userHandler.DeleteEmployee)
+				}
+			}
+
 			// Role routes (для управления ролями)
 			roles := protected.Group("/roles")
 			roles.Use(middleware.RequireEstablishment(usecases.Auth))

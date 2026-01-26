@@ -27,5 +27,11 @@ export enum MenuItemId {
   WarehouseSuppliers = 'warehouse-suppliers',
   WarehouseWarehouses = 'warehouse-warehouses',
   WarehousePackaging = 'warehouse-packaging',
+  // Access sub-items
+  AccessEmployees = 'access-employees',
+  AccessPositions = 'access-positions',
+  AccessCashRegisters = 'access-cash-registers',
+  AccessEstablishments = 'access-establishments',
+  AccessIntegrations = 'access-integrations',
 }
 

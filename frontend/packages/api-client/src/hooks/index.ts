@@ -88,19 +88,15 @@ export {
 } from './useWorkshops'
 export type { Workshop, CreateWorkshopRequest, UpdateWorkshopRequest } from './useWorkshops'
 export {
-  useGetInventories,
-  useGetInventory,
-  useCreateInventory,
-  useUpdateInventoryStatus,
-  useDeleteInventory,
-} from './useInventories'
-export type {
-  Inventory,
-  InventoryItem,
-  InventoryFilter,
-  CreateInventoryRequest,
-  UpdateInventoryStatusRequest,
-} from './useInventories'
+  useGetEmployees,
+  useGetEmployee,
+  useCreateEmployee,
+  useUpdateEmployee,
+  useDeleteEmployee,
+} from './useEmployees'
+export type { Employee } from './useEmployees'
+export { useGetRoles } from './useRoles'
+export type { Role } from './useRoles'
 
 // Types
 export * from '../types'

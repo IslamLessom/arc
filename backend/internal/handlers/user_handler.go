@@ -25,8 +25,8 @@ func NewUserHandler(usecase *usecases.UserUseCase, logger *zap.Logger) *UserHand
 
 type CreateEmployeeRequest struct {
 	Name  string `json:"name" binding:"required"`
-	Email string `json:"email" binding:"required,email"`
-	PIN   string `json:"pin" binding:"required,numeric,len=4"`
+	Email string `json:"email,omitempty" binding:"omitempty,email"`
+	PIN   string `json:"pin" binding:"required,numeric,len=4"` // ПИН-код = код сотрудника для кассы
 	Phone *string `json:"phone,omitempty"` // Добавлено поле для номера телефона
 	RoleID string `json:"role_id" binding:"required,uuid"` // Должна быть роль сотрудника
 }
@@ -34,7 +34,7 @@ type CreateEmployeeRequest struct {
 type UpdateEmployeeRequest struct {
 	Name  *string `json:"name,omitempty"`
 	Email *string `json:"email,omitempty" binding:"omitempty,email"`
-	PIN   *string `json:"pin,omitempty" binding:"omitempty,numeric,len=4"`
+	PIN   *string `json:"pin,omitempty" binding:"omitempty,numeric,len=4"` // ПИН-код = код сотрудника для кассы
 	Phone *string `json:"phone,omitempty"` // Добавлено поле для номера телефона
 	RoleID *string `json:"role_id,omitempty" binding:"omitempty,uuid"` // Должна быть роль сотрудника
 }
@@ -78,7 +78,7 @@ func (h *UserHandler) CreateEmployee(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusCreated, user)
+	c.JSON(http.StatusCreated, gin.H{"data": user})
 }
 
 // GetEmployee возвращает сотрудника по ID
@@ -114,7 +114,7 @@ func (h *UserHandler) GetEmployee(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, user)
+	c.JSON(http.StatusOK, gin.H{"data": user})
 }
 
 // ListEmployees возвращает список сотрудников
@@ -141,7 +141,7 @@ func (h *UserHandler) ListEmployees(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, employees)
+	c.JSON(http.StatusOK, gin.H{"data": employees})
 }
 
 // UpdateEmployee обновляет данные сотрудника
@@ -180,7 +180,7 @@ func (h *UserHandler) UpdateEmployee(c *gin.Context) {
 
 	user := &models.User{ID: userID}
 	if req.Name != nil { user.Name = *req.Name }
-	if req.Email != nil { user.Email = *req.Email }
+	if req.Email != nil { user.Email = req.Email }
 	if req.PIN != nil { user.PIN = req.PIN }
 	if req.Phone != nil { user.Phone = req.Phone } // Добавлено поле для номера телефона
 	if req.RoleID != nil {
@@ -199,7 +199,7 @@ func (h *UserHandler) UpdateEmployee(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, updatedUser)
+	c.JSON(http.StatusOK, gin.H{"data": updatedUser})
 }
 
 // DeleteEmployee удаляет сотрудника

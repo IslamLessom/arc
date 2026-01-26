@@ -299,7 +299,7 @@ func (h *AuthHandler) GetCurrentUser(c *gin.Context) {
 
 	response := CurrentUserResponse{
 		ID:                   user.ID.String(),
-		Email:                user.Email,
+		Email:                *user.Email,
 		Name:                 user.Name,
 		OnboardingCompleted: user.OnboardingCompleted,
 	}

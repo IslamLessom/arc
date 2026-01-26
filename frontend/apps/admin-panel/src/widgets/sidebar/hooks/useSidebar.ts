@@ -50,6 +50,11 @@ export const useSidebar = (props: SidebarProps): UseSidebarResult => {
       ['/warehouse/packaging', MenuItemId.WarehousePackaging],
       ['/marketing', MenuItemId.Marketing],
       ['/access', MenuItemId.Access],
+      ['/access/employees', MenuItemId.AccessEmployees],
+      ['/access/positions', MenuItemId.AccessPositions],
+      ['/access/cash-registers', MenuItemId.AccessCashRegisters],
+      ['/access/establishments', MenuItemId.AccessEstablishments],
+      ['/access/integrations', MenuItemId.AccessIntegrations],
       ['/all-applications', MenuItemId.AllApplications],
       ['/settings', MenuItemId.Settings],
     ];
@@ -100,13 +105,25 @@ export const useSidebar = (props: SidebarProps): UseSidebarResult => {
       MenuItemId.MenuIngredientCategories,
       MenuItemId.MenuWorkshops,
     ];
-    
+
+    const accessSubItems = [
+      MenuItemId.AccessEmployees,
+      MenuItemId.AccessPositions,
+      MenuItemId.AccessCashRegisters,
+      MenuItemId.AccessEstablishments,
+      MenuItemId.AccessIntegrations,
+    ];
+
     if (warehouseSubItems.includes(activeId)) {
       setExpandedItems(prev => new Set(prev).add(MenuItemId.Warehouse));
     }
     
     if (menuSubItems.includes(activeId)) {
       setExpandedItems(prev => new Set(prev).add(MenuItemId.Menu));
+    }
+
+    if (accessSubItems.includes(activeId)) {
+      setExpandedItems(prev => new Set(prev).add(MenuItemId.Access));
     }
   }, [currentPath]);
 

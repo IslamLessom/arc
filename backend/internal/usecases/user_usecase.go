@@ -8,7 +8,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/yourusername/arc/backend/internal/models"
 	"github.com/yourusername/arc/backend/internal/repositories"
-	"github.com/yourusername/arc/backend/pkg/auth"
 )
 
 type UserUseCase struct {
@@ -35,20 +34,14 @@ func (uc *UserUseCase) CreateEmployee(ctx context.Context, name, email, pin stri
 
 	// Получаем роль сотрудника
 	role, err := uc.roleRepo.GetByID(ctx, roleID)
-	if err != nil || role.Name != "employee"{
+	if err != nil || (role.Name != "employee" && role.Name != "cashier") {
 		return nil, errors.New("invalid role for employee creation")
-	}
-
-	// Хешируем PIN-код
-	hashedPIN, err := auth.HashPassword(pin) // Используем хеширование для PIN как для пароля
-	if err != nil {
-		return nil, err
 	}
 
 	user := &models.User{
 		Name:            name,
-		Email:           email,
-		PIN:             &hashedPIN, // Сохраняем хешированный PIN
+		Email:           &email,
+		PIN:             &pin, // Сохраняем PIN как есть (без хеширования)
 		Phone:           phone, // Добавлено поле для номера телефона
 		RoleID:          roleID,
 		EstablishmentID: &establishmentID,
@@ -107,23 +100,19 @@ func (uc *UserUseCase) UpdateEmployee(ctx context.Context, user *models.User, es
 	if user.Name != "" {
 		existingUser.Name = user.Name
 	}
-	if user.Email != "" {
+	if user.Email != nil && *user.Email != "" {
 		// Проверить уникальность нового email
-		if u, _ := uc.userRepo.GetByEmail(ctx, user.Email); u != nil && u.ID != existingUser.ID {
+		if u, _ := uc.userRepo.GetByEmail(ctx, *user.Email); u != nil && u.ID != existingUser.ID {
 			return nil, errors.New("email already in use by another user")
 		}
 		existingUser.Email = user.Email
 	}
 	if user.PIN != nil && *user.PIN != "" {
 		// Проверить уникальность нового PIN
-				if u, _ := uc.userRepo.GetByPIN(ctx, *user.PIN, establishmentID); u != nil && u.ID != existingUser.ID {
+		if u, _ := uc.userRepo.GetByPIN(ctx, *user.PIN, establishmentID); u != nil && u.ID != existingUser.ID {
 			return nil, errors.New("PIN already in use by another user")
 		}
-		hashedPIN, err := auth.HashPassword(*user.PIN)
-		if err != nil {
-			return nil, err
-		}
-		existingUser.PIN = &hashedPIN
+		existingUser.PIN = user.PIN // Сохраняем PIN как есть (без хеширования)
 	}
 	if user.RoleID != uuid.Nil {
 		// Проверить, что новая роль является ролью сотрудника

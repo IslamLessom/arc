@@ -151,6 +151,32 @@ export const menuItems: MenuItem[] = [
     label: 'Доступ',
     icon: '🔐',
     path: '/access',
+    children: [
+      {
+        id: MenuItemId.AccessEmployees,
+        label: 'Сотрудники',
+        icon: '👥',
+        path: '/access/employees',
+      },
+      {
+        id: MenuItemId.AccessPositions,
+        label: 'Должности',
+        icon: '👔',
+        path: '/access/positions',
+      },
+      {
+        id: MenuItemId.AccessCashRegisters,
+        label: 'Кассы',
+        icon: '💰',
+        path: '/access/cash-registers',
+      },
+      {
+        id: MenuItemId.AccessEstablishments,
+        label: 'Заведения',
+        icon: '🏢',
+        path: '/access/establishments',
+      },
+    ],
   },
   {
     id: MenuItemId.AllApplications,

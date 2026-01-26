@@ -8,4 +8,5 @@ export type { InputProps } from './input';
 export { Table } from './table';
 export type { TableProps, TableColumn, TablePagination } from './table';
 export { TableSize, TableAlign, TableSortOrder } from './table';
+export { EditButton, type EditButtonProps } from './edit-button';
 
