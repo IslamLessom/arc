@@ -23,7 +23,8 @@ func NewRoleUseCase(roleRepo repositories.RoleRepository) *RoleUseCase {
 // CreateRole создает новую роль
 func (uc *RoleUseCase) CreateRole(ctx context.Context, name string, permissions string) (*models.Role, error) {
 	// Проверяем, существует ли роль с таким именем
-	if existingRole, _ := uc.roleRepo.GetByName(ctx, name); existingRole != nil {
+	existingRole, err := uc.roleRepo.GetByName(ctx, name)
+	if err == nil && existingRole != nil && existingRole.ID != uuid.Nil {
 		return nil, errors.New("role with this name already exists")
 	}
 

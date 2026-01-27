@@ -80,6 +80,7 @@ export interface UseAddTechnicalCardModalResult {
   costPriceLabel: string
   totalIngredientsCost: number
   ingredients: Array<{ id: string; name: string; unit: 'шт' | 'л' | 'кг' }>
+  workshops: Array<{ id: string; name: string }>
   handleFieldChange: (field: keyof AddTechnicalCardFormData, value: string | number | boolean) => void
   addIngredient: () => void
   updateIngredient: (id: string, updates: Partial<IngredientFormData>) => void

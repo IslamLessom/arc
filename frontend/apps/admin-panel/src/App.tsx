@@ -25,6 +25,7 @@ import { useOnboardingStatus } from './shared/hooks/useOnboardingStatus'
 import { Workshops } from './pages/workshops'
 import { Employees } from './pages/employees'
 import { Positions } from './pages/positions'
+import { AddPositionPage } from './pages/add-position'
 import { CashRegisters } from './pages/cash-registers'
 import { Establishments } from './pages/establishments'
 import { Integrations } from './pages/integrations'
@@ -80,6 +81,8 @@ export function App() {
           <Route path="/menu/workshops" element={<Workshops />} />
           <Route path="/access/employees" element={<Employees />} />
           <Route path="/access/positions" element={<Positions />} />
+          <Route path="/access/positions/add" element={<AddPositionPage />} />
+          <Route path="/access/positions/:id/edit" element={<AddPositionPage />} />
           <Route path="/access/cash-registers" element={<CashRegisters />} />
           <Route path="/access/establishments" element={<Establishments />} />
           <Route path="/access/integrations" element={<Integrations />} />
