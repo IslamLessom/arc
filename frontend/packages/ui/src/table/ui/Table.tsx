@@ -61,6 +61,8 @@ export const Table = <T extends Record<string, unknown>>({
 
   const renderPagination = () => {
     if (pagination === false) return null;
+    // Не показываем пагинацию если нет данных или всего одна страница
+    if (paginatedData.length === 0 || totalPages <= 1) return null;
 
     const total = pagination?.total ?? dataSource?.length ?? 0;
     const showSizeChanger = pagination?.showSizeChanger ?? false;
@@ -69,30 +71,26 @@ export const Table = <T extends Record<string, unknown>>({
     return (
       <Styled.PaginationContainer>
         {showSizeChanger && (
-          <select
-            value={pageSize}
-            onChange={(e) => handlePageChange(1, Number(e.target.value))}
-            style={{
-              padding: '4px 8px',
-              border: '1px solid #d9d9d9',
-              borderRadius: '4px',
-              cursor: 'pointer'
-            }}
-          >
-            {pageSizeOptions.map((option) => (
-              <option key={option} value={option}>
-                {option} / страница
-              </option>
-            ))}
-          </select>
+          <Styled.PaginationLeft>
+            <Styled.PageSizeSelect
+              value={String(pageSize)}
+              onChange={(e) => handlePageChange(1, Number(e.target.value))}
+            >
+              {pageSizeOptions.map((option) => (
+                <option key={option} value={option}>
+                  {option} / страница
+                </option>
+              ))}
+            </Styled.PageSizeSelect>
+          </Styled.PaginationLeft>
         )}
 
-        <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
+        <Styled.PaginationCenter>
           <Styled.PaginationButton
             $disabled={currentPage === 1}
             onClick={() => handlePageChange(currentPage - 1, pageSize)}
           >
-            Назад
+            ←
           </Styled.PaginationButton>
 
           {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
@@ -122,144 +120,147 @@ export const Table = <T extends Record<string, unknown>>({
             $disabled={currentPage === totalPages}
             onClick={() => handlePageChange(currentPage + 1, pageSize)}
           >
-            Вперед
+            →
           </Styled.PaginationButton>
-        </div>
+        </Styled.PaginationCenter>
 
-        <span style={{ color: 'rgba(0, 0, 0, 0.45)' }}>
+        <Styled.PaginationRight>
           {((currentPage - 1) * pageSize + 1)} - {Math.min(currentPage * pageSize, total)} из {total}
-        </span>
+        </Styled.PaginationRight>
       </Styled.PaginationContainer>
     );
   };
 
   if (loading) {
     return (
-      <Styled.TableContainer $bordered={bordered} className={className} style={style}>
-        <Styled.LoadingOverlay>Загрузка...</Styled.LoadingOverlay>
-      </Styled.TableContainer>
+      <Styled.TableWrapper className={className} style={style}>
+        <Styled.TableContainer $bordered={bordered}>
+          <Styled.LoadingOverlay>Загрузка...</Styled.LoadingOverlay>
+        </Styled.TableContainer>
+      </Styled.TableWrapper>
     );
   }
 
   return (
-    <Styled.TableContainer $bordered={bordered} className={className} style={style}>
-      <div style={{ overflowX: scroll?.x ? 'auto' : 'visible', maxHeight: scroll?.y }}>
-        <Styled.StyledTable $size={size}>
-          <Styled.TableHead>
-            <tr>
-              {rowSelection && (
-                <Styled.CheckboxCell $size={size}>
-                  <input
-                    type="checkbox"
-                    checked={
-                      paginatedData.length > 0 &&
-                      paginatedData.every((record, index) =>
-                        selectedRowKeys.includes(getRowKey(record, index))
-                      )
-                    }
-                    onChange={(e) => handleSelectAll(e.target.checked)}
-                    style={{ cursor: 'pointer' }}
-                  />
-                </Styled.CheckboxCell>
-              )}
-              {columns.map((column) => {
-                const isSortable = !!column.sorter;
-                const columnSortOrder =
-                  sortState?.columnKey === column.key ? sortState.order : null;
-
-                return (
-                  <Styled.TableHeaderCell
-                    key={column.key}
-                    $align={column.align}
-                    $width={column.width}
-                    $fixed={column.fixed}
-                    $isSortable={isSortable}
-                    $size={size}
-                    onClick={() => isSortable && handleSort(column.key, column.sorter)}
-                  >
-                    {column.title}
-                    {isSortable && (
-                      <Styled.SortIcon $order={columnSortOrder} />
-                    )}
-                  </Styled.TableHeaderCell>
-                );
-              })}
-            </tr>
-          </Styled.TableHead>
-          <Styled.TableBody>
-            {paginatedData.length === 0 ? (
+    <Styled.TableWrapper className={className} style={style}>
+      <Styled.TableContainer $bordered={bordered}>
+        <Styled.TableScrollWrapper>
+          <Styled.StyledTable $size={size}>
+            <Styled.TableHead>
               <tr>
-                <td
-                  colSpan={columns.length + (rowSelection ? 1 : 0)}
-                  style={{
-                    textAlign: 'center',
-                    padding: '40px',
-                    color: 'rgba(0, 0, 0, 0.45)'
-                  }}
-                >
-                  Нет данных
-                </td>
+                {rowSelection && (
+                  <Styled.CheckboxCell $size={size}>
+                    <input
+                      type="checkbox"
+                      checked={
+                        paginatedData.length > 0 &&
+                        paginatedData.every((record, index) =>
+                          selectedRowKeys.includes(getRowKey(record, index))
+                        )
+                      }
+                      onChange={(e) => handleSelectAll(e.target.checked)}
+                      style={{ cursor: 'pointer' }}
+                    />
+                  </Styled.CheckboxCell>
+                )}
+                {columns.map((column) => {
+                  const isSortable = !!column.sorter;
+                  const columnSortOrder =
+                    sortState?.columnKey === column.key ? sortState.order : null;
+
+                  return (
+                    <Styled.TableHeaderCell
+                      key={column.key}
+                      $align={column.align}
+                      $width={column.width}
+                      $fixed={column.fixed}
+                      $isSortable={isSortable}
+                      $size={size}
+                      onClick={() => isSortable && handleSort(column.key, column.sorter)}
+                    >
+                      {column.title}
+                      {isSortable && (
+                        <Styled.SortIcon $order={columnSortOrder} />
+                      )}
+                    </Styled.TableHeaderCell>
+                  );
+                })}
               </tr>
-            ) : (
-              paginatedData.map((record, index) => {
-                const recordKey = getRowKey(record, index);
-                const isSelected = selectedRowKeys.includes(recordKey);
-                const rowProps = onRow?.(record, index) ?? {};
-                const isClickable = !!rowProps.onClick || !!rowProps.onDoubleClick;
-
-                return (
-                  <Styled.TableRow
-                    key={recordKey}
-                    $isSelected={isSelected}
-                    $isClickable={isClickable}
-                    onClick={rowProps.onClick}
-                    onDoubleClick={rowProps.onDoubleClick}
-                    style={rowProps.style}
-                    className={rowProps.className}
+            </Styled.TableHead>
+            <Styled.TableBody>
+              {paginatedData.length === 0 ? (
+                <tr>
+                  <td
+                    colSpan={columns.length + (rowSelection ? 1 : 0)}
+                    style={{
+                      textAlign: 'center',
+                      padding: '40px',
+                      color: 'rgba(0, 0, 0, 0.45)'
+                    }}
                   >
-                    {rowSelection && (
-                      <Styled.CheckboxCell $size={size}>
-                        <input
-                          type="checkbox"
-                          checked={isSelected}
-                          onChange={(e) =>
-                            handleRowSelection(recordKey, e.target.checked)
-                          }
-                          disabled={
-                            rowSelection.getCheckboxProps?.(record).disabled
-                          }
-                          style={{ cursor: 'pointer' }}
-                        />
-                      </Styled.CheckboxCell>
-                    )}
-                    {columns.map((column) => {
-                      const cellValue = getCellValue(column, record);
-                      const renderedValue = column.render
-                        ? column.render(cellValue, record, index)
-                        : cellValue;
+                    Нет данных
+                  </td>
+                </tr>
+              ) : (
+                paginatedData.map((record, index) => {
+                  const recordKey = getRowKey(record, index);
+                  const isSelected = selectedRowKeys.includes(recordKey);
+                  const rowProps = onRow?.(record, index) ?? {};
+                  const isClickable = !!rowProps.onClick || !!rowProps.onDoubleClick;
 
-                      return (
-                        <Styled.TableCell
-                          key={column.key}
-                          $align={column.align}
-                          $width={column.width}
-                          $fixed={column.fixed}
-                          $ellipsis={column.ellipsis}
-                          $size={size}
-                        >
-                          {renderedValue}
-                        </Styled.TableCell>
-                      );
-                    })}
-                  </Styled.TableRow>
-                );
-              })
-            )}
-          </Styled.TableBody>
-        </Styled.StyledTable>
-      </div>
+                  return (
+                    <Styled.TableRow
+                      key={recordKey}
+                      $isSelected={isSelected}
+                      $isClickable={isClickable}
+                      onClick={rowProps.onClick}
+                      onDoubleClick={rowProps.onDoubleClick}
+                      style={rowProps.style}
+                      className={rowProps.className}
+                    >
+                      {rowSelection && (
+                        <Styled.CheckboxCell $size={size}>
+                          <input
+                            type="checkbox"
+                            checked={isSelected}
+                            onChange={(e) =>
+                              handleRowSelection(recordKey, e.target.checked)
+                            }
+                            disabled={
+                              rowSelection.getCheckboxProps?.(record).disabled
+                            }
+                            style={{ cursor: 'pointer' }}
+                          />
+                        </Styled.CheckboxCell>
+                      )}
+                      {columns.map((column) => {
+                        const cellValue = getCellValue(column, record);
+                        const renderedValue = column.render
+                          ? column.render(cellValue, record, index)
+                          : cellValue;
+
+                        return (
+                          <Styled.TableCell
+                            key={column.key}
+                            $align={column.align}
+                            $width={column.width}
+                            $fixed={column.fixed}
+                            $ellipsis={column.ellipsis}
+                            $size={size}
+                          >
+                            {renderedValue}
+                          </Styled.TableCell>
+                        );
+                      })}
+                    </Styled.TableRow>
+                  );
+                })
+              )}
+            </Styled.TableBody>
+          </Styled.StyledTable>
+        </Styled.TableScrollWrapper>
+      </Styled.TableContainer>
       {renderPagination()}
-    </Styled.TableContainer>
+    </Styled.TableWrapper>
   );
 };
-

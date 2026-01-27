@@ -191,3 +191,68 @@ export const menuItems: MenuItem[] = [
     path: '/settings',
   },
 ];
+
+export const PATH_PATTERNS: Array<[string, MenuItemId]> = [
+  ['/', MenuItemId.GettingStarted],
+  ['/statistics', MenuItemId.Statistics],
+  ['/finance', MenuItemId.Finance],
+  ['/menu', MenuItemId.Menu],
+  ['/menu/products', MenuItemId.MenuProducts],
+  ['/menu/tech-cards', MenuItemId.MenuTechCards],
+  ['/menu/semi-finished', MenuItemId.MenuSemiFinished],
+  ['/menu/ingredients', MenuItemId.MenuIngredients],
+  ['/menu/product-categories', MenuItemId.MenuProductCategories],
+  ['/menu/ingredient-categories', MenuItemId.MenuIngredientCategories],
+  ['/menu/workshops', MenuItemId.MenuWorkshops],
+  ['/warehouse', MenuItemId.Warehouse],
+  ['/warehouse/balances', MenuItemId.WarehouseBalances],
+  ['/warehouse/deliveries', MenuItemId.WarehouseDeliveries],
+  ['/warehouse/processing', MenuItemId.WarehouseProcessing],
+  ['/warehouse/movements', MenuItemId.WarehouseMovements],
+  ['/warehouse/write-offs', MenuItemId.WarehouseWriteOffs],
+  ['/warehouse/movement-report', MenuItemId.WarehouseMovementReport],
+  ['/warehouse/inventories', MenuItemId.WarehouseInventories],
+  ['/warehouse/suppliers', MenuItemId.WarehouseSuppliers],
+  ['/warehouse/warehouses', MenuItemId.WarehouseWarehouses],
+  ['/warehouse/packaging', MenuItemId.WarehousePackaging],
+  ['/marketing', MenuItemId.Marketing],
+  ['/access', MenuItemId.Access],
+  ['/access/employees', MenuItemId.AccessEmployees],
+  ['/access/positions', MenuItemId.AccessPositions],
+  ['/access/cash-registers', MenuItemId.AccessCashRegisters],
+  ['/access/establishments', MenuItemId.AccessEstablishments],
+  ['/access/integrations', MenuItemId.AccessIntegrations],
+  ['/all-applications', MenuItemId.AllApplications],
+  ['/settings', MenuItemId.Settings],
+];
+
+export const WAREHOUSE_SUB_ITEMS = [
+  MenuItemId.WarehouseBalances,
+  MenuItemId.WarehouseDeliveries,
+  MenuItemId.WarehouseProcessing,
+  MenuItemId.WarehouseMovements,
+  MenuItemId.WarehouseWriteOffs,
+  MenuItemId.WarehouseMovementReport,
+  MenuItemId.WarehouseInventories,
+  MenuItemId.WarehouseSuppliers,
+  MenuItemId.WarehouseWarehouses,
+  MenuItemId.WarehousePackaging,
+] as const;
+
+export const MENU_SUB_ITEMS = [
+  MenuItemId.MenuProducts,
+  MenuItemId.MenuTechCards,
+  MenuItemId.MenuSemiFinished,
+  MenuItemId.MenuIngredients,
+  MenuItemId.MenuProductCategories,
+  MenuItemId.MenuIngredientCategories,
+  MenuItemId.MenuWorkshops,
+] as const;
+
+export const ACCESS_SUB_ITEMS = [
+  MenuItemId.AccessEmployees,
+  MenuItemId.AccessPositions,
+  MenuItemId.AccessCashRegisters,
+  MenuItemId.AccessEstablishments,
+  MenuItemId.AccessIntegrations,
+] as const;

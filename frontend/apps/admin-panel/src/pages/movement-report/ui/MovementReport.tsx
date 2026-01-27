@@ -61,7 +61,7 @@ export const MovementReport = () => {
         <Styled.HeaderLeft>
           <Styled.BackButton onClick={handleBack}>←</Styled.BackButton>
           <Styled.Title>Отчёт по движению {reportItems.length}</Styled.Title>
-        </Styled.HeaderLeft>
+        </Styled.HeaderLeft>  
         <Styled.HeaderActions>
           <Styled.ActionButton onClick={handleColumns}>
             <span>📋</span>
@@ -93,7 +93,6 @@ export const MovementReport = () => {
 
       <Styled.SearchContainer>
         <Styled.SearchInputWrapper>
-          <Styled.SearchBadge>{reportItems.length}</Styled.SearchBadge>
           <Styled.SearchIcon>🔍</Styled.SearchIcon>
           <Styled.SearchInput
             placeholder="Быстрый поиск"

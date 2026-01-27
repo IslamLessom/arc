@@ -75,6 +75,7 @@ export const TableHeader = styled.th({
   fontWeight: 600,
   color: '#374151',
   borderBottom: '1px solid #e5e7eb',
+  whiteSpace: 'nowrap',
 })
 
 export const TableBody = styled.tbody({})
@@ -93,6 +94,7 @@ export const TableCell = styled.td({
   padding: '0.75rem 1rem',
   fontSize: '0.875rem',
   color: '#111827',
+  whiteSpace: 'nowrap',
 })
 
 export const Badge = styled.span<{ $variant?: 'warning' | 'success' }>(({ $variant }) => ({

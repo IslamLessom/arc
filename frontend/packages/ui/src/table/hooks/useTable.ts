@@ -1,4 +1,4 @@
-import { useMemo, useState, useCallback } from 'react';
+import { useMemo, useState, useCallback, useEffect } from 'react';
 import type { TableProps, TableColumn } from '../model/types';
 import { TableSortOrder } from '../model/enums';
 
@@ -123,12 +123,26 @@ export const useTable = <T extends Record<string, unknown>>(
     return sortedData.slice(start, end);
   }, [sortedData, currentPage, pageSize, pagination]);
 
+  // Корректируем текущую страницу если данных стало меньше
+  useEffect(() => {
+    if (pagination === false) return;
+
+    const totalPages = Math.ceil((pagination?.total ?? sortedData.length ?? 0) / pageSize);
+    if (currentPage > totalPages && totalPages > 0) {
+      setCurrentPage(totalPages);
+    } else if (currentPage < 1 && sortedData.length > 0) {
+      setCurrentPage(1);
+    }
+  }, [sortedData.length, pageSize, currentPage, pagination]);
+
   const handlePageChange = useCallback(
     (page: number, newPageSize: number) => {
-      setCurrentPage(page);
+      // При изменении pageSize сбрасываем на первую страницу
       if (newPageSize !== pageSize) {
         setPageSize(newPageSize);
         setCurrentPage(1);
+      } else {
+        setCurrentPage(page);
       }
       pagination?.onChange?.(page, newPageSize);
     },

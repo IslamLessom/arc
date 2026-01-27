@@ -15,9 +15,7 @@ export const AddWarehouseModal = (props: AddWarehouseModalProps) => {
     error,
     fieldErrors,
     isFormValid,
-    establishments,
     handleFieldChange,
-    handleEstablishmentToggle,
     handleSubmit,
     handleClose,
   } = useAddWarehouseModal(props)
@@ -163,29 +161,6 @@ export const AddWarehouseModal = (props: AddWarehouseModalProps) => {
                 </Styled.RowContent>
               </Styled.FormRow>
 
-              <Styled.FormRow>
-                <Styled.RowLabel>Заведения</Styled.RowLabel>
-                <Styled.RowContent>
-                  <Styled.EstablishmentsSection>
-                    <Styled.EstablishmentsList>
-                      {establishments.map((establishment) => (
-                        <Styled.EstablishmentCheckbox key={establishment.id}>
-                          <input
-                            type="checkbox"
-                            checked={formData.establishmentIds.includes(establishment.id)}
-                            onChange={() => handleEstablishmentToggle(establishment.id)}
-                            disabled={isSubmitting}
-                          />
-                          {establishment.name}
-                        </Styled.EstablishmentCheckbox>
-                      ))}
-                    </Styled.EstablishmentsList>
-                    <Styled.EstablishmentHint>
-                      Выберите заведения, чтобы привязать к ним новый склад
-                    </Styled.EstablishmentHint>
-                  </Styled.EstablishmentsSection>
-                </Styled.RowContent>
-              </Styled.FormRow>
             </Styled.FormRows>
           </Styled.Form>
         </Styled.ModalBody>

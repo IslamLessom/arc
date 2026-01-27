@@ -1,70 +1,20 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { MenuItemId } from '../model/enums';
-import type { SidebarProps, MenuItem as MenuItemType } from '../model/types';
+import type { SidebarProps, MenuItem, UseSidebarResult } from '../model/types';
 import { apiClient } from '@restaurant-pos/api-client';
-
-interface UseSidebarResult {
-  activeItemId: MenuItemId;
-  expandedItems: Set<MenuItemId>;
-  handleItemClick: (itemId: MenuItemId, path: string) => void;
-  handleToggleExpand: (itemId: MenuItemId) => void;
-  isItemExpanded: (itemId: MenuItemId) => boolean;
-  isItemActive: (itemId: MenuItemId) => boolean;
-  hasActiveChild: (children?: MenuItemType[]) => boolean;
-  isUserDropdownOpen: boolean;
-  handleToggleUserDropdown: () => void;
-  handleLogout: () => Promise<void>;
-  userDropdownRef: React.RefObject<HTMLDivElement>;
-}
+import { PATH_PATTERNS, WAREHOUSE_SUB_ITEMS, MENU_SUB_ITEMS, ACCESS_SUB_ITEMS } from '../lib/constants';
 
 export const useSidebar = (props: SidebarProps): UseSidebarResult => {
   const { currentPath } = props;
+  const navigate = useNavigate();
 
   const getActiveItemId = (): MenuItemId => {
     if (!currentPath) return MenuItemId.GettingStarted;
 
-    // Определяем пути с возможными параметрами (например, /warehouse/deliveries/:id)
-    // Формат: [basePath, menuItemId]
-    const pathPatterns: Array<[string, MenuItemId]> = [
-      ['/', MenuItemId.GettingStarted],
-      ['/statistics', MenuItemId.Statistics],
-      ['/finance', MenuItemId.Finance],
-      ['/menu', MenuItemId.Menu],
-      ['/menu/products', MenuItemId.MenuProducts],
-      ['/menu/tech-cards', MenuItemId.MenuTechCards],
-      ['/menu/semi-finished', MenuItemId.MenuSemiFinished],
-      ['/menu/ingredients', MenuItemId.MenuIngredients],
-      ['/menu/product-categories', MenuItemId.MenuProductCategories],
-      ['/menu/ingredient-categories', MenuItemId.MenuIngredientCategories],
-      ['/menu/workshops', MenuItemId.MenuWorkshops],
-      ['/warehouse', MenuItemId.Warehouse],
-      ['/warehouse/balances', MenuItemId.WarehouseBalances],
-      ['/warehouse/deliveries', MenuItemId.WarehouseDeliveries],
-      ['/warehouse/processing', MenuItemId.WarehouseProcessing],
-      ['/warehouse/movements', MenuItemId.WarehouseMovements],
-      ['/warehouse/write-offs', MenuItemId.WarehouseWriteOffs],
-      ['/warehouse/movement-report', MenuItemId.WarehouseMovementReport],
-      ['/warehouse/inventories', MenuItemId.WarehouseInventories],
-      ['/warehouse/suppliers', MenuItemId.WarehouseSuppliers],
-      ['/warehouse/warehouses', MenuItemId.WarehouseWarehouses],
-      ['/warehouse/packaging', MenuItemId.WarehousePackaging],
-      ['/marketing', MenuItemId.Marketing],
-      ['/access', MenuItemId.Access],
-      ['/access/employees', MenuItemId.AccessEmployees],
-      ['/access/positions', MenuItemId.AccessPositions],
-      ['/access/cash-registers', MenuItemId.AccessCashRegisters],
-      ['/access/establishments', MenuItemId.AccessEstablishments],
-      ['/access/integrations', MenuItemId.AccessIntegrations],
-      ['/all-applications', MenuItemId.AllApplications],
-      ['/settings', MenuItemId.Settings],
-    ];
-
-    // Ищем совпадение по префиксу (для путей с параметрами)
-    // Сортируем по длине пути убывающ, чтобы сначала проверять более конкретные пути
-    const sortedPatterns = pathPatterns.sort((a, b) => b[0].length - a[0].length);
+    const sortedPatterns = PATH_PATTERNS.sort((a, b) => b[0].length - a[0].length);
 
     for (const [basePath, menuItemId] of sortedPatterns) {
-      // Проверяем точное совпадение или совпадение с префиксом + "/"
       if (currentPath === basePath || currentPath.startsWith(basePath + '/')) {
         return menuItemId;
       }
@@ -81,56 +31,23 @@ export const useSidebar = (props: SidebarProps): UseSidebarResult => {
   useEffect(() => {
     const activeId = getActiveItemId();
     setActiveItemId(activeId);
-    
-    // Автоматически раскрыть родительский элемент, если активен подпункт
-    const warehouseSubItems = [
-      MenuItemId.WarehouseBalances,
-      MenuItemId.WarehouseDeliveries,
-      MenuItemId.WarehouseProcessing,
-      MenuItemId.WarehouseMovements,
-      MenuItemId.WarehouseWriteOffs,
-      MenuItemId.WarehouseMovementReport,
-      MenuItemId.WarehouseInventories,
-      MenuItemId.WarehouseSuppliers,
-      MenuItemId.WarehouseWarehouses,
-      MenuItemId.WarehousePackaging,
-    ];
-    
-    const menuSubItems = [
-      MenuItemId.MenuProducts,
-      MenuItemId.MenuTechCards,
-      MenuItemId.MenuSemiFinished,
-      MenuItemId.MenuIngredients,
-      MenuItemId.MenuProductCategories,
-      MenuItemId.MenuIngredientCategories,
-      MenuItemId.MenuWorkshops,
-    ];
 
-    const accessSubItems = [
-      MenuItemId.AccessEmployees,
-      MenuItemId.AccessPositions,
-      MenuItemId.AccessCashRegisters,
-      MenuItemId.AccessEstablishments,
-      MenuItemId.AccessIntegrations,
-    ];
-
-    if (warehouseSubItems.includes(activeId)) {
+    if (WAREHOUSE_SUB_ITEMS.includes(activeId)) {
       setExpandedItems(prev => new Set(prev).add(MenuItemId.Warehouse));
     }
-    
-    if (menuSubItems.includes(activeId)) {
+
+    if (MENU_SUB_ITEMS.includes(activeId)) {
       setExpandedItems(prev => new Set(prev).add(MenuItemId.Menu));
     }
 
-    if (accessSubItems.includes(activeId)) {
+    if (ACCESS_SUB_ITEMS.includes(activeId)) {
       setExpandedItems(prev => new Set(prev).add(MenuItemId.Access));
     }
   }, [currentPath]);
 
   const handleItemClick = (itemId: MenuItemId, path: string) => {
     setActiveItemId(itemId);
-    // Здесь можно добавить навигацию через react-router или другой роутер
-    window.location.href = path;
+    navigate(path);
   };
 
   const handleToggleExpand = (itemId: MenuItemId) => {
@@ -147,7 +64,7 @@ export const useSidebar = (props: SidebarProps): UseSidebarResult => {
 
   const isItemExpanded = (itemId: MenuItemId) => expandedItems.has(itemId);
   const isItemActive = (itemId: MenuItemId) => activeItemId === itemId;
-  const hasActiveChild = (children?: MenuItemType[]) => {
+  const hasActiveChild = (children?: MenuItem[]) => {
     if (!children) return false;
     return children.some(child => isItemActive(child.id));
   };

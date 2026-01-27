@@ -224,15 +224,11 @@ export const useAddSupply = () => {
     return formData.items.reduce((sum, item) => sum + item.total_amount, 0)
   }, [formData.items])
 
-  // Получаем исторические цены из stock для выбранного склада
-  const getHistoricalPrice = useCallback((ingredientId?: string, productId?: string) => {
-    if (!formData.warehouse_id) return 0
-    const stockItem = stock.find(s => 
-      s.warehouse_id === formData.warehouse_id &&
-      ((ingredientId && s.ingredient_id === ingredientId) || (productId && s.product_id === productId))
-    )
-    return stockItem?.price_per_unit || 0
-  }, [stock, formData.warehouse_id])
+  const totalPayments = useMemo(() => {
+    return formData.payments.reduce((sum, payment) => sum + (payment.amount || 0), 0)
+  }, [formData.payments])
+
+  const remainingAmount = totalAmount - totalPayments
 
   // Получаем список доступных товаров/ингредиентов
   // Используем все ингредиенты, а не только те, что в stock
@@ -265,6 +261,8 @@ export const useAddSupply = () => {
     ingredients,
     availableItems,
     totalAmount,
+    totalPayments,
+    remainingAmount,
     handleFieldChange,
     addItem,
     removeItem,
@@ -274,7 +272,6 @@ export const useAddSupply = () => {
     updatePayment,
     handleSubmit,
     handleBack,
-    getHistoricalPrice,
     isEditMode,
     isLoadingSupply
   }

@@ -8,7 +8,6 @@ export interface AddWarehouseModalProps {
 export interface AddWarehouseFormData {
   name: string
   address: string
-  establishmentIds: string[]
 }
 
 export type FieldErrors = {
@@ -22,9 +21,7 @@ export interface UseAddWarehouseModalResult {
   error: string | null
   fieldErrors: FieldErrors
   isFormValid: boolean
-  establishments: Array<{ id: string; name: string }>
-  handleFieldChange: (field: keyof AddWarehouseFormData, value: string | string[]) => void
-  handleEstablishmentToggle: (establishmentId: string) => void
+  handleFieldChange: (field: keyof AddWarehouseFormData, value: string) => void
   handleSubmit: (e: React.FormEvent) => void
   handleClose: () => void
 }

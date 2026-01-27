@@ -14,6 +14,8 @@ export const AddSupply = () => {
     suppliers,
     availableItems,
     totalAmount,
+    totalPayments,
+    remainingAmount,
     handleFieldChange,
     addItem,
     removeItem,
@@ -23,7 +25,6 @@ export const AddSupply = () => {
     updatePayment,
     handleSubmit,
     handleBack,
-    getHistoricalPrice,
     isEditMode,
     isLoadingSupply
   } = useAddSupply()
@@ -260,14 +261,13 @@ export const AddSupply = () => {
             </Styled.ItemsTableHeader>
 
             {formData.items.map((item) => {
-              const selectedIngredient = item.ingredient_id 
+              const selectedIngredient = item.ingredient_id
                 ? availableItems.ingredients.find(ing => ing.id === item.ingredient_id)
                 : null
               const selectedProduct = item.product_id
                 ? availableItems.products.find(prod => prod.id === item.product_id)
                 : null
               const selectedItem = selectedIngredient || selectedProduct
-              const historicalPrice = getHistoricalPrice(item.ingredient_id, item.product_id)
 
               return (
                 <Styled.ItemRow key={item.id}>
@@ -285,7 +285,7 @@ export const AddSupply = () => {
                             product_id: undefined,
                             ingredient_name: ingredient.name,
                             unit: ingredient.unit,
-                            price_per_unit: historicalPrice || 0
+                            price_per_unit: 0
                           })
                         } else if (product) {
                           updateItem(item.id, {
@@ -293,7 +293,7 @@ export const AddSupply = () => {
                             product_id: product.id,
                             product_name: product.name,
                             unit: product.unit,
-                            price_per_unit: historicalPrice || 0
+                            price_per_unit: 0
                           })
                         }
                       }}
@@ -347,21 +347,6 @@ export const AddSupply = () => {
                         min="0"
                         step="0.01"
                       />
-                      {historicalPrice > 0 && (
-                        <span
-                          style={{
-                            position: 'absolute',
-                            left: '8px',
-                            fontSize: '12px',
-                            color: '#94a3b8',
-                            cursor: 'pointer'
-                          }}
-                          title={`Историческая цена: ${historicalPrice.toFixed(2)}`}
-                          onClick={() => updateItem(item.id, { price_per_unit: historicalPrice })}
-                        >
-                          🕐
-                        </span>
-                      )}
                       <Styled.CurrencySymbol>₽</Styled.CurrencySymbol>
                     </Styled.PriceInputWrapper>
                   </div>
@@ -411,7 +396,7 @@ export const AddSupply = () => {
         <Styled.Summary>
           <Styled.SummaryRow>
             <Styled.SummaryLabel>К оплате:</Styled.SummaryLabel>
-            <Styled.SummaryValue>0 ₽</Styled.SummaryValue>
+            <Styled.SummaryValue>{remainingAmount.toFixed(2)} ₽</Styled.SummaryValue>
           </Styled.SummaryRow>
           <Styled.SummaryRow>
             <Styled.SummaryLabel>Итого:</Styled.SummaryLabel>
