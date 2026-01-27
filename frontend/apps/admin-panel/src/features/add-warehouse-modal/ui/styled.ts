@@ -146,40 +146,6 @@ export const FieldError = styled.span({
   color: '#ef4444',
 })
 
-export const EstablishmentsSection = styled.div({
-  display: 'flex',
-  flexDirection: 'column',
-  gap: '12px',
-})
-
-export const EstablishmentsList = styled.div({
-  display: 'flex',
-  flexDirection: 'column',
-  gap: '8px',
-})
-
-export const EstablishmentCheckbox = styled.label({
-  display: 'flex',
-  alignItems: 'center',
-  gap: '8px',
-  cursor: 'pointer',
-  fontSize: '14px',
-  color: '#374151',
-  userSelect: 'none',
-  '& input[type="checkbox"]': {
-    width: '16px',
-    height: '16px',
-    cursor: 'pointer',
-  },
-})
-
-export const EstablishmentHint = styled.p({
-  margin: 0,
-  fontSize: '12px',
-  color: '#6b7280',
-  lineHeight: 1.4,
-})
-
 export const ModalFooter = styled.div({
   padding: '20px 24px',
   borderTop: '1px solid #e5e7eb',

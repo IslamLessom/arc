@@ -15,3 +15,17 @@ export interface SidebarProps {
   userName?: string;
   userRole?: string;
 }
+
+export interface UseSidebarResult {
+  activeItemId: MenuItemId;
+  expandedItems: Set<MenuItemId>;
+  handleItemClick: (itemId: MenuItemId, path: string) => void;
+  handleToggleExpand: (itemId: MenuItemId) => void;
+  isItemExpanded: (itemId: MenuItemId) => boolean;
+  isItemActive: (itemId: MenuItemId) => boolean;
+  hasActiveChild: (children?: MenuItem[]) => boolean;
+  isUserDropdownOpen: boolean;
+  handleToggleUserDropdown: () => void;
+  handleLogout: () => Promise<void>;
+  userDropdownRef: React.RefObject<HTMLDivElement>;
+}

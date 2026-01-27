@@ -272,6 +272,7 @@ export interface WriteOff {
   warehouseId: string
   warehouse?: Warehouse
   writeOffDateTime: string
+  write_off_date_time: string
   reason: string
   comment?: string
   items?: WriteOffItem[]

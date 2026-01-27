@@ -148,6 +148,7 @@ export const TableHeaderCell = styled.th<{ $sortable?: boolean }>((props) => ({
   fontSize: '0.875rem',
   color: '#374151',
   borderBottom: '1px solid #e5e7eb',
+  whiteSpace: 'nowrap',
   cursor: props.$sortable ? 'pointer' : 'default',
   userSelect: 'none',
   '&:hover': props.$sortable
@@ -179,6 +180,7 @@ export const TableCell = styled.td({
   padding: '1rem',
   fontSize: '0.875rem',
   color: '#111827',
+  whiteSpace: 'nowrap',
 })
 
 export const TotalRow = styled.tr({

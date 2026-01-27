@@ -5,8 +5,7 @@ import type { AddWarehouseModalProps, AddWarehouseFormData, FieldErrors } from '
 export const useAddWarehouseModal = (props: AddWarehouseModalProps) => {
   const [formData, setFormData] = useState<AddWarehouseFormData>({
     name: '',
-    address: '',
-    establishmentIds: []
+    address: ''
   })
 
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({})
@@ -27,8 +26,7 @@ export const useAddWarehouseModal = (props: AddWarehouseModalProps) => {
     if (existingWarehouse && props.warehouseId) {
       setFormData({
         name: existingWarehouse.name || '',
-        address: existingWarehouse.address || '',
-        establishmentIds: [] // TODO: Load from API when available
+        address: existingWarehouse.address || ''
       })
     }
   }, [existingWarehouse, props.warehouseId])
@@ -38,8 +36,7 @@ export const useAddWarehouseModal = (props: AddWarehouseModalProps) => {
     if (!props.isOpen) {
       setFormData({
         name: '',
-        address: '',
-        establishmentIds: []
+        address: ''
       })
       setFieldErrors({})
       setError(null)
@@ -59,7 +56,7 @@ export const useAddWarehouseModal = (props: AddWarehouseModalProps) => {
 
   const isFormValid = formData.name.trim().length > 0
 
-  const handleFieldChange = useCallback((field: keyof AddWarehouseFormData, value: string | string[]) => {
+  const handleFieldChange = useCallback((field: keyof AddWarehouseFormData, value: string) => {
     setFormData(prev => ({
       ...prev,
       [field]: value
@@ -74,18 +71,6 @@ export const useAddWarehouseModal = (props: AddWarehouseModalProps) => {
       })
     }
   }, [fieldErrors])
-
-  const handleEstablishmentToggle = useCallback((establishmentId: string) => {
-    setFormData(prev => {
-      const isSelected = prev.establishmentIds.includes(establishmentId)
-      return {
-        ...prev,
-        establishmentIds: isSelected
-          ? prev.establishmentIds.filter(id => id !== establishmentId)
-          : [...prev.establishmentIds, establishmentId]
-      }
-    })
-  }, [])
 
   const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault()
@@ -127,11 +112,6 @@ export const useAddWarehouseModal = (props: AddWarehouseModalProps) => {
     }
   }, [isSubmitting, props])
 
-  // TODO: Load establishments from API when endpoint becomes available
-  const establishments: Array<{ id: string; name: string }> = [
-    { id: '1', name: 'Ebari' }
-  ]
-
   return {
     formData,
     isLoading,
@@ -139,9 +119,7 @@ export const useAddWarehouseModal = (props: AddWarehouseModalProps) => {
     error,
     fieldErrors,
     isFormValid,
-    establishments,
     handleFieldChange,
-    handleEstablishmentToggle,
     handleSubmit,
     handleClose
   }

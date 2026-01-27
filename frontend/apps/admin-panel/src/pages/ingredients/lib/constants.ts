@@ -10,6 +10,7 @@ export const INGREDIENTS_TABLE_COLUMNS: ColumnsType<Ingredient> = [
       compare: (a, b) => a.name.localeCompare(b.name),
     },
     width: 200,
+    ellipsis: true,
   },
   {
     title: 'Категория',
@@ -19,12 +20,14 @@ export const INGREDIENTS_TABLE_COLUMNS: ColumnsType<Ingredient> = [
       compare: (a, b) => a.category.localeCompare(b.category),
     },
     width: 150,
+    ellipsis: true,
   },
   {
     title: 'Ед. изм.',
     dataIndex: 'measureUnit',
     key: 'measureUnit',
     width: 100,
+    ellipsis: true,
   },
   {
     title: 'Кол-во',
@@ -34,6 +37,7 @@ export const INGREDIENTS_TABLE_COLUMNS: ColumnsType<Ingredient> = [
       compare: (a, b) => a.count - b.count,
     },
     width: 100,
+    ellipsis: true,
   },
   {
     title: 'Остатки',
@@ -43,6 +47,7 @@ export const INGREDIENTS_TABLE_COLUMNS: ColumnsType<Ingredient> = [
       compare: (a, b) => a.stock - b.stock,
     },
     width: 120,
+    ellipsis: true,
     render: (value: number, record: Ingredient) => `${value} ${record.measureUnit}`,
   },
   {
@@ -50,6 +55,7 @@ export const INGREDIENTS_TABLE_COLUMNS: ColumnsType<Ingredient> = [
     dataIndex: 'supplier',
     key: 'supplier',
     width: 150,
+    ellipsis: true,
     render: (value: string) => value || '-',
   },
   {
@@ -57,6 +63,7 @@ export const INGREDIENTS_TABLE_COLUMNS: ColumnsType<Ingredient> = [
     dataIndex: 'lastDelivery',
     key: 'lastDelivery',
     width: 150,
+    ellipsis: true,
     render: (value: string) => value || '-',
   },
   {
@@ -67,12 +74,14 @@ export const INGREDIENTS_TABLE_COLUMNS: ColumnsType<Ingredient> = [
       compare: (a, b) => a.cost - b.cost,
     },
     width: 120,
+    ellipsis: true,
     render: (value: number) => `${value.toFixed(2)} ₽`,
   },
   {
     title: '',
     key: 'actions',
     width: 100,
+    ellipsis: true,
   },
 ]
 

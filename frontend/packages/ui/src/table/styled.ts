@@ -1,13 +1,24 @@
 import styled from 'styled-components';
 
+export const TableWrapper = styled.div`
+  width: 100%;
+  background: #ffffff;
+`;
+
 export const TableContainer = styled.div<{
   $bordered?: boolean;
   $size?: string;
 }>`
   width: 100%;
-  overflow-x: auto;
+  overflow: hidden;
   border: ${({ $bordered }) => ($bordered ? '1px solid #d9d9d9' : 'none')};
-  border-radius: ${({ $bordered }) => ($bordered ? '6px' : '0')};
+  border-radius: ${({ $bordered }) => ($bordered ? '8px' : '0')};
+  background: #ffffff;
+`;
+
+export const TableScrollWrapper = styled.div`
+  overflow-x: auto;
+  overflow-y: visible;
 `;
 
 export const StyledTable = styled.table<{
@@ -44,7 +55,7 @@ export const TableRow = styled.tr<{
     $isClickable &&
     `
     cursor: pointer;
-    
+
     &:hover {
       background-color: #f5f5f5;
     }
@@ -80,6 +91,7 @@ export const TableHeaderCell = styled.th<{
   background-color: #fafafa;
   border-bottom: 2px solid #f0f0f0;
   position: ${({ $fixed }) => ($fixed ? 'sticky' : 'static')};
+  white-space: nowrap;
   ${({ $fixed, $width }) =>
     $fixed === 'left' &&
     `
@@ -104,7 +116,7 @@ export const TableHeaderCell = styled.th<{
     `
     cursor: pointer;
     user-select: none;
-    
+
     &:hover {
       background-color: #f0f0f0;
     }
@@ -131,6 +143,7 @@ export const TableCell = styled.td<{
   text-align: ${({ $align }) => $align ?? 'left'};
   color: rgba(0, 0,0, 0.85);
   position: ${({ $fixed }) => ($fixed ? 'sticky' : 'static')};
+  white-space: nowrap;
   ${({ $fixed, $width }) =>
     $fixed === 'left' &&
     `
@@ -208,36 +221,87 @@ export const CheckboxCell = styled.td<{
   }};
   width: 50px;
   text-align: center;
+  white-space: nowrap;
 `;
 
 export const PaginationContainer = styled.div`
   display: flex;
-  justify-content: flex-end;
+  justify-content: space-between;
   align-items: center;
-  padding: 16px;
+  padding: 12px 16px;
   gap: 16px;
+  border-top: 1px solid #f0f0f0;
+  background: #ffffff;
+`;
+
+export const PaginationLeft = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 12px;
+`;
+
+export const PaginationCenter = styled.div`
+  display: flex;
+  gap: 4px;
+  align-items: center;
+`;
+
+export const PaginationRight = styled.div`
+  display: flex;
+  align-items: center;
+  color: rgba(0, 0, 0, 0.45);
+  font-size: 14px;
+`;
+
+export const PageSizeSelect = styled.select`
+  padding: 6px 12px;
+  border: 1px solid #d9d9d9;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  color: rgba(0, 0, 0, 0.85);
+  background: #ffffff;
+  transition: all 0.2s;
+
+  &:hover {
+    border-color: #1890ff;
+  }
+
+  &:focus {
+    outline: none;
+    border-color: #1890ff;
+    box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.1);
+  }
 `;
 
 export const PaginationButton = styled.button<{
   $disabled?: boolean;
   $active?: boolean;
 }>`
-  padding: 4px 12px;
+  min-width: 32px;
+  height: 32px;
+  padding: 0 8px;
   border: 1px solid #d9d9d9;
   background-color: ${({ $active }) => ($active ? '#1890ff' : 'white')};
   color: ${({ $active }) => ($active ? 'white' : 'rgba(0, 0, 0, 0.85)')};
-  border-radius: 4px;
+  border-radius: 6px;
   cursor: ${({ $disabled }) => ($disabled ? 'not-allowed' : 'pointer')};
   opacity: ${({ $disabled }) => ($disabled ? '0.5' : '1')};
+  font-size: 14px;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 
   &:hover:not(:disabled) {
     border-color: #1890ff;
     color: #1890ff;
   }
 
-  ${({ $active }) =>
-    $active &&
+  ${({ $active, $disabled }) =>
+    $active && !$disabled &&
     `
+    border-color: #1890ff;
     &:hover {
       background-color: #40a9ff;
       border-color: #40a9ff;
@@ -253,5 +317,5 @@ export const LoadingOverlay = styled.div`
   align-items: center;
   justify-content: center;
   color: rgba(0, 0, 0, 0.45);
+  font-size: 14px;
 `;
-

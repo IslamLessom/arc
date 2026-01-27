@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useGetWriteOffs, useGetWarehouses } from '@restaurant-pos/api-client'
+import { useGetWriteOffs, useGetWarehouses, useGetStock } from '@restaurant-pos/api-client'
 import type { WriteOffTable, WriteOffsSort, UseWriteOffsResult, WriteOffsFilters } from '../model/types'
 import { SortDirection } from '../model/enums'
 
@@ -19,6 +19,7 @@ export const useWriteOffs = (): UseWriteOffsResult => {
     warehouse_id: filters.warehouseId
   })
   const { data: warehouses = [] } = useGetWarehouses()
+  const { data: stock = [] } = useGetStock()
 
   const writeOffs = useMemo(() => {
     return apiWriteOffs.map((writeOff): WriteOffTable => {
@@ -29,16 +30,28 @@ export const useWriteOffs = (): UseWriteOffsResult => {
         return ''
       }).filter(Boolean).join(', ') || ''
 
-      // Вычисляем общую сумму (для списаний обычно 0, но можно добавить логику)
-      const totalAmount = 0
+      // Вычисляем общую сумму на основе цен остатков
+      const totalAmount = writeOff.items?.reduce((sum, item) => {
+        // Находим цену за единицу из остатков на складе
+        const stockItem = stock.find(s =>
+          (s.ingredientId === item.ingredientId || s.productId === item.productId) &&
+          s.warehouseId === writeOff.warehouseId
+        )
+        const pricePerUnit = stockItem?.pricePerUnit || 0
+        return sum + (pricePerUnit * item.quantity)
+      }, 0) || 0
+
+      // Используем write_off_date_time из API, так как он возвращается бэкендом
+      const writeOffDateTime = writeOff.write_off_date_time || writeOff.writeOffDateTime || ''
 
       return {
         ...writeOff,
+        writeOffDateTime,
         goodsNames,
         totalAmount
       }
     })
-  }, [apiWriteOffs])
+  }, [apiWriteOffs, stock])
 
   const filteredAndSortedWriteOffs = useMemo(() => {
     let filtered = writeOffs.filter(writeOff => {
