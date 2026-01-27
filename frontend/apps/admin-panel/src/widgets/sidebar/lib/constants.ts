@@ -164,18 +164,18 @@ export const menuItems: MenuItem[] = [
         icon: '👔',
         path: '/access/positions',
       },
-      {
-        id: MenuItemId.AccessCashRegisters,
-        label: 'Кассы',
-        icon: '💰',
-        path: '/access/cash-registers',
-      },
-      {
-        id: MenuItemId.AccessEstablishments,
-        label: 'Заведения',
-        icon: '🏢',
-        path: '/access/establishments',
-      },
+      //{
+        //id: MenuItemId.AccessCashRegisters,
+        //label: 'Кассы',
+        //icon: '💰',
+        //path: '/access/cash-registers',
+      //},
+      //{
+        //id: MenuItemId.AccessEstablishments,
+        //label: 'Заведения',
+        //icon: '🏢',
+        //path: '/access/establishments',
+      //},
     ],
   },
   {

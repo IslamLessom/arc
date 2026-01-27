@@ -108,6 +108,16 @@ func NewRouter(usecases *usecases.UseCases, cfg *config.Config, logger *zap.Logg
 					employees.PUT("/:id", userHandler.UpdateEmployee)
 					employees.DELETE("/:id", userHandler.DeleteEmployee)
 				}
+
+				// Positions routes (алиас для roles, используется фронтендом как "должности")
+				positions := access.Group("/positions")
+				{
+					positions.POST("", roleHandler.CreateRole)
+					positions.GET("", roleHandler.ListRoles)
+					positions.GET("/:id", roleHandler.GetRole)
+					positions.PUT("/:id", roleHandler.UpdateRole)
+					positions.DELETE("/:id", roleHandler.DeleteRole)
+				}
 			}
 
 			// Role routes (для управления ролями)

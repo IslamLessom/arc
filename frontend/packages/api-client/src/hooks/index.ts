@@ -97,6 +97,28 @@ export {
 export type { Employee } from './useEmployees'
 export { useGetRoles } from './useRoles'
 export type { Role } from './useRoles'
+export {
+  useGetInventories,
+  useGetInventory,
+  useCreateInventory,
+  useUpdateInventoryStatus,
+  useDeleteInventory,
+} from './useInventories'
+export type {
+  Inventory,
+  InventoryItem,
+  InventoryFilter,
+  CreateInventoryRequest,
+  UpdateInventoryStatusRequest,
+} from './useInventories'
+export {
+  useGetPositions,
+  useGetPosition,
+  useCreatePosition,
+  useUpdatePosition,
+  useDeletePosition,
+} from './usePositions'
+export type { Position, PositionDetails, PositionPermissions, CreatePositionRequest, UpdatePositionRequest } from './usePositions'
 
 // Types
 export * from '../types'

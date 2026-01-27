@@ -22,6 +22,7 @@ export const AddTechnicalCardModal = (props: AddTechnicalCardModalProps) => {
         markupLabel,
         costPriceLabel,
         ingredients,
+        workshops,
         handleFieldChange,
         addIngredient,
         updateIngredient,
@@ -202,7 +203,11 @@ export const AddTechnicalCardModal = (props: AddTechnicalCardModalProps) => {
                                         disabled={isSubmitting}
                                     >
                                         <option value="">Без цеха</option>
-                                        {/* TODO: Load workshops from API when endpoint becomes available */}
+                                        {workshops.map((workshop) => (
+                                            <option key={workshop.id} value={workshop.id}>
+                                                {workshop.name}
+                                            </option>
+                                        ))}
                                     </Styled.Select>
                                     <Styled.RowHint>
                                         Выберите цех, чтобы печатать на него бегунки и правильно{' '}

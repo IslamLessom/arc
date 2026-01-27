@@ -165,6 +165,11 @@ func (uc *WarehouseUseCase) CreateSupply(ctx context.Context, supply *models.Sup
 			// Обновляем цену за единицу из поставки, если она указана
 			if it.PricePerUnit > 0 {
 				st.PricePerUnit = it.PricePerUnit
+			} else if it.ProductID != nil && st.PricePerUnit == 0 {
+				// Если цена в поставке не указана и текущая цена 0, берем цену из товара
+				if product, err := uc.repo.GetProductByID(ctx, *it.ProductID); err == nil && product != nil {
+					st.PricePerUnit = product.Price
+				}
 			}
 			_ = uc.repo.UpdateStock(ctx, st)
 		} else {
@@ -173,6 +178,12 @@ func (uc *WarehouseUseCase) CreateSupply(ctx context.Context, supply *models.Sup
 				unit = "шт"
 			}
 			pricePerUnit := it.PricePerUnit
+			// Если цена в поставке не указана и это товар, берем цену из товара
+			if pricePerUnit == 0 && it.ProductID != nil {
+				if product, err := uc.repo.GetProductByID(ctx, *it.ProductID); err == nil && product != nil {
+					pricePerUnit = product.Price
+				}
+			}
 			newSt := &models.Stock{
 				WarehouseID:  supply.WarehouseID,
 				IngredientID: it.IngredientID,

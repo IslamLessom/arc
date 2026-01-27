@@ -5,6 +5,7 @@ import {
   useGetTechnicalCard,
   useGetIngredients,
   useGetStock,
+  useGetWorkshops,
   type CreateTechnicalCardRequest,
   type UpdateTechnicalCardRequest,
   type Ingredient,
@@ -45,6 +46,7 @@ export function useAddTechnicalCardModal(
   const updateMutation = useUpdateTechnicalCard()
   const { data: apiIngredients = [] } = useGetIngredients()
   const { data: stock = [] } = useGetStock()
+  const { data: workshops = [] } = useGetWorkshops()
 
   // Fetch card data if in edit mode
   const { data: existingCard, isLoading: isLoadingCard } = useGetTechnicalCard(
@@ -480,6 +482,10 @@ export function useAddTechnicalCardModal(
           payload.markup = formData.markup
         }
 
+        if (formData.price > 0) {
+          payload.price = formData.price
+        }
+
         // Workshop is optional - only send if provided
         if (formData.workshop_id) {
           payload.workshop_id = formData.workshop_id
@@ -598,6 +604,7 @@ export function useAddTechnicalCardModal(
     costPriceLabel,
     totalIngredientsCost,
     ingredients,
+    workshops: workshops.map((w) => ({ id: w.id, name: w.name })),
     handleFieldChange,
     addIngredient,
     updateIngredient,
