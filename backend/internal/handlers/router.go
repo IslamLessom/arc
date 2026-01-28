@@ -273,6 +273,7 @@ func NewRouter(usecases *usecases.UseCases, cfg *config.Config, logger *zap.Logg
 				inventory.GET("", inventoryHandler.List)
 				inventory.GET("/:id", inventoryHandler.GetByID)
 				inventory.POST("", inventoryHandler.Create)
+				inventory.PUT("/:id", inventoryHandler.Update)
 				inventory.PUT("/:id/status", inventoryHandler.UpdateStatus)
 				inventory.DELETE("/:id", inventoryHandler.Delete)
 				inventory.GET("/stock-snapshot", inventoryHandler.GetStockSnapshot)
