@@ -1,847 +1,854 @@
 import styled from 'styled-components'
-import { colors } from '@restaurant-pos/ui/theme'
-
-export const PageContainer = styled.div`
-  padding: 24px;
-  max-width: 100%;
-  margin: 0 auto;
-  background: ${colors.background};
-  min-height: 100vh;
-  animation: fadeIn 0.3s ease;
-
-  @keyframes fadeIn {
-    from {
-      opacity: 0;
-      transform: translateY(10px);
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
-  }
-
-  @media (max-width: 768px) {
-    padding: 16px;
-  }
-
-  @media (max-width: 480px) {
-    padding: 12px;
-  }
-`
-
-export const Header = styled.header`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 24px;
-  gap: 16px;
-  flex-wrap: wrap;
-
-  @media (max-width: 768px) {
-    margin-bottom: 16px;
-    flex-direction: column;
-    align-items: stretch;
-  }
-`
-
-export const HeaderLeft = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  flex: 1;
-  min-width: 0;
-
-  @media (max-width: 768px) {
-    width: 100%;
-  }
-`
-
-export const BackButton = styled.button`
-  background: ${colors.backgroundHover};
-  border: 1px solid ${colors.border};
-  color: ${colors.textPrimary};
-  width: 40px;
-  height: 40px;
-  border-radius: 12px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  font-size: 18px;
-  flex-shrink: 0;
-
-  &:hover {
-    background: ${colors.backgroundActive};
-    border-color: ${colors.borderHover};
-    transform: translateX(-1px);
-  }
-
-  &:active {
-    transform: translateX(0) scale(0.98);
-  }
-
-  @media (max-width: 480px) {
-    width: 36px;
-    height: 36px;
-    font-size: 16px;
-  }
-`
-
-export const Title = styled.h1`
-  font-size: 28px;
-  font-weight: 700;
-  color: ${colors.textPrimary};
-  margin: 0;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  letter-spacing: -0.5px;
-
-  @media (max-width: 768px) {
-    font-size: 24px;
-  }
-
-  @media (max-width: 480px) {
-    font-size: 20px;
-  }
-`
-
-export const HeaderActions = styled.div`
-  display: flex;
-  gap: 8px;
-  align-items: center;
-  flex-wrap: wrap;
-
-  @media (max-width: 768px) {
-    width: 100%;
-    justify-content: stretch;
-  }
-
-  @media (max-width: 480px) {
-    gap: 6px;
-  }
-`
-
-export const ActionButton = styled.button`
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 10px 16px;
-  background: ${colors.backgroundHover};
-  border: 1px solid ${colors.border};
-  border-radius: 10px;
-  color: ${colors.textSecondary};
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  white-space: nowrap;
-
-  &:hover {
-    background: ${colors.backgroundActive};
-    border-color: ${colors.borderHover};
-    color: ${colors.textPrimary};
-  }
-
-  &:active {
-    transform: scale(0.98);
-  }
-
-  span:first-child {
-    font-size: 16px;
-  }
-
-  .action-text {
-    transition: opacity 0.2s ease;
-  }
-
-  @media (max-width: 768px) {
-    flex: 1;
-    justify-content: center;
-    padding: 8px 12px;
-    font-size: 13px;
-
-    span:first-child {
-      font-size: 14px;
-    }
-  }
-
-  @media (max-width: 480px) {
-    padding: 8px;
-    font-size: 11px;
-
-    .action-text {
-      display: none;
-    }
-
-    span:first-child {
-      font-size: 18px;
-    }
-  }
-`
-
-export const AddButton = styled.button`
-  padding: 10px 20px;
-  background: linear-gradient(135deg, ${colors.accent} 0%, ${colors.accentHover} 100%);
-  border: none;
-  border-radius: 10px;
-  color: ${colors.white};
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.25);
-  white-space: nowrap;
-  position: relative;
-  overflow: hidden;
-
-  &::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: -100%;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.15), transparent);
-    transition: left 0.5s;
-  }
-
-  &:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
-
-    &::before {
-      left: 100%;
-    }
-  }
-
-  &:active {
-    transform: translateY(0) scale(0.98);
-  }
-
-  @media (max-width: 768px) {
-    flex: 1;
-    padding: 8px 16px;
-  }
-
-  @media (max-width: 480px) {
-    padding: 8px 12px;
-    font-size: 13px;
-  }
-`
-
-export const SearchContainer = styled.div`
-  display: flex;
-  gap: 12px;
-  margin-bottom: 20px;
-  align-items: stretch;
-
-  @media (max-width: 768px) {
-    margin-bottom: 16px;
-    flex-direction: column;
-    gap: 8px;
-  }
-`
-
-export const SearchInputWrapper = styled.div`
-  flex: 1;
-  position: relative;
-  display: flex;
-  align-items: center;
-
-  @media (max-width: 768px) {
-    width: 100%;
-  }
-
-  .ant-input {
-    background: ${colors.backgroundActive};
-    border-color: ${colors.border};
-    color: ${colors.textPrimary};
-
-    &::placeholder {
-      color: ${colors.textMuted};
-    }
-
-    &:hover {
-      background: ${colors.backgroundActive};
-      border-color: ${colors.border};
-    }
-
-    &:focus {
-      background: ${colors.backgroundActive};
-      border-color: ${colors.accent};
-      box-shadow: 0 0 0 2px ${colors.accentBackground};
-    }
-  }
-`
-
-export const SearchIcon = styled.span`
-  position: absolute;
-  left: 12px;
-  font-size: 18px;
-  z-index: 1;
-  pointer-events: none;
-  opacity: 0.6;
-`
-
-export const FilterButton = styled.button`
-  padding: 10px 16px;
-  background: ${colors.backgroundHover};
-  border: 1px solid ${colors.border};
-  border-radius: 10px;
-  color: ${colors.textSecondary};
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  white-space: nowrap;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-
-  &:hover {
-    background: ${colors.backgroundActive};
-    border-color: ${colors.borderHover};
-    color: ${colors.textPrimary};
-  }
-
-  @media (max-width: 768px) {
-    width: 100%;
-    justify-content: center;
-  }
-
-  @media (max-width: 480px) {
-    padding: 8px 12px;
-    font-size: 13px;
-  }
-`
-
-export const TableContainer = styled.div`
-  background: ${colors.backgroundHover};
-  border: 1px solid ${colors.border};
-  border-radius: 16px;
-  overflow: hidden;
-  box-shadow: 0 4px 16px ${colors.shadow};
-  position: relative;
-
-  @media (max-width: 768px) {
-    display: none;
-  }
-
-  /* Custom scrollbar */
-  ::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
-  }
-
-  ::-webkit-scrollbar-track {
-    background: ${colors.background};
-    border-radius: 4px;
-  }
-
-  ::-webkit-scrollbar-thumb {
-    background: ${colors.borderHover};
-    border-radius: 4px;
-    transition: background 0.2s;
-
-    &:hover {
-      background: ${colors.textMuted};
-    }
-  }
-
-  /* Ant Design Table customization */
-  .ant-table {
-    background: transparent;
-    color: ${colors.textPrimary};
-    font-size: 14px;
-
-    @media (max-width: 768px) {
-      font-size: 13px;
-    }
-  }
-
-  .ant-table-row {
-    cursor: pointer;
-
-    &:hover {
-      background: transparent !important;
-    }
-  }
-
-  .ant-table-thead > tr > th {
-    background: ${colors.backgroundActive};
-    border-bottom: 1px solid ${colors.border};
-    color: ${colors.textSecondary};
-    font-weight: 600;
-    padding: 16px;
-    text-transform: uppercase;
-    font-size: 12px;
-    letter-spacing: 0.5px;
-
-    &:hover {
-      background: ${colors.backgroundActive} !important;
-    }
-
-    @media (max-width: 768px) {
-      padding: 12px 8px;
-      font-size: 11px;
-    }
-
-    @media (max-width: 480px) {
-      padding: 10px 6px;
-      font-size: 10px;
-    }
-  }
-
-  .ant-table-tbody > tr > td {
-    border-bottom: 1px solid ${colors.border};
-    padding: 16px;
-    color: ${colors.textPrimary};
-    background: transparent !important;
-
-    @media (max-width: 768px) {
-      padding: 12px 8px;
-    }
-
-    @media (max-width: 480px) {
-      padding: 10px 6px;
-    }
-  }
-
-  .ant-table-tbody > tr {
-    &:hover {
-      background: transparent !important;
-    }
-  }
-
-  .ant-table-wrapper {
-    overflow-x: auto;
-
-    @media (max-width: 768px) {
-      /* Enable horizontal scroll on mobile */
-      -webkit-overflow-scrolling: touch;
-    }
-  }
-
-  .ant-table-container {
-    min-width: 100%;
-
-    @media (max-width: 768px) {
-      min-width: 600px;
-    }
-  }
-
-  /* Summary row styling */
-  .ant-table-summary {
-    background: ${colors.backgroundActive};
-    border-top: 2px solid ${colors.border};
-
-    > div > tr > td {
-      background: ${colors.backgroundActive};
-      color: ${colors.textPrimary};
-      font-weight: 700;
-      border-bottom: none;
-    }
-  }
-
-  /* Empty state */
-  .ant-empty {
-    color: ${colors.textSecondary};
-  }
-
-  .ant-empty-description {
-    color: ${colors.textMuted};
-  }
-`
-
-export const LoadingContainer = styled.div`
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  min-height: 400px;
-  gap: 16px;
-
-  &::before {
-    content: '';
-    width: 48px;
-    height: 48px;
-    border: 3px solid ${colors.border};
-    border-top-color: ${colors.accent};
-    border-radius: 50%;
-    animation: spin 0.8s linear infinite;
-  }
-
-  @keyframes spin {
-    to {
-      transform: rotate(360deg);
-    }
-  }
-
-  > span {
-    color: ${colors.textSecondary};
-    font-size: 18px;
-    font-weight: 500;
-  }
-
-  @media (max-width: 768px) {
-    min-height: 300px;
-
-    &::before {
-      width: 40px;
-      height: 40px;
-    }
-
-    > span {
-      font-size: 16px;
-    }
-  }
-`
-
-export const ErrorContainer = styled.div`
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  min-height: 400px;
-  color: ${colors.danger};
-  font-size: 16px;
-  text-align: center;
-  padding: 20px;
-  border-radius: 12px;
-  background: rgba(239, 68, 68, 0.1);
-  border: 1px solid rgba(239, 68, 68, 0.2);
-
-  @media (max-width: 768px) {
-    min-height: 300px;
-    font-size: 14px;
-    padding: 16px;
-  }
-`
-
-export const MobileActionsDropdown = styled.div<{ isOpen: boolean }>`
-  display: none;
-
-  @media (max-width: 480px) {
-    display: ${props => props.isOpen ? 'block' : 'none'};
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    background: ${colors.backgroundHover};
-    border-top: 1px solid ${colors.border};
-    padding: 12px;
-    box-shadow: 0 -4px 16px ${colors.shadow};
-    z-index: 1000;
-    animation: slideUp 0.3s ease;
-
-    @keyframes slideUp {
-      from {
-        transform: translateY(100%);
-      }
-      to {
-        transform: translateY(0);
-      }
-    }
-  }
-`
-
-export const MobileActionsGrid = styled.div`
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 8px;
-
-  @media (max-width: 360px) {
-    grid-template-columns: repeat(2, 1fr);
-  }
-`
-
-export const MobileActionItem = styled.button`
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
-  padding: 12px 8px;
-  background: ${colors.backgroundActive};
-  border: 1px solid ${colors.border};
-  border-radius: 8px;
-  color: ${colors.textSecondary};
-  font-size: 11px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-
-  &:hover {
-    background: ${colors.backgroundHover};
-    border-color: ${colors.borderHover};
-    color: ${colors.textPrimary};
-  }
-
-  span {
-    font-size: 20px;
-  }
-`
-
-export const MobileMenuButton = styled.button<{ isVisible: boolean }>`
-  display: none;
-
-  @media (max-width: 480px) {
-    display: ${props => props.isVisible ? 'flex' : 'none'};
-    position: fixed;
-    bottom: 20px;
-    right: 20px;
-    width: 56px;
-    height: 56px;
-    border-radius: 50%;
-    background: linear-gradient(135deg, ${colors.accent}, ${colors.accentHover});
-    border: none;
-    box-shadow: 0 4px 16px ${colors.shadow};
-    color: ${colors.white};
-    font-size: 24px;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    z-index: 999;
-
-    &:hover {
-      transform: scale(1.1);
-      box-shadow: 0 6px 20px ${colors.shadow};
-    }
-
-    &:active {
-      transform: scale(1.05);
-    }
-  }
-`
-
-export const MobileCardsContainer = styled.div`
-  display: none;
-  animation: fadeIn 0.3s ease;
-
-  @media (max-width: 768px) {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-  }
-`
-
-export const IngredientCard = styled.div`
-  background: ${colors.backgroundHover};
-  border: 1px solid ${colors.border};
-  border-radius: 16px;
-  padding: 16px;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  position: relative;
-  overflow: hidden;
-  animation: slideIn 0.3s ease;
-
-  @keyframes slideIn {
-    from {
-      opacity: 0;
-      transform: translateY(20px);
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
-  }
-
-  &:hover {
-    border-color: rgba(255, 255, 255, 0.12);
-    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
-    transform: translateY(-1px);
-  }
-
-  &:active {
-    transform: translateY(0);
-  }
-`
-
-export const CardHeader = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: 12px;
-  gap: 12px;
-`
-
-export const CardTitle = styled.h3`
-  font-size: 16px;
-  font-weight: 600;
-  color: ${colors.textPrimary};
-  margin: 0;
-  word-break: break-word;
-  flex: 1;
-  line-height: 1.4;
-`
-
-export const CardActions = styled.div`
-  display: flex;
-  gap: 4px;
-  flex-shrink: 0;
-`
-
-export const CardAction = styled.button`
-  width: 32px;
-  height: 32px;
-  border-radius: 8px;
-  background: ${colors.backgroundActive};
-  border: 1px solid ${colors.border};
-  color: ${colors.textSecondary};
-  cursor: pointer;
-  transition: all 0.2s ease;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 14px;
-
-  &:hover {
-    background: ${colors.accentBackground};
-    border-color: ${colors.accentLight};
-    color: ${colors.accentLight};
-    transform: scale(1.05);
-  }
-
-  &:active {
-    transform: scale(1.02);
-  }
-`
-
-export const CardContent = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-`
-
-export const CardRow = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 8px;
-`
-
-export const CardLabel = styled.span`
-  font-size: 13px;
-  color: ${colors.textSecondary};
-  flex-shrink: 0;
-`
-
-export const CardValue = styled.span<{ $accent?: boolean }>`
-  font-size: 14px;
-  color: ${props => props.$accent ? colors.accent : colors.textPrimary};
-  font-weight: 500;
-  text-align: right;
-  word-break: break-word;
-`
-
-export const CardCategory = styled.div`
-  display: inline-block;
-  padding: 4px 10px;
-  background: ${colors.accentBackground};
-  color: ${colors.accentLight};
-  border-radius: 20px;
-  font-size: 12px;
-  font-weight: 500;
-`
-
-export const CardStock = styled.div<{ $low?: boolean }>`
-  padding: 6px 12px;
-  background: ${props => props.$low ? 'rgba(239, 68, 68, 0.1)' : 'rgba(34, 197, 94, 0.1)'};
-  color: ${props => props.$low ? '#ef4444' : '#22c55e'};
-  border-radius: 8px;
-  font-size: 13px;
-  font-weight: 600;
-  text-align: right;
-`
-
-export const CardCost = styled.div`
-  font-size: 16px;
-  font-weight: 700;
-  color: ${colors.accentLight};
-`
-
-export const SummaryCard = styled.div`
-  display: none;
-  background: linear-gradient(135deg, ${colors.backgroundActive} 0%, ${colors.backgroundHover} 100%);
-  border: 1px solid ${colors.borderHover};
-  border-radius: 16px;
-  padding: 16px;
-  margin-top: 16px;
-  box-shadow: 0 4px 16px ${colors.shadow};
-
-  @media (max-width: 768px) {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-  }
-`
-
-export const SummaryTitle = styled.h4`
-  font-size: 14px;
-  font-weight: 600;
-  color: ${colors.textSecondary};
-  margin: 0;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-`
-
-export const SummaryStats = styled.div`
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 12px;
-`
-
-export const SummaryItem = styled.div`
-  background: ${colors.background};
-  border-radius: 12px;
-  padding: 12px;
-  border: 1px solid ${colors.border};
-`
-
-export const SummaryItemLabel = styled.div`
-  font-size: 12px;
-  color: ${colors.textSecondary};
-  margin-bottom: 4px;
-`
-
-export const SummaryItemValue = styled.div<{ $accent?: boolean }>`
-  font-size: 18px;
-  font-weight: 700;
-  color: ${props => props.$accent ? colors.accentLight : colors.textPrimary};
-`
-
-export const EmptyState = styled.div`
-  display: none;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 48px 24px;
-  text-align: center;
-  animation: fadeIn 0.3s ease;
-
-  @media (max-width: 768px) {
-    display: flex;
-  }
-
-  @media (min-width: 769px) {
-    display: none !important;
-  }
-`
-
-export const EmptyStateIcon = styled.div`
-  font-size: 48px;
-  margin-bottom: 16px;
-  opacity: 0.5;
-`
-
-export const EmptyStateText = styled.div`
-  font-size: 16px;
-  color: ${colors.textSecondary};
-  margin-bottom: 8px;
-`
-
-export const EmptyStateSubtext = styled.div`
-  font-size: 14px;
-  color: ${colors.textMuted};
-`
+
+export const PageContainer = styled.div(({ theme }) => ({
+  padding: '24px',
+  maxWidth: '100%',
+  margin: '0 auto',
+  background: theme.colors.background,
+  minHeight: '100vh',
+  animation: 'fadeIn 0.3s ease',
+
+  '@keyframes fadeIn': {
+    'from': {
+      opacity: 0,
+      transform: 'translateY(10px)',
+    },
+    'to': {
+      opacity: 1,
+      transform: 'translateY(0)',
+    },
+  },
+
+  '@media (max-width: 768px)': {
+    padding: '16px',
+  },
+
+  '@media (max-width: 480px)': {
+    padding: '12px',
+  },
+}))
+
+export const Header = styled.header({
+  display: 'flex',
+  justifyContent: 'space-between',
+  alignItems: 'center',
+  marginBottom: '24px',
+  gap: '16px',
+  flexWrap: 'wrap',
+
+  '@media (max-width: 768px)': {
+    marginBottom: '16px',
+    flexDirection: 'column',
+    alignItems: 'stretch',
+  },
+})
+
+export const HeaderLeft = styled.div({
+  display: 'flex',
+  alignItems: 'center',
+  gap: '16px',
+  flex: 1,
+  minWidth: 0,
+
+  '@media (max-width: 768px)': {
+    width: '100%',
+  },
+})
+
+export const BackButton = styled.button(({ theme }) => ({
+  background: theme.colors.backgroundHover,
+  border: `1px solid ${theme.colors.border}`,
+  color: theme.colors.textPrimary,
+  width: '40px',
+  height: '40px',
+  borderRadius: '12px',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  cursor: 'pointer',
+  transition: 'all 0.2s ease',
+  fontSize: '18px',
+  flexShrink: 0,
+
+  '&:hover': {
+    background: theme.colors.backgroundActive,
+    borderColor: theme.colors.borderHover,
+    transform: 'translateX(-1px)',
+  },
+
+  '&:active': {
+    transform: 'translateX(0) scale(0.98)',
+  },
+
+  '@media (max-width: 480px)': {
+    width: '36px',
+    height: '36px',
+    fontSize: '16px',
+  },
+}))
+
+export const Title = styled.h1(({ theme }) => ({
+  fontSize: '28px',
+  fontWeight: 700,
+  color: theme.colors.textPrimary,
+  margin: 0,
+  whiteSpace: 'nowrap',
+  overflow: 'hidden',
+  textOverflow: 'ellipsis',
+  letterSpacing: '-0.5px',
+
+  '@media (max-width: 768px)': {
+    fontSize: '24px',
+  },
+
+  '@media (max-width: 480px)': {
+    fontSize: '20px',
+  },
+}))
+
+export const AcccentSpan = styled.span(({ theme }) => ({
+  color: theme.colors.accent,
+  marginLeft: '4px',
+}))
+
+export const SummaryPrice = styled.strong(({ theme }) => ({
+  color: theme.colors.accent,
+}))
+
+export const HeaderActions = styled.div({
+  display: 'flex',
+  gap: '8px',
+  alignItems: 'center',
+  flexWrap: 'wrap',
+
+  '@media (max-width: 768px)': {
+    width: '100%',
+    justifyContent: 'stretch',
+  },
+
+  '@media (max-width: 480px)': {
+    gap: '6px',
+  },
+})
+
+export const ActionButton = styled.button(({ theme }) => ({
+  display: 'flex',
+  alignItems: 'center',
+  gap: '6px',
+  padding: '10px 16px',
+  background: theme.colors.backgroundHover,
+  border: `1px solid ${theme.colors.border}`,
+  borderRadius: '10px',
+  color: theme.colors.textSecondary,
+  fontSize: '14px',
+  fontWeight: 500,
+  cursor: 'pointer',
+  transition: 'all 0.2s ease',
+  whiteSpace: 'nowrap',
+
+  '&:hover': {
+    background: theme.colors.backgroundActive,
+    borderColor: theme.colors.borderHover,
+    color: theme.colors.textPrimary,
+  },
+
+  '&:active': {
+    transform: 'scale(0.98)',
+  },
+
+  '& span:first-child': {
+    fontSize: '16px',
+  },
+
+  'span.action-text': {
+    transition: 'opacity 0.2s ease',
+  },
+
+  '@media (max-width: 768px)': {
+    flex: 1,
+    justifyContent: 'center',
+    padding: '8px 12px',
+    fontSize: '13px',
+
+    '& span:first-child': {
+      fontSize: '14px',
+    },
+  },
+
+  '@media (max-width: 480px)': {
+    padding: '8px',
+    fontSize: '11px',
+
+    'span.action-text': {
+      display: 'none',
+    },
+
+    '& span:first-child': {
+      fontSize: '18px',
+    },
+  },
+}))
+
+export const AddButton = styled.button(({ theme }) => ({
+  padding: '10px 20px',
+  background: theme.colors.primary,
+  border: 'none',
+  borderRadius: '10px',
+  color: theme.colors.white,
+  fontSize: '14px',
+  fontWeight: 600,
+  cursor: 'pointer',
+  transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+  boxShadow: `0 2px 8px ${theme.colors.shadow}`,
+  whiteSpace: 'nowrap',
+  position: 'relative',
+  overflow: 'hidden',
+
+  '&::before': {
+    content: '""',
+    position: 'absolute',
+    top: 0,
+    left: '-100%',
+    width: '100%',
+    height: '100%',
+    background: 'linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.15), transparent)',
+    transition: 'left 0.5s',
+  },
+
+  '&:hover': {
+    background: theme.colors.primaryHover,
+    transform: 'translateY(-1px)',
+    boxShadow: `0 4px 12px ${theme.colors.shadowMedium}`,
+
+    '&::before': {
+      left: '100%',
+    },
+  },
+
+  '&:active': {
+    transform: 'translateY(0) scale(0.98)',
+  },
+
+  '@media (max-width: 768px)': {
+    flex: 1,
+    padding: '8px 16px',
+  },
+
+  '@media (max-width: 480px)': {
+    padding: '8px 12px',
+    fontSize: '13px',
+  },
+}))
+
+export const SearchContainer = styled.div({
+  display: 'flex',
+  gap: '12px',
+  marginBottom: '20px',
+  alignItems: 'stretch',
+
+  '@media (max-width: 768px)': {
+    marginBottom: '16px',
+    flexDirection: 'column',
+    gap: '8px',
+  },
+})
+
+export const SearchInputWrapper = styled.div(({ theme }) => ({
+  flex: 1,
+  position: 'relative',
+  display: 'flex',
+  alignItems: 'center',
+
+  '@media (max-width: 768px)': {
+    width: '100%',
+  },
+
+  '.ant-input': {
+    background: theme.colors.backgroundActive,
+    borderColor: theme.colors.border,
+    color: theme.colors.textPrimary,
+
+    '&::placeholder': {
+      color: theme.colors.textMuted,
+    },
+
+    '&:hover': {
+      background: theme.colors.backgroundActive,
+      borderColor: theme.colors.border,
+    },
+
+    '&:focus': {
+      background: theme.colors.backgroundActive,
+      borderColor: theme.colors.accent,
+      boxShadow: `0 0 0 2px ${theme.colors.accentBackground}`,
+    },
+  },
+}))
+
+export const SearchIcon = styled.span({
+  position: 'absolute',
+  left: '12px',
+  fontSize: '18px',
+  zIndex: 1,
+  pointerEvents: 'none',
+  opacity: 0.6,
+})
+
+export const FilterButton = styled.button(({ theme }) => ({
+  padding: '10px 16px',
+  background: theme.colors.backgroundHover,
+  border: `1px solid ${theme.colors.border}`,
+  borderRadius: '10px',
+  color: theme.colors.textSecondary,
+  fontSize: '14px',
+  fontWeight: 500,
+  cursor: 'pointer',
+  transition: 'all 0.2s ease',
+  whiteSpace: 'nowrap',
+  display: 'flex',
+  alignItems: 'center',
+  gap: '6px',
+
+  '&:hover': {
+    background: theme.colors.backgroundActive,
+    borderColor: theme.colors.borderHover,
+    color: theme.colors.textPrimary,
+  },
+
+  '@media (max-width: 768px)': {
+    width: '100%',
+    justifyContent: 'center',
+  },
+
+  '@media (max-width: 480px)': {
+    padding: '8px 12px',
+    fontSize: '13px',
+  },
+}))
+
+export const TableContainer = styled.div(({ theme }) => ({
+  background: theme.colors.backgroundHover,
+  border: `1px solid ${theme.colors.border}`,
+  borderRadius: '16px',
+  overflow: 'hidden',
+  boxShadow: `0 4px 16px ${theme.colors.shadow}`,
+  position: 'relative',
+
+  '@media (max-width: 768px)': {
+    display: 'none',
+  },
+
+  '::-webkit-scrollbar': {
+    width: '8px',
+    height: '8px',
+  },
+
+  '::-webkit-scrollbar-track': {
+    background: theme.colors.background,
+    borderRadius: '4px',
+  },
+
+  '::-webkit-scrollbar-thumb': {
+    background: theme.colors.borderHover,
+    borderRadius: '4px',
+    transition: 'background 0.2s',
+
+    '&:hover': {
+      background: theme.colors.textMuted,
+    },
+  },
+
+  '.ant-table': {
+    background: 'transparent',
+    color: theme.colors.textPrimary,
+    fontSize: '14px',
+
+    '@media (max-width: 768px)': {
+      fontSize: '13px',
+    },
+  },
+
+  '.ant-table-row': {
+    cursor: 'pointer',
+
+    '&:hover': {
+      background: 'transparent !important',
+    },
+  },
+
+  '.ant-table-thead > tr > th': {
+    background: theme.colors.backgroundActive,
+    borderBottom: `1px solid ${theme.colors.border}`,
+    color: theme.colors.textSecondary,
+    fontWeight: 600,
+    padding: '16px',
+    textTransform: 'uppercase',
+    fontSize: '12px',
+    letterSpacing: '0.5px',
+
+    '&:hover': {
+      background: `${theme.colors.backgroundActive} !important`,
+    },
+
+    '@media (max-width: 768px)': {
+      padding: '12px 8px',
+      fontSize: '11px',
+    },
+
+    '@media (max-width: 480px)': {
+      padding: '10px 6px',
+      fontSize: '10px',
+    },
+  },
+
+  '.ant-table-tbody > tr > td': {
+    borderBottom: `1px solid ${theme.colors.border}`,
+    padding: '16px',
+    color: theme.colors.textPrimary,
+    background: 'transparent !important',
+
+    '@media (max-width: 768px)': {
+      padding: '12px 8px',
+    },
+
+    '@media (max-width: 480px)': {
+      padding: '10px 6px',
+    },
+  },
+
+  '.ant-table-tbody > tr': {
+    '&:hover': {
+      background: 'transparent !important',
+    },
+  },
+
+  '.ant-table-wrapper': {
+    overflowX: 'auto',
+
+    '@media (max-width: 768px)': {
+      WebkitOverflowScrolling: 'touch',
+    },
+  },
+
+  '.ant-table-container': {
+    minWidth: '100%',
+
+    '@media (max-width: 768px)': {
+      minWidth: '600px',
+    },
+  },
+
+  '.ant-table-summary': {
+    background: theme.colors.backgroundActive,
+    borderTop: `2px solid ${theme.colors.border}`,
+
+    '> div > tr > td': {
+      background: theme.colors.backgroundActive,
+      color: theme.colors.textPrimary,
+      fontWeight: 700,
+      borderBottom: 'none',
+    },
+  },
+
+  '.ant-empty': {
+    color: theme.colors.textSecondary,
+  },
+
+  '.ant-empty-description': {
+    color: theme.colors.textMuted,
+  },
+}))
+
+export const LoadingContainer = styled.div(({ theme }) => ({
+  display: 'flex',
+  flexDirection: 'column',
+  alignItems: 'center',
+  justifyContent: 'center',
+  minHeight: '400px',
+  gap: '16px',
+
+  '&::before': {
+    content: '""',
+    width: '48px',
+    height: '48px',
+    border: `3px solid ${theme.colors.border}`,
+    borderTopColor: theme.colors.accent,
+    borderRadius: '50%',
+    animation: 'spin 0.8s linear infinite',
+  },
+
+  '@keyframes spin': {
+    'to': {
+      transform: 'rotate(360deg)',
+    },
+  },
+
+  '> span': {
+    color: theme.colors.textSecondary,
+    fontSize: '18px',
+    fontWeight: 500,
+  },
+
+  '@media (max-width: 768px)': {
+    minHeight: '300px',
+
+    '&::before': {
+      width: '40px',
+      height: '40px',
+    },
+
+    '> span': {
+      fontSize: '16px',
+    },
+  },
+}))
+
+export const ErrorContainer = styled.div(({ theme }) => ({
+  display: 'flex',
+  flexDirection: 'column',
+  alignItems: 'center',
+  justifyContent: 'center',
+  minHeight: '400px',
+  color: theme.colors.danger,
+  fontSize: '16px',
+  textAlign: 'center',
+  padding: '20px',
+  borderRadius: '12px',
+  background: 'rgba(239, 68, 68, 0.08)',
+  border: '1px solid rgba(239, 68, 68, 0.15)',
+
+  '@media (max-width: 768px)': {
+    minHeight: '300px',
+    fontSize: '14px',
+    padding: '16px',
+  },
+}))
+
+export const MobileActionsDropdown = styled.div<{ isOpen: boolean }>({
+  display: 'none',
+
+  '@media (max-width: 480px)': {
+    display: ({ isOpen }) => (isOpen ? 'block' : 'none'),
+    position: 'fixed',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    background: ({ theme }) => theme.colors.backgroundHover,
+    borderTop: `1px solid ${({ theme }) => theme.colors.border}`,
+    padding: '12px',
+    boxShadow: `0 -4px 16px ${({ theme }) => theme.colors.shadow}`,
+    zIndex: 1000,
+    animation: 'slideUp 0.3s ease',
+
+    '@keyframes slideUp': {
+      from: {
+        transform: 'translateY(100%)',
+      },
+      to: {
+        transform: 'translateY(0)',
+      },
+    },
+  },
+})
+
+export const MobileActionsGrid = styled.div({
+  display: 'grid',
+  gridTemplateColumns: 'repeat(4, 1fr)',
+  gap: '8px',
+
+  '@media (max-width: 360px)': {
+    gridTemplateColumns: 'repeat(2, 1fr)',
+  },
+})
+
+export const MobileActionItem = styled.button(({ theme }) => ({
+  display: 'flex',
+  flexDirection: 'column',
+  alignItems: 'center',
+  gap: '4px',
+  padding: '12px 8px',
+  background: theme.colors.backgroundActive,
+  border: `1px solid ${theme.colors.border}`,
+  borderRadius: '8px',
+  color: theme.colors.textSecondary,
+  fontSize: '11px',
+  cursor: 'pointer',
+  transition: 'all 0.2s ease',
+
+  '&:hover': {
+    background: theme.colors.backgroundHover,
+    borderColor: theme.colors.borderHover,
+    color: theme.colors.textPrimary,
+  },
+
+  '& span': {
+    fontSize: '20px',
+  },
+}))
+
+export const MobileMenuButton = styled.button<{ isVisible: boolean }>({
+  display: 'none',
+
+  '@media (max-width: 480px)': {
+    display: ({ isVisible }) => (isVisible ? 'flex' : 'none'),
+    position: 'fixed',
+    bottom: '20px',
+    right: '20px',
+    width: '56px',
+    height: '56px',
+    borderRadius: '50%',
+    background: ({ theme }) => theme.colors.primary,
+    border: 'none',
+    boxShadow: `0 4px 16px ${({ theme }) => theme.colors.shadow}`,
+    color: ({ theme }) => theme.colors.white,
+    fontSize: '24px',
+    alignItems: 'center',
+    justifyContent: 'center',
+    cursor: 'pointer',
+    transition: 'all 0.2s ease',
+    zIndex: 999,
+
+    '&:hover': {
+      transform: 'scale(1.1)',
+      background: ({ theme }) => theme.colors.primaryHover,
+      boxShadow: `0 6px 20px ${({ theme }) => theme.colors.shadow}`,
+    },
+
+    '&:active': {
+      transform: 'scale(1.05)',
+    },
+  },
+})
+
+export const MobileCardsContainer = styled.div({
+  display: 'none',
+  animation: 'fadeIn 0.3s ease',
+
+  '@media (max-width: 768px)': {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '12px',
+  },
+})
+
+export const IngredientCard = styled.div(({ theme }) => ({
+  background: theme.colors.backgroundHover,
+  border: `1px solid ${theme.colors.border}`,
+  borderRadius: '16px',
+  padding: '16px',
+  transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+  position: 'relative',
+  overflow: 'hidden',
+  animation: 'slideIn 0.3s ease',
+
+  '@keyframes slideIn': {
+    from: {
+      opacity: 0,
+      transform: 'translateY(20px)',
+    },
+    to: {
+      opacity: 1,
+      transform: 'translateY(0)',
+    },
+  },
+
+  '&:hover': {
+    borderColor: theme.colors.borderHover,
+    boxShadow: `0 2px 12px ${theme.colors.shadow}`,
+    transform: 'translateY(-1px)',
+  },
+
+  '&:active': {
+    transform: 'translateY(0)',
+  },
+}))
+
+export const CardHeader = styled.div({
+  display: 'flex',
+  justifyContent: 'space-between',
+  alignItems: 'flex-start',
+  marginBottom: '12px',
+  gap: '12px',
+})
+
+export const CardTitle = styled.h3(({ theme }) => ({
+  fontSize: '16px',
+  fontWeight: 600,
+  color: theme.colors.textPrimary,
+  margin: 0,
+  wordBreak: 'break-word',
+  flex: 1,
+  lineHeight: 1.4,
+}))
+
+export const CardActions = styled.div({
+  display: 'flex',
+  gap: '4px',
+  flexShrink: 0,
+})
+
+export const CardAction = styled.button(({ theme }) => ({
+  width: '32px',
+  height: '32px',
+  borderRadius: '8px',
+  background: theme.colors.backgroundActive,
+  border: `1px solid ${theme.colors.border}`,
+  color: theme.colors.textSecondary,
+  cursor: 'pointer',
+  transition: 'all 0.2s ease',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  fontSize: '14px',
+
+  '&:hover': {
+    background: theme.colors.accentBackground,
+    borderColor: theme.colors.accentLight,
+    color: theme.colors.accentLight,
+    transform: 'scale(1.05)',
+  },
+
+  '&:active': {
+    transform: 'scale(1.02)',
+  },
+}))
+
+export const CardContent = styled.div({
+  display: 'flex',
+  flexDirection: 'column',
+  gap: '10px',
+})
+
+export const CardRow = styled.div({
+  display: 'flex',
+  justifyContent: 'space-between',
+  alignItems: 'center',
+  gap: '8px',
+})
+
+export const CardLabel = styled.span(({ theme }) => ({
+  fontSize: '13px',
+  color: theme.colors.textSecondary,
+  flexShrink: 0,
+}))
+
+export const CardValue = styled.span<{ $accent?: boolean }>(({ theme, $accent }) => ({
+  fontSize: '14px',
+  color: $accent ? theme.colors.accent : theme.colors.textPrimary,
+  fontWeight: 500,
+  textAlign: 'right',
+  wordBreak: 'break-word',
+}))
+
+export const CardCategory = styled.div(({ theme }) => ({
+  display: 'inline-block',
+  padding: '4px 10px',
+  background: theme.colors.accentBackground,
+  color: theme.colors.accentLight,
+  borderRadius: '20px',
+  fontSize: '12px',
+  fontWeight: 500,
+}))
+
+export const CardStock = styled.div<{ $low?: boolean }>(({ theme, $low }) => ({
+  padding: '6px 12px',
+  background: $low
+    ? 'rgba(239, 68, 68, 0.08)'
+    : 'rgba(16, 185, 129, 0.08)',
+  color: $low ? theme.colors.danger : theme.colors.success,
+  borderRadius: '8px',
+  fontSize: '13px',
+  fontWeight: 600,
+  textAlign: 'right',
+}))
+
+export const CardCost = styled.div(({ theme }) => ({
+  fontSize: '16px',
+  fontWeight: 700,
+  color: theme.colors.accentLight,
+}))
+
+export const SummaryCard = styled.div(({ theme }) => ({
+  display: 'none',
+  background: `linear-gradient(135deg, ${theme.colors.backgroundActive} 0%, ${theme.colors.backgroundHover} 100%)`,
+  border: `1px solid ${theme.colors.borderHover}`,
+  borderRadius: '16px',
+  padding: '16px',
+  marginTop: '16px',
+  boxShadow: `0 4px 16px ${theme.colors.shadow}`,
+
+  '@media (max-width: 768px)': {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '12px',
+  },
+}))
+
+export const SummaryTitle = styled.h4(({ theme }) => ({
+  fontSize: '14px',
+  fontWeight: 600,
+  color: theme.colors.textSecondary,
+  margin: 0,
+  textTransform: 'uppercase',
+  letterSpacing: '0.5px',
+}))
+
+export const SummaryStats = styled.div({
+  display: 'grid',
+  gridTemplateColumns: 'repeat(2, 1fr)',
+  gap: '12px',
+})
+
+export const SummaryItem = styled.div(({ theme }) => ({
+  background: theme.colors.background,
+  borderRadius: '12px',
+  padding: '12px',
+  border: `1px solid ${theme.colors.border}`,
+}))
+
+export const SummaryItemLabel = styled.div(({ theme }) => ({
+  fontSize: '12px',
+  color: theme.colors.textSecondary,
+  marginBottom: '4px',
+}))
+
+export const SummaryItemValue = styled.div<{ $accent?: boolean }>(({ theme, $accent }) => ({
+  fontSize: '18px',
+  fontWeight: 700,
+  color: $accent ? theme.colors.accentLight : theme.colors.textPrimary,
+}))
+
+export const EmptyState = styled.div({
+  display: 'none',
+  flexDirection: 'column',
+  alignItems: 'center',
+  justifyContent: 'center',
+  padding: '48px 24px',
+  textAlign: 'center',
+  animation: 'fadeIn 0.3s ease',
+
+  '@media (max-width: 768px)': {
+    display: 'flex',
+  },
+
+  '@media (min-width: 769px)': {
+    display: 'none !important',
+  },
+})
+
+export const EmptyStateIcon = styled.div({
+  fontSize: '48px',
+  marginBottom: '16px',
+  opacity: 0.5,
+})
+
+export const EmptyStateText = styled.div(({ theme }) => ({
+  fontSize: '16px',
+  color: theme.colors.textSecondary,
+  marginBottom: '8px',
+}))
+
+export const EmptyStateSubtext = styled.div(({ theme }) => ({
+  fontSize: '14px',
+  color: theme.colors.textMuted,
+}))

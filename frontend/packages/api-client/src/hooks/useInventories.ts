@@ -74,6 +74,22 @@ export interface UpdateInventoryStatusRequest {
   status: 'draft' | 'in_progress' | 'completed' | 'cancelled'
 }
 
+export interface UpdateInventoryRequest {
+  warehouse_id: string
+  type: 'full' | 'partial'
+  scheduled_date?: string
+  comment?: string
+  items?: Array<{
+    type: 'ingredient' | 'product' | 'tech_card' | 'semi_finished'
+    ingredient_id?: string
+    product_id?: string
+    tech_card_id?: string
+    semi_finished_id?: string
+    actual_quantity: number
+    comment?: string
+  }>
+}
+
 export function useGetInventories(filter?: InventoryFilter) {
   return useQuery({
     queryKey: ['inventories', filter],
@@ -135,6 +151,30 @@ export function useUpdateInventoryStatus() {
       const response = await apiClient.put<InventoryResponse>(
         `/inventory/${id}/status`,
         { status }
+      )
+      return response.data.data
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['inventories'] })
+      queryClient.invalidateQueries({ queryKey: ['inventory'] })
+    },
+  })
+}
+
+export function useUpdateInventory() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: async ({
+      id,
+      data,
+    }: {
+      id: string
+      data: UpdateInventoryRequest
+    }): Promise<Inventory> => {
+      const response = await apiClient.put<InventoryResponse>(
+        `/inventory/${id}`,
+        data
       )
       return response.data.data
     },

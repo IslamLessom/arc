@@ -27,6 +27,7 @@ export interface UseInventoriesResult {
   isLoading: boolean
   error: Error | null
   searchQuery: string
+  isAddModalOpen: boolean
   filters: InventoriesFilter
   sort: InventoriesSort
   warehouses: Array<{ id: string; name: string }>
@@ -36,13 +37,11 @@ export interface UseInventoriesResult {
   handleSort: (field: keyof InventoryListItem) => void
   handleBack: () => void
   handleAdd: () => void
+  handleAddModalClose: () => void
+  handleAddSuccess: (inventoryId: string) => void
   handleEdit: (id: string) => void
   handleExport: () => void
   handlePrint: () => void
   handleColumns: () => void
-  isModalOpen: boolean
-  editingInventoryId: string | null
-  handleCloseModal: () => void
-  handleSuccess: () => void
 }
 

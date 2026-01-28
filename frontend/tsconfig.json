@@ -25,7 +25,8 @@
       "@restaurant-pos/api-client": ["./packages/api-client/src"],
       "@restaurant-pos/types": ["./packages/types/src"],
       "@restaurant-pos/real-time": ["./packages/real-time/src"],
-      "@restaurant-pos/print-service": ["./packages/print-service/src"]
+      "@restaurant-pos/print-service": ["./packages/print-service/src"],
+      "@restaurant-pos/assets": ["./packages/assets/src"]
     }
   },
   "include": ["**/*.ts", "**/*.tsx"],

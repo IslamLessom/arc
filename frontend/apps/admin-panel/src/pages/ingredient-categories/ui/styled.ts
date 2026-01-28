@@ -71,7 +71,7 @@ export const AddButton = styled.button({
   alignItems: 'center',
   gap: '0.5rem',
   padding: '0.5rem 1rem',
-  background: '#10b981',
+  background: '#3b82f6',
   border: 'none',
   borderRadius: '0.375rem',
   cursor: 'pointer',
@@ -79,7 +79,7 @@ export const AddButton = styled.button({
   color: '#ffffff',
   fontWeight: 500,
   '&:hover': {
-    backgroundColor: '#059669',
+    backgroundColor: '#2563eb',
   },
 })
 

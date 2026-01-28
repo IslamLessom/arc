@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useProductCategories } from '../hooks/useProductCategories'
-import { Button, Input } from '@restaurant-pos/ui'
-import { getCategoryIcon, getCategoryTypeLabel } from '../lib/categoryHelpers'
+import { Input } from '@restaurant-pos/ui'
+import { getCategoryIconComponent, getCategoryTypeLabel } from '../lib/categoryHelpers'
 import { AddCategoryModal } from '../../../features/add-category-modal'
 import type { ProductCategory } from '@restaurant-pos/api-client'
 import * as Styled from './styled'
@@ -77,6 +77,11 @@ export const ProductCategories = () => {
   const hasCategories = categories && categories.length > 0
   const filteredCategories = categories || []
 
+  const renderCategoryIcon = (type: string) => {
+    const IconComponent = getCategoryIconComponent(type)
+    return <IconComponent style={{ width: '16px', height: '16px' }} />
+  }
+
   return (
     <Styled.PageContainer>
       <Styled.Header>
@@ -86,9 +91,9 @@ export const ProductCategories = () => {
         </Styled.HeaderLeft>
         <Styled.HeaderActions>
           <Styled.DeleteButton>🗑️</Styled.DeleteButton>
-          <Button variant="default" onClick={handleOpenModal}>
+          <Styled.AddButton onClick={handleOpenModal}>
             Добавить
-          </Button>
+          </Styled.AddButton>
         </Styled.HeaderActions>
       </Styled.Header>
 
@@ -104,13 +109,13 @@ export const ProductCategories = () => {
           <Styled.EmptyStateDescription>
             Добавьте категории товаров и блюд, чтобы официант быстрее находил их на кассе.
             Например, «Первые блюда», «Выпечка» и «Напитки». Во вкладке{' '}
-            <Styled.EmptyStateLink href="/statistics">Статистика</Styled.EmptyStateLink> →{' '}
-            <Styled.EmptyStateLink href="/statistics/categories">Категории</Styled.EmptyStateLink>{' '}
+            <Styled.EmptyStateLink onClick={() => window.location.href = '/statistics'}>Статистика</Styled.EmptyStateLink> →{' '}
+            <Styled.EmptyStateLink onClick={() => window.location.href = '/statistics/categories'}>Категории</Styled.EmptyStateLink>{' '}
             смотрите статистику продаж и food cost по этим категориям.
           </Styled.EmptyStateDescription>
-          <Button variant="default" onClick={handleOpenModal} style={{ marginTop: '1rem' }}>
+          <Styled.AddButton onClick={handleOpenModal} style={{ marginTop: '1rem' }}>
             Продолжить
-          </Button>
+          </Styled.AddButton>
         </Styled.EmptyStateContainer>
       )}
 
@@ -132,7 +137,7 @@ export const ProductCategories = () => {
             <Styled.ListHeader>Название</Styled.ListHeader>
             {filteredCategories.map((category) => (
               <Styled.CategoryRow key={category.id}>
-                <Styled.CategoryIcon>{getCategoryIcon(category.type)}</Styled.CategoryIcon>
+                <Styled.CategoryIcon>{renderCategoryIcon(category.type)}</Styled.CategoryIcon>
                 <Styled.CategoryName>{category.name}</Styled.CategoryName>
                 <Styled.CategoryActions>
                   <Styled.EditButton onClick={() => handleEditCategory(category)}>Ред.</Styled.EditButton>
@@ -155,4 +160,3 @@ export const ProductCategories = () => {
     </Styled.PageContainer>
   )
 }
-

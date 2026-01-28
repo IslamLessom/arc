@@ -1,9 +1,14 @@
+import { useState } from 'react'
 import { useSupplies } from '../hooks/useSupplies'
 import { Table } from '@restaurant-pos/ui'
 import { getSuppliesTableColumns } from '../lib/constants'
+import { SupplyDetailsModal } from '../../../features/supply-details-modal'
 import * as Styled from './styled'
 
 export const Supplies = () => {
+  const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false)
+  const [selectedSupplyId, setSelectedSupplyId] = useState<string | undefined>()
+
   const {
     supplies,
     isLoading,
@@ -18,12 +23,21 @@ export const Supplies = () => {
     handleSort,
     handleBack,
     handleEdit,
-    handleDetails,
     handleAdd,
     handleExport,
     handlePrint,
     handleColumns
   } = useSupplies()
+
+  const handleDetails = (id: string) => {
+    setSelectedSupplyId(id)
+    setIsDetailsModalOpen(true)
+  }
+
+  const handleCloseDetailsModal = () => {
+    setIsDetailsModalOpen(false)
+    setSelectedSupplyId(undefined)
+  }
 
   const columns = getSuppliesTableColumns({
     onEdit: handleEdit,
@@ -149,6 +163,12 @@ export const Supplies = () => {
           emptyMessage="Нет поставок"
         />
       </Styled.TableContainer>
+
+      <SupplyDetailsModal
+        isOpen={isDetailsModalOpen}
+        supplyId={selectedSupplyId}
+        onClose={handleCloseDetailsModal}
+      />
     </Styled.PageContainer>
   )
 }
