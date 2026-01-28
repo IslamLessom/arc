@@ -16,9 +16,9 @@ COPY backend/ .
 RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o main ./cmd/api
 
 # Build seed scripts
-RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o seed_roles_and_subscriptions ./internal/scripts/seed_roles_and_subscriptions.go
-RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o seed_onboarding_questions ./internal/scripts/seed_onboarding_questions.go
-RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o seed_account_types ./internal/scripts/seed_account_types.go
+RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o seed_roles_and_subscriptions ./scripts/seed-roles
+RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o seed_onboarding_questions ./scripts/seed-onboarding-questions
+RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o seed_account_types ./scripts/seed-account-types
 
 FROM alpine:latest
 
