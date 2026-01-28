@@ -19,6 +19,7 @@ import { MovementReport } from './pages/movement-report'
 import { Movements } from './pages/movements'
 import { Products } from './pages/products'
 import { Inventories } from './pages/inventories'
+import { InventoryDetail } from './pages/inventory-detail'
 import { Sidebar } from './widgets/sidebar'
 import { OnboardingModal } from './widgets/onboarding-modal'
 import { useOnboardingStatus } from './shared/hooks/useOnboardingStatus'
@@ -71,6 +72,8 @@ export function App() {
           <Route path="/warehouse/movements" element={<Movements />} />
           <Route path="/warehouse/movement-report" element={<MovementReport />} />
           <Route path="/warehouse/inventories" element={<Inventories />} />
+          <Route path="/warehouse/inventories/new" element={<InventoryDetail />} />
+          <Route path="/warehouse/inventories/:id" element={<InventoryDetail />} />
           <Route path="/menu/products" element={<Products />} />
           <Route path="/menu/product-categories" element={<ProductCategories />} />
           <Route path="/menu/ingredient-categories" element={<IngredientCategories />} />

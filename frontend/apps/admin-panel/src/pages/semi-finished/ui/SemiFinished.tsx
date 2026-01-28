@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom'
 import { useSemiFinished } from '../hooks/useSemiFinished'
-import { Button, Input } from '@restaurant-pos/ui'
+import { Input } from '@restaurant-pos/ui'
 import { translateUnit } from '../../technical-cards/lib/unitTranslator'
 import * as Styled from './styled'
 
@@ -63,9 +63,9 @@ export const SemiFinished = () => {
         </Styled.HeaderLeft>
         <Styled.HeaderActions>
           <Styled.DeleteButton>🗑️</Styled.DeleteButton>
-          <Button variant="default" onClick={() => navigate('/menu/semi-finished/add')}>
+          <Styled.AddButton onClick={() => navigate('/menu/semi-finished/add')}>
             Добавить
-          </Button>
+          </Styled.AddButton>
         </Styled.HeaderActions>
       </Styled.Header>
 
@@ -82,13 +82,13 @@ export const SemiFinished = () => {
             Добавьте полуфабрикаты для оптимизации процесса приготовления блюд.
             Это поможет сократить время подготовки заказа и обеспечить стабильность качества.
             Во вкладке{' '}
-            <Styled.EmptyStateLink href="/statistics">Статистика</Styled.EmptyStateLink> →{' '}
-            <Styled.EmptyStateLink href="/statistics/semi-finished">Полуфабрикаты</Styled.EmptyStateLink>{' '}
+            <Styled.EmptyStateLink onClick={() => navigate('/statistics')}>Статистика</Styled.EmptyStateLink> →{' '}
+            <Styled.EmptyStateLink onClick={() => navigate('/statistics/semi-finished')}>Полуфабрикаты</Styled.EmptyStateLink>{' '}
             смотрите статистику использования и food cost по полуфабрикатам.
           </Styled.EmptyStateDescription>
-          <Button variant="default" onClick={() => navigate('/menu/semi-finished/add')} style={{ marginTop: '1rem' }}>
+          <Styled.AddButton onClick={() => navigate('/menu/semi-finished/add')} style={{ marginTop: '16px' }}>
             Продолжить
-          </Button>
+          </Styled.AddButton>
         </Styled.EmptyStateContainer>
       )}
 

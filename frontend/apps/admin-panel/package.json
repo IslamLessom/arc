@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@restaurant-pos/api-client": "workspace:*",
+    "@restaurant-pos/assets": "workspace:*",
     "@restaurant-pos/types": "workspace:*",
     "@restaurant-pos/ui": "workspace:*",
     "@tanstack/react-query": "^5.0.0",

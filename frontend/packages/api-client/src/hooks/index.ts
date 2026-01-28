@@ -5,6 +5,7 @@ export { useRegister } from './useRegister'
 export { useOnboarding, useOnboardingQuestions } from './useOnboarding'
 export { useCurrentUser } from './useCurrentUser'
 export { useGetStock, useUpdateStockLimit } from './useStock'
+export type { Stock } from './useStock'
 export {
   useGetCategories,
   useGetCategory,
@@ -26,6 +27,7 @@ export {
   useUpdateSemiFinishedProduct,
   useDeleteSemiFinishedProduct,
 } from './useSemiFinished'
+export type { SemiFinishedProduct } from './useSemiFinished'
 export {
   useGetIngredients,
   useGetIngredient,
@@ -101,6 +103,7 @@ export {
   useGetInventories,
   useGetInventory,
   useCreateInventory,
+  useUpdateInventory,
   useUpdateInventoryStatus,
   useDeleteInventory,
 } from './useInventories'
@@ -109,6 +112,7 @@ export type {
   InventoryItem,
   InventoryFilter,
   CreateInventoryRequest,
+  UpdateInventoryRequest,
   UpdateInventoryStatusRequest,
 } from './useInventories'
 export {

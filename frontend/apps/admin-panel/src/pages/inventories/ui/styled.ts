@@ -79,7 +79,7 @@ export const ActionButton = styled.button({
 export const AddButton = styled.button({
   padding: '10px 20px',
   border: 'none',
-  backgroundColor: '#10b981',
+  backgroundColor: '#3b82f6',
   color: '#ffffff',
   borderRadius: '8px',
   cursor: 'pointer',
@@ -88,7 +88,7 @@ export const AddButton = styled.button({
   transition: 'all 0.2s ease',
 
   '&:hover': {
-    backgroundColor: '#059669',
+    backgroundColor: '#2563eb',
   },
 })
 
@@ -170,6 +170,7 @@ export const SearchContainer = styled.div({
   display: 'flex',
   gap: '16px',
   marginBottom: '24px',
+  alignItems: 'center',
 })
 
 export const SearchInputWrapper = styled.div({
@@ -217,6 +218,40 @@ export const FilterButton = styled.button({
     backgroundColor: '#f8fafc',
     borderColor: '#cbd5e1',
   },
+})
+
+export const ConductButton = styled.button({
+  display: 'flex',
+  alignItems: 'center',
+  gap: '6px',
+  padding: '10px 20px',
+  border: 'none',
+  backgroundColor: '#10b981',
+  color: '#ffffff',
+  borderRadius: '8px',
+  cursor: 'pointer',
+  fontSize: '14px',
+  fontWeight: '500',
+  transition: 'all 0.2s ease',
+  whiteSpace: 'nowrap',
+
+  '&:hover': {
+    backgroundColor: '#059669',
+  },
+
+  '& span': {
+    fontSize: '16px',
+  },
+})
+
+export const DateTimeDisplay = styled.div({
+  padding: '10px 16px',
+  border: '1px solid #e2e8f0',
+  backgroundColor: '#f8fafc',
+  borderRadius: '8px',
+  fontSize: '14px',
+  color: '#64748b',
+  whiteSpace: 'nowrap',
 })
 
 export const TableContainer = styled.div({

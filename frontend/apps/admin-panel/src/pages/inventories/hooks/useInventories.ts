@@ -16,13 +16,12 @@ import { SortDirection } from '../model/enums'
 export const useInventories = (): UseInventoriesResult => {
   const navigate = useNavigate()
   const [searchQuery, setSearchQuery] = useState('')
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false)
   const [sort, setSort] = useState<InventoriesSort>({
     field: 'date_time',
     direction: SortDirection.DESC,
   })
   const [filters, setFilters] = useState<InventoriesFilter>({})
-  const [isModalOpen, setIsModalOpen] = useState(false)
-  const [editingInventoryId, setEditingInventoryId] = useState<string | null>(null)
 
   const { data: apiInventories = [], isLoading, error } = useGetInventories(filters)
   const { data: warehouses = [] } = useGetWarehouses()
@@ -119,23 +118,27 @@ export const useInventories = (): UseInventoriesResult => {
   }, [navigate])
 
   const handleAdd = useCallback(() => {
-    setEditingInventoryId(null)
-    setIsModalOpen(true)
+    setIsAddModalOpen(true)
   }, [])
 
-  const handleEdit = useCallback((id: string) => {
-    setEditingInventoryId(id)
-    setIsModalOpen(true)
+  const handleAddModalClose = useCallback(() => {
+    setIsAddModalOpen(false)
   }, [])
 
-  const handleCloseModal = useCallback(() => {
-    setIsModalOpen(false)
-    setEditingInventoryId(null)
-  }, [])
+  const handleAddSuccess = useCallback(
+    (inventoryId: string) => {
+      setIsAddModalOpen(false)
+      navigate(`/warehouse/inventories/${inventoryId}`)
+    },
+    [navigate]
+  )
 
-  const handleSuccess = useCallback(() => {
-    handleCloseModal()
-  }, [handleCloseModal])
+  const handleEdit = useCallback(
+    (id: string) => {
+      navigate(`/warehouse/inventories/${id}`)
+    },
+    [navigate]
+  )
 
   const handleExport = useCallback(() => {
     console.log('Export inventories')
@@ -154,6 +157,7 @@ export const useInventories = (): UseInventoriesResult => {
     isLoading,
     error: error as Error | null,
     searchQuery,
+    isAddModalOpen,
     filters,
     sort,
     warehouses: warehouses.map((w) => ({ id: w.id, name: w.name })),
@@ -163,14 +167,12 @@ export const useInventories = (): UseInventoriesResult => {
     handleSort,
     handleBack,
     handleAdd,
+    handleAddModalClose,
+    handleAddSuccess,
     handleEdit,
     handleExport,
     handlePrint,
     handleColumns,
-    isModalOpen,
-    editingInventoryId,
-    handleCloseModal,
-    handleSuccess,
   }
 }
 

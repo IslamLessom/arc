@@ -16,7 +16,7 @@ interface SemiFinishedIngredient {
   unit: string
 }
 
-interface SemiFinishedProduct {
+export interface SemiFinishedProduct {
   id: string
   establishment_id: string
   category_id: string

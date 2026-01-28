@@ -30,7 +30,7 @@ interface Warehouse {
   name: string
 }
 
-interface Stock {
+export interface Stock {
   id: string
   warehouse_id: string
   warehouse: Warehouse

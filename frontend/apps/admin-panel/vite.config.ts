@@ -5,6 +5,7 @@ import path from 'path'
 export default defineConfig({
   plugins: [react()],
   server: {
+    host: true,
     port: 3001
   },
   resolve: {
@@ -15,6 +16,7 @@ export default defineConfig({
       '@restaurant-pos/pwa-core': path.resolve(__dirname, '../../packages/pwa-core/src'),
       '@restaurant-pos/real-time': path.resolve(__dirname, '../../packages/real-time/src'),
       '@restaurant-pos/print-service': path.resolve(__dirname, '../../packages/print-service/src'),
+      '@restaurant-pos/assets': path.resolve(__dirname, '../../packages/assets/src'),
     }
   }
 })
