@@ -1,102 +1,102 @@
 import { Input } from '@restaurant-pos/ui'
 import styled from 'styled-components'
 
-export const PageContainer = styled.div({
+export const PageContainer = styled.div(({ theme }) => ({
   padding: '24px',
-  backgroundColor: '#ffffff',
+  backgroundColor: theme.colors.background,
   minHeight: '100vh'
-})
+}))
 
-export const Header = styled.div({
+export const Header = styled.div(({ theme }) => ({
   display: 'flex',
   justifyContent: 'space-between',
   alignItems: 'center',
-  marginBottom: '24px'
-})
+  marginBottom: theme.spacing.lg
+}))
 
-export const HeaderLeft = styled.div({
+export const HeaderLeft = styled.div(({ theme }) => ({
   display: 'flex',
   alignItems: 'center',
-  gap: '16px'
-})
+  gap: theme.spacing.md
+}))
 
-export const BackButton = styled.button({
+export const BackButton = styled.button(({ theme }) => ({
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'center',
   width: '40px',
   height: '40px',
-  border: '1px solid #e2e8f0',
-  backgroundColor: '#ffffff',
-  borderRadius: '8px',
+  border: `1px solid ${theme.colors.border}`,
+  backgroundColor: theme.colors.white,
+  borderRadius: theme.borderRadius.md,
   cursor: 'pointer',
   fontSize: '18px',
   transition: 'all 0.2s ease',
 
   '&:hover': {
-    backgroundColor: '#f8fafc',
-    borderColor: '#cbd5e1'
+    backgroundColor: theme.colors.backgroundHover,
+    borderColor: theme.colors.borderHover
   }
-})
+}))
 
-export const Title = styled.h1({
+export const Title = styled.h1(({ theme }) => ({
   margin: 0,
   fontSize: '24px',
   fontWeight: '600',
-  color: '#1e293b'
-})
+  color: theme.colors.textPrimary
+}))
 
-export const HeaderActions = styled.div({
+export const HeaderActions = styled.div(({ theme }) => ({
   display: 'flex',
   alignItems: 'center',
-  gap: '12px'
-})
+  gap: theme.spacing.sm
+}))
 
-export const ActionButton = styled.button({
+export const ActionButton = styled.button(({ theme }) => ({
   display: 'flex',
   alignItems: 'center',
   gap: '6px',
   padding: '8px 16px',
-  border: '1px solid #e2e8f0',
-  backgroundColor: '#ffffff',
-  borderRadius: '8px',
+  border: `1px solid ${theme.colors.border}`,
+  backgroundColor: theme.colors.white,
+  borderRadius: theme.borderRadius.md,
   cursor: 'pointer',
   fontSize: '14px',
-  color: '#64748b',
-  transition: 'all 0.2s ease',
+  color: theme.colors.textSecondary,
+  transition: theme.transitions.normal,
 
   '&:hover': {
-    backgroundColor: '#f8fafc',
-    borderColor: '#cbd5e1',
-    color: '#475569'
+    backgroundColor: theme.colors.backgroundHover,
+    borderColor: theme.colors.borderHover,
+    color: theme.colors.textPrimary
   },
 
   '& span': {
     fontSize: '16px'
   }
-})
+}))
 
-export const AddButton = styled.button({
+export const AddButton = styled.button(({ theme }) => ({
   padding: '10px 20px',
   border: 'none',
-  backgroundColor: '#3b82f6',
-  color: '#ffffff',
-  borderRadius: '8px',
+  backgroundColor: theme.colors.primary,
+  color: theme.colors.white,
+  borderRadius: theme.borderRadius.md,
   cursor: 'pointer',
   fontSize: '14px',
   fontWeight: '500',
-  transition: 'all 0.2s ease',
+  transition: theme.transitions.normal,
 
   '&:hover': {
-    backgroundColor: '#2563eb'
+    backgroundColor: theme.colors.primaryHover
   }
-})
+}))
 
-export const SearchContainer = styled.div({
+export const SearchContainer = styled.div(({ theme }) => ({
   display: 'flex',
-  gap: '16px',
-  marginBottom: '24px'
-})
+  gap: theme.spacing.md,
+  marginBottom: theme.spacing.lg
+}))
 
 export const SearchInputWrapper = styled.div({
   flex: 1,
@@ -104,69 +104,69 @@ export const SearchInputWrapper = styled.div({
   maxWidth: '400px'
 })
 
-export const SearchIcon = styled.span({
+export const SearchIcon = styled.span(({ theme }) => ({
   position: 'absolute',
   left: '12px',
   top: '50%',
   transform: 'translateY(-50%)',
-  color: '#94a3b8',
+  color: theme.colors.textMuted,
   pointerEvents: 'none'
-})
+}))
 
-export const FilterButton = styled.button({
+export const FilterButton = styled.button(({ theme }) => ({
   padding: '10px 16px',
-  border: '1px solid #e2e8f0',
-  backgroundColor: '#ffffff',
-  borderRadius: '8px',
+  border: `1px solid ${theme.colors.border}`,
+  backgroundColor: theme.colors.white,
+  borderRadius: theme.borderRadius.md,
   cursor: 'pointer',
   fontSize: '14px',
-  color: '#64748b',
-  transition: 'all 0.2s ease',
+  color: theme.colors.textSecondary,
+  transition: theme.transitions.normal,
 
   '&:hover': {
-    backgroundColor: '#f8fafc',
-    borderColor: '#cbd5e1'
+    backgroundColor: theme.colors.backgroundHover,
+    borderColor: theme.colors.borderHover
   }
-})
+}))
 
-export const TableContainer = styled.div({
-  border: '1px solid #e2e8f0',
-  borderRadius: '12px',
+export const TableContainer = styled.div(({ theme }) => ({
+  border: `1px solid ${theme.colors.border}`,
+  borderRadius: theme.borderRadius.lg,
   overflow: 'hidden',
-  backgroundColor: '#ffffff'
-})
+  backgroundColor: theme.colors.background
+}))
 
-export const LoadingContainer = styled.div({
+export const LoadingContainer = styled.div(({ theme }) => ({
   display: 'flex',
   justifyContent: 'center',
   alignItems: 'center',
   height: '400px',
   fontSize: '16px',
-  color: '#64748b'
-})
+  color: theme.colors.textSecondary
+}))
 
-export const ErrorContainer = styled.div({
+export const ErrorContainer = styled.div(({ theme }) => ({
   display: 'flex',
   justifyContent: 'center',
   alignItems: 'center',
   height: '400px',
   fontSize: '16px',
-  color: '#ef4444',
+  color: theme.colors.danger,
   textAlign: 'center',
-  padding: '24px'
-})
+  padding: theme.spacing.lg
+}))
 
-export const TableActionsContainer = styled.div({
+export const TableActionsContainer = styled.div(({ theme }) => ({
   display: 'flex',
-  gap: '8px'
-})
+  gap: theme.spacing.xs
+}))
 
-export const TableSummaryContainer = styled.div({
+export const TableSummaryContainer = styled.div(({ theme }) => ({
   display: 'flex',
   justifyContent: 'space-between',
   padding: '12px 16px',
-  borderTop: '1px solid #e2e8f0'
-})
+  borderTop: `1px solid ${theme.colors.border}`
+}))
 
 export const TableSummaryLabel = styled.span({
   fontWeight: '600'

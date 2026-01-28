@@ -79,7 +79,7 @@ export const ActionButton = styled.button({
 export const AddButton = styled.button({
   padding: '10px 20px',
   border: 'none',
-  backgroundColor: '#10b981',
+  backgroundColor: '#3b82f6',
   color: '#ffffff',
   borderRadius: '8px',
   cursor: 'pointer',
@@ -88,7 +88,7 @@ export const AddButton = styled.button({
   transition: 'all 0.2s ease',
 
   '&:hover': {
-    backgroundColor: '#059669'
+    backgroundColor: '#2563eb'
   }
 })
 

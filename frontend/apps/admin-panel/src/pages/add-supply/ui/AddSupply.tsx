@@ -1,6 +1,7 @@
 import { useAddSupply } from '../hooks/useAddSupply'
 import { AccountType, AccountTypeLabel } from '../model/enums'
 import { translateUnit } from '../../technical-cards/lib/unitTranslator'
+import { ImportIcon } from '@restaurant-pos/assets'
 import * as Styled from './styled'
 
 export const AddSupply = () => {
@@ -234,16 +235,18 @@ export const AddSupply = () => {
 
         <Styled.FormSection>
           <Styled.ImportBox>
-            <Styled.ImportIcon>📊</Styled.ImportIcon>
+            <Styled.ImportIconContainer>
+              <ImportIcon />
+            </Styled.ImportIconContainer>
             <Styled.ImportContent>
               <Styled.ImportTitle>Импорт поставки</Styled.ImportTitle>
               <Styled.ImportText>
-                Нажмите на поле для выбора файла или перетащите в него таблицу в формате CSV, XLS, XLSX. 
-                Проверьте, совпадают ли названия товаров и ингредиентов в ARCE и в таблице для импорта. 
+                Нажмите на поле для выбора файла или перетащите в него таблицу в формате CSV, XLS, XLSX.
+                Проверьте, совпадают ли названия товаров и ингредиентов в ARCE и в таблице для импорта.
                 Добавьте новые продукты во вкладках{' '}
-                <Styled.ImportLink href="/menu/products">Меню → Товары</Styled.ImportLink>
+                <Styled.ImportLink to="/menu/products">Меню → Товары</Styled.ImportLink>
                 {' '}и{' '}
-                <Styled.ImportLink href="/menu/ingredients">Меню → Ингредиенты</Styled.ImportLink>.
+                <Styled.ImportLink to="/menu/ingredients">Меню → Ингредиенты</Styled.ImportLink>.
               </Styled.ImportText>
             </Styled.ImportContent>
           </Styled.ImportBox>

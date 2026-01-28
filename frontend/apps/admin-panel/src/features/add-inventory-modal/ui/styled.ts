@@ -272,3 +272,309 @@ export const SaveButton = styled.button<{ $disabled?: boolean }>((props) => ({
   },
 }))
 
+export const ItemsSection = styled.div({
+  display: 'flex',
+  flexDirection: 'column',
+  gap: '12px',
+})
+
+export const SelectedItemsList = styled.div({
+  display: 'flex',
+  flexDirection: 'column',
+  gap: '8px',
+  maxHeight: '200px',
+  overflowY: 'auto',
+  padding: '4px',
+})
+
+export const SelectedItemItem = styled.div({
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'space-between',
+  padding: '12px',
+  backgroundColor: '#f8fafc',
+  borderRadius: '8px',
+  border: '1px solid #e2e8f0',
+  gap: '12px',
+})
+
+export const ItemInfo = styled.div({
+  flex: 1,
+  display: 'flex',
+  flexDirection: 'column',
+  gap: '4px',
+})
+
+export const ItemName = styled.div({
+  fontSize: '14px',
+  fontWeight: 500,
+  color: '#1f2937',
+})
+
+export const ItemDetails = styled.div({
+  fontSize: '12px',
+  color: '#64748b',
+})
+
+export const ItemActions = styled.div({
+  display: 'flex',
+  alignItems: 'center',
+  gap: '8px',
+})
+
+export const QuantityInput = styled.input({
+  width: '80px',
+  padding: '6px 8px',
+  fontSize: '14px',
+  border: '1px solid #d1d5db',
+  borderRadius: '6px',
+  textAlign: 'center',
+  '&:focus': {
+    outline: 'none',
+    borderColor: '#3b82f6',
+    boxShadow: '0 0 0 2px rgba(59, 130, 246, 0.2)',
+  },
+})
+
+export const RemoveButton = styled.button({
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  width: '28px',
+  height: '28px',
+  border: 'none',
+  backgroundColor: '#ef4444',
+  color: '#ffffff',
+  borderRadius: '6px',
+  cursor: 'pointer',
+  fontSize: '14px',
+  transition: 'all 0.2s',
+  '&:hover': {
+    backgroundColor: '#dc2626',
+  },
+  '&:disabled': {
+    backgroundColor: '#fca5a5',
+    cursor: 'not-allowed',
+  },
+})
+
+export const SearchContainer = styled.div({
+  display: 'flex',
+  flexDirection: 'column',
+  gap: '8px',
+})
+
+export const SearchInput = styled.input({
+  width: '100%',
+  padding: '10px 12px',
+  fontSize: '14px',
+  border: '1px solid #d1d5db',
+  borderRadius: '6px',
+  backgroundColor: '#ffffff',
+  color: '#111827',
+  '&:focus': {
+    outline: 'none',
+    borderColor: '#3b82f6',
+    boxShadow: '0 0 0 2px rgba(59, 130, 246, 0.2)',
+  },
+  '&::placeholder': {
+    color: '#9ca3af',
+  },
+})
+
+export const StockItemsList = styled.div({
+  display: 'flex',
+  flexDirection: 'column',
+  gap: '4px',
+  maxHeight: '200px',
+  overflowY: 'auto',
+  border: '1px solid #e2e8f0',
+  borderRadius: '8px',
+  padding: '4px',
+})
+
+export const StockItem = styled.button({
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'space-between',
+  width: '100%',
+  padding: '10px 12px',
+  border: 'none',
+  backgroundColor: '#ffffff',
+  borderRadius: '6px',
+  cursor: 'pointer',
+  textAlign: 'left',
+  transition: 'all 0.2s',
+  '&:hover': {
+    backgroundColor: '#f1f5f9',
+  },
+  '&:disabled': {
+    opacity: 0.5,
+    cursor: 'not-allowed',
+  },
+})
+
+export const StockItemName = styled.span({
+  fontSize: '14px',
+  color: '#1f2937',
+})
+
+export const StockItemQuantity = styled.span({
+  fontSize: '12px',
+  color: '#64748b',
+})
+
+export const EmptyState = styled.div({
+  padding: '20px',
+  textAlign: 'center',
+  fontSize: '14px',
+  color: '#64748b',
+  backgroundColor: '#f8fafc',
+  borderRadius: '8px',
+})
+
+// Product Tree Styles
+export const ProductTreeContainer = styled.div({
+  display: 'flex',
+  flexDirection: 'column',
+  gap: '12px',
+  height: '100%',
+})
+
+export const TreeHeader = styled.div({
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'space-between',
+})
+
+export const TreeTitle = styled.div({
+  display: 'flex',
+  alignItems: 'center',
+  gap: '6px',
+  fontSize: '14px',
+  fontWeight: 500,
+  color: '#374151',
+})
+
+export const TreeInfoIcon = styled.span({
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  width: '18px',
+  height: '18px',
+  borderRadius: '50%',
+  backgroundColor: '#e5e7eb',
+  color: '#6b7280',
+  fontSize: '11px',
+  fontWeight: 600,
+  cursor: 'help',
+})
+
+export const TreeSearchContainer = styled.div({
+  display: 'flex',
+  flexDirection: 'column',
+  gap: '8px',
+})
+
+export const TreeSearchInput = styled.input({
+  width: '100%',
+  padding: '10px 12px',
+  fontSize: '14px',
+  border: '1px solid #d1d5db',
+  borderRadius: '6px',
+  backgroundColor: '#ffffff',
+  color: '#111827',
+  '&:focus': {
+    outline: 'none',
+    borderColor: '#3b82f6',
+    boxShadow: '0 0 0 2px rgba(59, 130, 246, 0.2)',
+  },
+  '&::placeholder': {
+    color: '#9ca3af',
+  },
+})
+
+export const TreeContent = styled.div({
+  display: 'flex',
+  flexDirection: 'column',
+  gap: '4px',
+  maxHeight: '400px',
+  overflowY: 'auto',
+  padding: '4px',
+  border: '1px solid #e5e7eb',
+  borderRadius: '8px',
+  backgroundColor: '#fafafa',
+})
+
+export const TreeNode = styled.div<{ $level: number }>((props) => ({
+  marginLeft: `${props.$level * 16}px`,
+}))
+
+export const TreeNodeHeader = styled.div({
+  display: 'flex',
+  alignItems: 'center',
+  gap: '8px',
+  padding: '8px',
+  borderRadius: '4px',
+  transition: 'backgroundColor 0.15s',
+  '&:hover': {
+    backgroundColor: '#f3f4f6',
+  },
+})
+
+export const TreeNodeCheckbox = styled.input({
+  cursor: 'pointer',
+  width: '16px',
+  height: '16px',
+  accentColor: '#10b981',
+})
+
+export const TreeNodeToggle = styled.button<{ $hasChildren: boolean; $expanded: boolean }>(
+  (props) => ({
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: '16px',
+    height: '16px',
+    border: 'none',
+    backgroundColor: 'transparent',
+    color: '#6b7280',
+    fontSize: '10px',
+    cursor: props.$hasChildren ? 'pointer' : 'default',
+    transition: 'transform 0.15s',
+    transform: props.$expanded ? 'rotate(0deg)' : 'rotate(-90deg)',
+    '&:hover': props.$hasChildren
+      ? {
+          color: '#374151',
+        }
+      : undefined,
+  })
+)
+
+export const TreeNodeLabel = styled.span({
+  flex: 1,
+  fontSize: '14px',
+  color: '#1f2937',
+  display: 'flex',
+  alignItems: 'center',
+  gap: '4px',
+})
+
+export const TreeNodeCount = styled.span({
+  fontSize: '12px',
+  color: '#9ca3af',
+  fontWeight: 400,
+})
+
+export const TreeNodeChildren = styled.div({
+  display: 'flex',
+  flexDirection: 'column',
+  gap: '2px',
+})
+
+export const TreeEmptyState = styled.div({
+  padding: '40px 20px',
+  textAlign: 'center',
+  fontSize: '14px',
+  color: '#9ca3af',
+})

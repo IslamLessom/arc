@@ -1,7 +1,8 @@
 import { useInventories } from '../hooks/useInventories'
 import { Table } from '@restaurant-pos/ui'
-import { AddInventoryModal } from '../../../features/add-inventory-modal'
+import type { InventoryListItem } from '../model/types'
 import { getInventoriesTableColumns } from '../lib/constants'
+import { AddInventoryModal } from '../../../features/add-inventory-modal'
 import * as Styled from './styled'
 
 export const Inventories = () => {
@@ -10,6 +11,7 @@ export const Inventories = () => {
     isLoading,
     error,
     searchQuery,
+    isAddModalOpen,
     filters,
     warehouses,
     totalCount,
@@ -17,18 +19,17 @@ export const Inventories = () => {
     handleFilterChange,
     handleBack,
     handleAdd,
+    handleAddModalClose,
+    handleAddSuccess,
     handleEdit,
     handleExport,
     handlePrint,
     handleColumns,
-    isModalOpen,
-    handleCloseModal,
-    handleSuccess,
   } = useInventories()
 
   const columns = getInventoriesTableColumns({
     onEdit: handleEdit,
-  })
+  }) as unknown as import('@restaurant-pos/ui').TableColumn<Record<string, unknown>>[]
 
   if (isLoading) {
     return (
@@ -82,18 +83,24 @@ export const Inventories = () => {
               инвентаризацию. Poster покажет результат проверки — разницу между остатками в
               количестве и деньгах.
             </Styled.InfoText>
-            <Styled.InfoLink href="#" onClick={(e) => {
-              e.preventDefault()
-              handleAdd()
-            }}>
-              <span>▶</span>
-              Смотреть видео
-            </Styled.InfoLink>
           </Styled.InfoContent>
         </Styled.InfoSection>
       )}
 
       <Styled.SearchContainer>
+        <Styled.DateTimeDisplay>
+          {new Date().toLocaleString('ru-RU', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+          })}
+        </Styled.DateTimeDisplay>
+        <Styled.ConductButton onClick={handleAdd}>
+          <span>📋</span>
+          Провести инвентаризацию
+        </Styled.ConductButton>
         <Styled.SearchInputWrapper>
           <Styled.SearchIcon>🔍</Styled.SearchIcon>
           <Styled.SearchInput
@@ -128,20 +135,22 @@ export const Inventories = () => {
             </Styled.EmptyStateText>
           </Styled.EmptyState>
         ) : (
-          <Table
+          <Table<Record<string, unknown>>
             columns={columns}
-            dataSource={inventories}
+            dataSource={inventories as unknown as Record<string, unknown>[]}
             rowKey="id"
             pagination={false}
-            onRowClick={(record) => handleEdit(record.id)}
+            onRow={(record: Record<string, unknown>) => ({
+              onClick: () => handleEdit((record as unknown as InventoryListItem).id),
+            })}
           />
         )}
       </Styled.TableContainer>
 
       <AddInventoryModal
-        isOpen={isModalOpen}
-        onClose={handleCloseModal}
-        onSuccess={handleSuccess}
+        isOpen={isAddModalOpen}
+        onClose={handleAddModalClose}
+        onSuccess={handleAddSuccess}
       />
     </Styled.PageContainer>
   )

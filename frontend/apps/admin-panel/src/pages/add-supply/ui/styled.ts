@@ -1,4 +1,5 @@
 import styled from 'styled-components'
+import { Link } from 'react-router-dom'
 
 export const PageContainer = styled.div({
   padding: '24px',
@@ -315,7 +316,7 @@ export const Footer = styled.div({
 export const SaveButton = styled.button({
   padding: '12px 24px',
   border: 'none',
-  backgroundColor: '#10b981',
+  backgroundColor: '#3b82f6',
   color: '#ffffff',
   borderRadius: '8px',
   fontSize: '14px',
@@ -324,7 +325,7 @@ export const SaveButton = styled.button({
   transition: 'all 0.2s ease',
 
   '&:hover': {
-    backgroundColor: '#059669'
+    backgroundColor: '#2563eb'
   },
 
   '&:disabled': {
@@ -366,8 +367,11 @@ export const ImportBox = styled.div({
   alignItems: 'flex-start'
 })
 
-export const ImportIcon = styled.div({
-  fontSize: '32px'
+export const ImportIconContainer = styled.div({
+  color: '#3b82f6',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center'
 })
 
 export const ImportContent = styled.div({
@@ -391,7 +395,7 @@ export const ImportText = styled.p({
   lineHeight: '1.5'
 })
 
-export const ImportLink = styled.a({
+export const ImportLink = styled(Link)({
   color: '#3b82f6',
   textDecoration: 'none',
   cursor: 'pointer',

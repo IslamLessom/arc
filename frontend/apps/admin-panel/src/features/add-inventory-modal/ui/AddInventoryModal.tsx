@@ -3,6 +3,7 @@ import { useAddInventoryModal } from '../hooks/useAddInventoryModal'
 import type { AddInventoryModalProps } from '../model/types'
 import { Button, ButtonSize, ButtonVariant } from '@restaurant-pos/ui'
 import { Alert } from 'antd'
+import { ProductTreeSelector } from './ProductTreeSelector'
 import * as Styled from './styled'
 
 export const AddInventoryModal = (props: AddInventoryModalProps) => {
@@ -15,10 +16,23 @@ export const AddInventoryModal = (props: AddInventoryModalProps) => {
     error,
     fieldErrors,
     isFormValid,
+    isDateTimeValid,
+    isEditMode,
+    filteredStockItems,
+    searchQuery,
+    productTree,
+    treeSearchQuery,
     warehouses,
     handleFieldChange,
     handleCheckTypeChange,
     handleTypeChange,
+    handleAddItem,
+    handleRemoveItem,
+    handleItemQuantityChange,
+    handleSearchChange,
+    handleTreeSearchChange,
+    handleTreeNodeToggle,
+    handleTreeNodeCheck,
     handleSubmit,
     handleClose,
   } = useAddInventoryModal(props)
@@ -87,8 +101,15 @@ export const AddInventoryModal = (props: AddInventoryModalProps) => {
     return null
   }
 
-  // Форматируем время для отображения
   const [hours, minutes] = formData.time.split(':')
+  const modalTitle = isEditMode ? 'Редактирование инвентаризации' : 'Добавление инвентаризации'
+  const submitButtonText = isSubmitting
+    ? isEditMode
+      ? 'Сохранение...'
+      : 'Создание...'
+    : isEditMode
+      ? 'Сохранить'
+      : 'Создать'
 
   return (
     <Styled.Overlay $isOpen={props.isOpen} onClick={handleClose} aria-hidden={!props.isOpen}>
@@ -108,7 +129,7 @@ export const AddInventoryModal = (props: AddInventoryModalProps) => {
             >
               ←
             </Styled.BackButton>
-            <Styled.HeaderTitle id="modal-title">Добавление инвентаризации</Styled.HeaderTitle>
+            <Styled.HeaderTitle id="modal-title">{modalTitle}</Styled.HeaderTitle>
           </Styled.HeaderLeft>
         </Styled.PageHeader>
 
@@ -134,7 +155,7 @@ export const AddInventoryModal = (props: AddInventoryModalProps) => {
                     ref={firstFocusableRef}
                     value={formData.warehouse_id}
                     onChange={(e) => handleFieldChange('warehouse_id', e.target.value)}
-                    disabled={isSubmitting}
+                    disabled={isSubmitting || isEditMode}
                     $hasError={!!fieldErrors?.warehouse_id}
                   >
                     <option value="">Выберите склад</option>
@@ -171,6 +192,12 @@ export const AddInventoryModal = (props: AddInventoryModalProps) => {
                       Временем проведения
                     </Styled.OptionButton>
                   </Styled.OptionGroup>
+                  {formData.checkType === 'retroactive' && !isDateTimeValid && (
+                    <Styled.WarningText>
+                      <Styled.InfoIcon>⚠️</Styled.InfoIcon>
+                      Измените дату и время инвентаризации, чтобы они не превышали текущие
+                    </Styled.WarningText>
+                  )}
                 </Styled.RowContent>
               </Styled.FormRow>
 
@@ -248,8 +275,68 @@ export const AddInventoryModal = (props: AddInventoryModalProps) => {
                       Инвентаризационный период будет закрыт
                     </Styled.WarningText>
                   )}
+                  {fieldErrors?.type && (
+                    <Styled.FieldError>{fieldErrors.type}</Styled.FieldError>
+                  )}
                 </Styled.RowContent>
               </Styled.FormRow>
+
+              {formData.type === 'partial' && formData.warehouse_id && (
+                <>
+                  <Styled.FormRow>
+                    <Styled.RowLabel>Выбор товаров</Styled.RowLabel>
+                    <Styled.RowContent>
+                      <ProductTreeSelector
+                        tree={productTree}
+                        searchQuery={treeSearchQuery}
+                        onSearchChange={handleTreeSearchChange}
+                        onNodeToggle={handleTreeNodeToggle}
+                        onNodeCheck={handleTreeNodeCheck}
+                      />
+                    </Styled.RowContent>
+                  </Styled.FormRow>
+
+                  {formData.items.length > 0 && (
+                    <Styled.FormRow>
+                      <Styled.RowLabel>Фактическое количество</Styled.RowLabel>
+                      <Styled.RowContent>
+                        <Styled.SelectedItemsList>
+                          {formData.items.map((item) => (
+                            <Styled.SelectedItemItem key={item.id}>
+                              <Styled.ItemInfo>
+                                <Styled.ItemName>{item.name}</Styled.ItemName>
+                                <Styled.ItemDetails>
+                                  Ожидается: {item.expected_quantity} {item.unit}
+                                </Styled.ItemDetails>
+                              </Styled.ItemInfo>
+                              <Styled.ItemActions>
+                                <Styled.QuantityInput
+                                  type="number"
+                                  min="0"
+                                  step="0.01"
+                                  value={item.actual_quantity}
+                                  onChange={(e) =>
+                                    handleItemQuantityChange(item.id, parseFloat(e.target.value) || 0)
+                                  }
+                                  disabled={isSubmitting}
+                                  placeholder="Факт"
+                                />
+                                <Styled.RemoveButton
+                                  type="button"
+                                  onClick={() => handleRemoveItem(item.id)}
+                                  disabled={isSubmitting}
+                                >
+                                  ✕
+                                </Styled.RemoveButton>
+                              </Styled.ItemActions>
+                            </Styled.SelectedItemItem>
+                          ))}
+                        </Styled.SelectedItemsList>
+                      </Styled.RowContent>
+                    </Styled.FormRow>
+                  )}
+                </>
+              )}
             </Styled.FormRows>
           </Styled.Form>
         </Styled.ModalBody>
@@ -268,10 +355,10 @@ export const AddInventoryModal = (props: AddInventoryModalProps) => {
             <Styled.SaveButton
               type="submit"
               onClick={handleSubmit}
-              disabled={!isFormValid || isSubmitting}
-              $disabled={!isFormValid || isSubmitting}
+              disabled={!isFormValid || !isDateTimeValid || isSubmitting}
+              $disabled={!isFormValid || !isDateTimeValid || isSubmitting}
             >
-              {isSubmitting ? 'Создание...' : 'Создать'}
+              {submitButtonText}
             </Styled.SaveButton>
           </Styled.FooterActions>
         </Styled.ModalFooter>
@@ -279,4 +366,3 @@ export const AddInventoryModal = (props: AddInventoryModalProps) => {
     </Styled.Overlay>
   )
 }
-

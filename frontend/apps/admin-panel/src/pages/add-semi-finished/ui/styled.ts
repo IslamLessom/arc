@@ -319,7 +319,7 @@ export const Footer = styled.div({
 export const SaveButton = styled.button({
   padding: '12px 24px',
   border: 'none',
-  backgroundColor: '#10b981',
+  backgroundColor: '#3b82f6',
   color: '#ffffff',
   borderRadius: '8px',
   fontSize: '14px',
@@ -328,7 +328,7 @@ export const SaveButton = styled.button({
   transition: 'all 0.2s ease',
 
   '&:hover': {
-    backgroundColor: '#059669'
+    backgroundColor: '#2563eb'
   },
 
   '&:disabled': {

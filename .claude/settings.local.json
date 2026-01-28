@@ -6,7 +6,24 @@
       "Bash(docker inspect:*)",
       "Bash(docker-compose down:*)",
       "Bash(docker-compose up:*)",
-      "Bash(dos2unix:*)"
+      "Bash(dos2unix:*)",
+      "Bash(pnpm install:*)",
+      "mcp__ide__getDiagnostics",
+      "Bash(pnpm run dev:*)",
+      "Bash(cmd //c \"taskkill /PID 1264 /F\")",
+      "Bash(netstat:*)",
+      "Bash(findstr:*)",
+      "Bash(curl:*)",
+      "Bash(pnpm build)",
+      "Bash(pnpm add:*)",
+      "Bash(pnpm dev)",
+      "Bash(pnpm type-check:*)",
+      "mcp__web-search-prime__webSearchPrime",
+      "Bash(npx tsc:*)",
+      "Bash(pnpm --filter @restaurant-pos/admin-panel typecheck:*)",
+      "mcp__zai-mcp-server__extract_text_from_screenshot",
+      "Bash(pnpm --filter @restaurant-pos/admin-panel build:*)",
+      "Bash(npm run type-check:*)"
     ]
   }
 }

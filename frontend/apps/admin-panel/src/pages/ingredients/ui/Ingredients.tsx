@@ -59,7 +59,7 @@ export const Ingredients = () => {
       <Styled.Header>
         <Styled.HeaderLeft>
           <Styled.BackButton onClick={handleBack} aria-label="Назад">←</Styled.BackButton>
-          <Styled.Title>Ингредиенты <span style={{ color: '#6366f1', marginLeft: '4px' }}>{ingredients.length}</span></Styled.Title>
+          <Styled.Title>Ингредиенты <Styled.AcccentSpan>{ingredients.length}</Styled.AcccentSpan></Styled.Title>
         </Styled.HeaderLeft>
         <Styled.HeaderActions>
           <Styled.ActionButton onClick={handleColumns} aria-label="Настроить столбцы">
@@ -102,10 +102,10 @@ export const Ingredients = () => {
               render: column.key === 'actions' ? (_, record) => (
                 <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                   <Button
-                    variant={ButtonVariant.Link}
+                    variant={ButtonVariant.Ghost}
                     size={ButtonSize.Small}
                     onClick={() => handleEdit(record.id)}
-                    style={{ fontSize: '13px' }}
+                    style={{ fontSize: '13px'  }}
                   >
                     ✏️
                   </Button>
@@ -133,7 +133,7 @@ export const Ingredients = () => {
                <Table.Summary.Cell index={4}><strong>{totalStock.toFixed(2)}</strong></Table.Summary.Cell>
                <Table.Summary.Cell index={5}>-</Table.Summary.Cell>
                <Table.Summary.Cell index={6}>-</Table.Summary.Cell>
-               <Table.Summary.Cell index={7}><strong style={{ color: '#6366f1' }}>{totalValue.toFixed(2)} ₽</strong></Table.Summary.Cell>
+               <Table.Summary.Cell index={7}><Styled.SummaryPrice>{totalValue.toFixed(2)} ₽</Styled.SummaryPrice></Table.Summary.Cell>
                <Table.Summary.Cell index={8}></Table.Summary.Cell>
              </Table.Summary.Row>
            )}
