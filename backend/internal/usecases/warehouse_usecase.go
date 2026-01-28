@@ -198,6 +198,31 @@ func (uc *WarehouseUseCase) CreateSupply(ctx context.Context, supply *models.Sup
 	return nil
 }
 
+// UpdateSupply обновляет существующую поставку
+func (uc *WarehouseUseCase) UpdateSupply(ctx context.Context, supply *models.Supply, establishmentID uuid.UUID) error {
+	// Проверяем существование поставки
+	existingSupply, err := uc.repo.GetSupplyByID(ctx, supply.ID, &establishmentID)
+	if err != nil || existingSupply == nil {
+		return errors.New("supply not found or access denied")
+	}
+
+	// Проверяем склад
+	w, err := uc.repo.GetWarehouseByID(ctx, supply.WarehouseID, &establishmentID)
+	if err != nil || w == nil {
+		return errors.New("warehouse not found or access denied")
+	}
+
+	// Проверяем поставщика
+	sup, err := uc.supplierRepo.GetByID(ctx, supply.SupplierID, &establishmentID)
+	if err != nil || sup == nil {
+		return errors.New("supplier not found or access denied")
+	}
+	_ = sup
+
+	// Обновляем поставку
+	return uc.repo.UpdateSupply(ctx, supply)
+}
+
 // ——— WriteOff (списание: создаём документ и уменьшаем остатки) ———
 
 func (uc *WarehouseUseCase) CreateWriteOff(ctx context.Context, writeOff *models.WriteOff, establishmentID uuid.UUID) error {

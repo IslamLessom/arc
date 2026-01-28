@@ -333,6 +333,23 @@ type CreateSupplyRequest struct {
 	AccountID       string  `json:"account_id"`                               // Счет для оплаты (опционально, для создания транзакции)
 }
 
+type UpdateSupplyRequest struct {
+	WarehouseID     *string              `json:"warehouse_id,omitempty" binding:"omitempty,uuid"`
+	SupplierID      *string              `json:"supplier_id,omitempty" binding:"omitempty,uuid"`
+	DeliveryDateTime *string             `json:"delivery_date_time,omitempty"`
+	Status          *string              `json:"status,omitempty"`
+	Comment         *string              `json:"comment,omitempty"`
+	Items           []SupplyItemRequest  `json:"items,omitempty" binding:"omitempty,min=1"`
+	// Поля для счета и оплаты
+	InvoiceNumber   *string  `json:"invoice_number,omitempty"`
+	InvoiceDate     *string  `json:"invoice_date,omitempty"`
+	TotalAmount     *float64 `json:"total_amount,omitempty"`
+	PaymentStatus   *string  `json:"payment_status,omitempty"`
+	PaymentDate     *string  `json:"payment_date,omitempty"`
+	PaymentAmount   *float64 `json:"payment_amount,omitempty"`
+	AccountID       *string  `json:"account_id,omitempty" binding:"omitempty,uuid"`
+}
+
 // CreateSupply создает новую поставку
 // @Summary Создать поставку
 // @Description Создает новую поставку на склад
@@ -456,6 +473,147 @@ func (h *WarehouseHandler) CreateSupply(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusCreated, gin.H{"data": supply})
+}
+
+// UpdateSupply обновляет поставку
+// @Summary Обновить поставку
+// @Description Обновляет данные поставки
+// @Tags warehouse
+// @Accept json
+// @Produce json
+// @Security Bearer
+// @Param id path string true "ID поставки"
+// @Param request body UpdateSupplyRequest true "Данные для обновления"
+// @Success 200 {object} map[string]interface{}
+// @Failure 400 {object} map[string]string
+// @Failure 403 {object} map[string]string
+// @Failure 404 {object} map[string]string
+// @Failure 500 {object} map[string]string
+// @Router /warehouse/supplies/{id} [put]
+func (h *WarehouseHandler) UpdateSupply(c *gin.Context) {
+	estID, err := getEstablishmentID(c)
+	if err != nil {
+		c.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
+		return
+	}
+
+	id, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id"})
+		return
+	}
+
+	// Получаем существующую поставку
+	existingSupply, err := h.usecase.GetSupply(c.Request.Context(), id, estID)
+	if err != nil || existingSupply == nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "supply not found"})
+		return
+	}
+
+	var req UpdateSupplyRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Обновляем поля поставки
+	if req.WarehouseID != nil {
+		existingSupply.WarehouseID, _ = uuid.Parse(*req.WarehouseID)
+	}
+	if req.SupplierID != nil {
+		existingSupply.SupplierID, _ = uuid.Parse(*req.SupplierID)
+	}
+	if req.DeliveryDateTime != nil {
+		deliveryDateTime, err := time.Parse(time.RFC3339, *req.DeliveryDateTime)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid delivery_date_time format, expected RFC3339"})
+			return
+		}
+		existingSupply.DeliveryDateTime = deliveryDateTime
+	}
+	if req.Status != nil {
+		existingSupply.Status = *req.Status
+	}
+	if req.Comment != nil {
+		existingSupply.Comment = *req.Comment
+	}
+	if req.InvoiceNumber != nil {
+		existingSupply.InvoiceNumber = *req.InvoiceNumber
+	}
+	if req.InvoiceDate != nil {
+		if t, err := time.Parse(time.RFC3339, *req.InvoiceDate); err == nil {
+			existingSupply.InvoiceDate = &t
+		}
+	}
+	if req.TotalAmount != nil {
+		existingSupply.TotalAmount = *req.TotalAmount
+	}
+	if req.PaymentStatus != nil {
+		existingSupply.PaymentStatus = *req.PaymentStatus
+	}
+	if req.PaymentDate != nil {
+		if t, err := time.Parse(time.RFC3339, *req.PaymentDate); err == nil {
+			existingSupply.PaymentDate = &t
+		}
+	}
+	if req.PaymentAmount != nil {
+		existingSupply.PaymentAmount = *req.PaymentAmount
+	}
+	if req.AccountID != nil && *req.AccountID != "" {
+		if id, err := uuid.Parse(*req.AccountID); err == nil {
+			existingSupply.AccountID = &id
+		}
+	}
+
+	// Обновляем items если они переданы
+	if req.Items != nil {
+		items := make([]models.SupplyItem, 0, len(req.Items))
+		for _, it := range req.Items {
+			var ingID, prodID *uuid.UUID
+			if it.IngredientID != nil && *it.IngredientID != "" {
+				if id, e := uuid.Parse(*it.IngredientID); e == nil {
+					ingID = &id
+				}
+			}
+			if it.ProductID != nil && *it.ProductID != "" {
+				if id, e := uuid.Parse(*it.ProductID); e == nil {
+					prodID = &id
+				}
+			}
+			if ingID == nil && prodID == nil {
+				c.JSON(http.StatusBadRequest, gin.H{"error": "each item must have ingredient_id or product_id"})
+				return
+			}
+
+			pricePerUnit := it.PricePerUnit
+			totalAmount := it.TotalAmount
+			if pricePerUnit == 0 && totalAmount > 0 && it.Quantity > 0 {
+				pricePerUnit = totalAmount / it.Quantity
+			} else if totalAmount == 0 && pricePerUnit > 0 && it.Quantity > 0 {
+				totalAmount = pricePerUnit * it.Quantity
+			}
+
+			item := models.SupplyItem{
+				ID:            uuid.New(),
+				IngredientID: ingID,
+				ProductID:   prodID,
+				Quantity:    it.Quantity,
+				Unit:        it.Unit,
+				PricePerUnit: pricePerUnit,
+				TotalAmount:  totalAmount,
+			}
+			items = append(items, item)
+		}
+		existingSupply.Items = items
+	}
+
+	if err := h.usecase.UpdateSupply(c.Request.Context(), existingSupply, estID); err != nil {
+		h.logger.Error("Failed to update supply", zap.Error(err))
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"data": existingSupply})
 }
 
 // ——— WriteOff ———

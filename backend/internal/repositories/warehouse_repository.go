@@ -43,6 +43,7 @@ type WarehouseRepository interface {
 
 	// Supply & WriteOff
 	CreateSupply(ctx context.Context, supply *models.Supply) error
+	UpdateSupply(ctx context.Context, supply *models.Supply) error
 	DeleteSupply(ctx context.Context, id uuid.UUID) error
 	GetSupplyByID(ctx context.Context, id uuid.UUID, establishmentID *uuid.UUID) (*models.Supply, error)
 	GetSuppliesByIngredientOrProduct(ctx context.Context, establishmentID uuid.UUID, ingredientID *uuid.UUID, productID *uuid.UUID) ([]*models.Supply, error)
@@ -246,6 +247,41 @@ func (r *warehouseRepository) CreateSupply(ctx context.Context, supply *models.S
 			}
 		}
 
+
+		// Восстанавливаем Items для возврата
+		supply.Items = items
+		return nil
+	})
+}
+
+func (r *warehouseRepository) UpdateSupply(ctx context.Context, supply *models.Supply) error {
+	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		// Удаляем старые элементы поставки
+		if err := tx.Where("supply_id = ?", supply.ID).Delete(&models.SupplyItem{}).Error; err != nil {
+			return err
+		}
+
+		// Сохраняем Items во временную переменную и очищаем supply.Items
+		// чтобы GORM не пытался создать их автоматически
+		items := supply.Items
+		supply.Items = nil
+
+		// Обновляем Supply
+		if err := tx.Save(supply).Error; err != nil {
+			return err
+		}
+
+		// Создаем новые элементы
+		for i := range items {
+			items[i].SupplyID = supply.ID
+			// UUID уже должен быть сгенерирован в handler, но на всякий случай проверяем
+			if items[i].ID == uuid.Nil {
+				items[i].ID = uuid.New()
+			}
+			if err := tx.Create(&items[i]).Error; err != nil {
+				return err
+			}
+		}
 
 		// Восстанавливаем Items для возврата
 		supply.Items = items

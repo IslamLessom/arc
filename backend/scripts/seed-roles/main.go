@@ -19,7 +19,7 @@ func main() {
 		log.Fatal("Failed to load config:", err)
 	}
 
-	log.Printf("Connecting to database: %s@%s:%d/%s", 
+	log.Printf("Connecting to database: %s@%s:%d/%s",
 		cfg.Database.User, cfg.Database.Host, cfg.Database.Port, cfg.Database.Name)
 
 	// Инициализация БД (logger = nil для скриптов)
@@ -27,7 +27,7 @@ func main() {
 	if err != nil {
 		log.Fatal("Failed to connect to database:", err)
 	}
-	
+
 	sqlDB, err := db.DB()
 	if err != nil {
 		log.Fatal("Failed to get underlying sql.DB:", err)
@@ -39,7 +39,7 @@ func main() {
 	// Автоматически создаем таблицы, если их нет
 	// Важно: создаем новое соединение с отключенными внешними ключами для миграции
 	log.Println("Running database migrations (AutoMigrate)...")
-	
+
 	// Создаем новое соединение GORM с отключенными внешними ключами
 	dsn := fmt.Sprintf(
 		"host=%s port=%d user=%s password=%s dbname=%s sslmode=%s",
@@ -50,14 +50,14 @@ func main() {
 		cfg.Database.Name,
 		cfg.Database.SSLMode,
 	)
-	
+
 	migrateDB, err := gorm.Open(postgres.Open(dsn), &gorm.Config{
 		DisableForeignKeyConstraintWhenMigrating: true,
 	})
 	if err != nil {
 		log.Fatalf("Failed to create migration connection: %v", err)
 	}
-	
+
 	// 1. Сначала независимые таблицы
 	if err := migrateDB.AutoMigrate(&models.Role{}); err != nil {
 		log.Fatalf("Failed to migrate Role: %v", err)
@@ -65,13 +65,13 @@ func main() {
 	if err := migrateDB.AutoMigrate(&models.SubscriptionPlan{}); err != nil {
 		log.Fatalf("Failed to migrate SubscriptionPlan: %v", err)
 	}
-	
+
 	// 2. Затем таблицы, зависящие от Role
 	// User имеет связь с Establishment, но внешние ключи отключены, поэтому это не проблема
 	if err := migrateDB.AutoMigrate(&models.User{}); err != nil {
 		log.Fatalf("Failed to migrate User: %v", err)
 	}
-	
+
 	// 3. Затем таблицы, зависящие от User (Establishment и Table)
 	// Establishment нужен для создания заведения при onboarding
 	if err := migrateDB.AutoMigrate(&models.Establishment{}); err != nil {
@@ -81,12 +81,12 @@ func main() {
 	if err := migrateDB.AutoMigrate(&models.Table{}); err != nil {
 		log.Fatalf("Failed to migrate Table: %v", err)
 	}
-	
+
 	// 4. Затем таблицы, зависящие от User и SubscriptionPlan
 	if err := migrateDB.AutoMigrate(&models.Subscription{}); err != nil {
 		log.Fatalf("Failed to migrate Subscription: %v", err)
 	}
-	
+
 	// 5. Таблицы для работы приложения (зависят от Establishment)
 	if err := migrateDB.AutoMigrate(&models.TokenBlacklist{}); err != nil {
 		log.Fatalf("Failed to migrate TokenBlacklist: %v", err)
@@ -145,7 +145,7 @@ func main() {
 	if err := migrateDB.AutoMigrate(&models.OrderItem{}); err != nil {
 		log.Fatalf("Failed to migrate OrderItem: %v", err)
 	}
-	
+
 	// Финансовые модели
 	if err := migrateDB.AutoMigrate(&models.AccountType{}); err != nil {
 		log.Fatalf("Failed to migrate AccountType: %v", err)
@@ -156,12 +156,12 @@ func main() {
 	if err := migrateDB.AutoMigrate(&models.Transaction{}); err != nil {
 		log.Fatalf("Failed to migrate Transaction: %v", err)
 	}
-	
+
 	// Модели для смен
 	if err := migrateDB.AutoMigrate(&models.Shift{}); err != nil {
 		log.Fatalf("Failed to migrate Shift: %v", err)
 	}
-	
+
 	// Модели для клиентов
 	if err := migrateDB.AutoMigrate(&models.ClientGroup{}); err != nil {
 		log.Fatalf("Failed to migrate ClientGroup: %v", err)
@@ -175,7 +175,7 @@ func main() {
 	if err := migrateDB.AutoMigrate(&models.Promotion{}); err != nil {
 		log.Fatalf("Failed to migrate Promotion: %v", err)
 	}
-	
+
 	log.Println("✅ Database migrations completed")
 
 	// Создаем роли
@@ -213,7 +213,7 @@ func main() {
 			Duration: 14, // 14 дней
 			Price:    0,  // Бесплатно
 			Features: `["basic_menu", "orders", "warehouse", "statistics"]`,
-			Active:  true,
+			Active:   true,
 		},
 		// Можно добавить другие планы позже:
 		// {
