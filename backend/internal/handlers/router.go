@@ -253,6 +253,7 @@ func NewRouter(usecases *usecases.UseCases, cfg *config.Config, logger *zap.Logg
 				warehouse.GET("/supplies/:id", warehouseHandler.GetSupply) // Получить поставку по ID
 				warehouse.GET("/supplies/by-item", warehouseHandler.GetSuppliesByItem) // ?ingredient_id=xxx или ?product_id=xxx
 				warehouse.POST("/supplies", warehouseHandler.CreateSupply)
+				warehouse.PUT("/supplies/:id", warehouseHandler.UpdateSupply) // Обновить поставку
 				warehouse.GET("/write-offs", warehouseHandler.ListWriteOffs)
 				warehouse.GET("/write-offs/:id", warehouseHandler.GetWriteOff)
 				warehouse.POST("/write-offs", warehouseHandler.CreateWriteOff)

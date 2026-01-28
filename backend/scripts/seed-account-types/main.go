@@ -55,7 +55,7 @@ func main() {
 	for _, at := range accountTypes {
 		var existing models.AccountType
 		result := db.Where("name = ?", at.Name).First(&existing)
-		
+
 		if result.Error == gorm.ErrRecordNotFound {
 			// Тип не существует, создаем
 			if err := db.Create(&at).Error; err != nil {

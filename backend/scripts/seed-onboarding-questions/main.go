@@ -15,7 +15,7 @@ func main() {
 		log.Fatal("Failed to load config:", err)
 	}
 
-	log.Printf("Connecting to database: %s@%s:%d/%s", 
+	log.Printf("Connecting to database: %s@%s:%d/%s",
 		cfg.Database.User, cfg.Database.Host, cfg.Database.Port, cfg.Database.Name)
 
 	// Инициализация БД (logger = nil для скриптов)
@@ -23,7 +23,7 @@ func main() {
 	if err != nil {
 		log.Fatal("Failed to connect to database:", err)
 	}
-	
+
 	sqlDB, err := db.DB()
 	if err != nil {
 		log.Fatal("Failed to get underlying sql.DB:", err)
@@ -101,62 +101,62 @@ func main() {
 
 		// Шаг 3: Опыт использования
 		{
-			Step:        3,
-			Order:       1,
-			Key:         "used_arc_before",
-			Type:        "boolean",
-			Label:       "Использовали ли вы раньше систему ARC или подобные системы управления рестораном?",
-			Required:    true,
+			Step:         3,
+			Order:        1,
+			Key:          "used_arc_before",
+			Type:         "boolean",
+			Label:        "Использовали ли вы раньше систему ARC или подобные системы управления рестораном?",
+			Required:     true,
 			DefaultValue: "false",
 		},
 
 		// Шаг 4: Формат обслуживания
 		{
-			Step:        4,
-			Order:       1,
-			Key:         "has_seating_places",
-			Type:        "boolean",
-			Label:       "Есть ли сидячие места?",
-			Required:    true,
+			Step:         4,
+			Order:        1,
+			Key:          "has_seating_places",
+			Type:         "boolean",
+			Label:        "Есть ли сидячие места?",
+			Required:     true,
 			DefaultValue: "false",
 		},
 		{
-			Step:        4,
-			Order:       2,
-			Key:         "table_count",
-			Type:        "number",
-			Label:       "Количество столов",
+			Step:       4,
+			Order:      2,
+			Key:        "table_count",
+			Type:       "number",
+			Label:      "Количество столов",
 			Placeholder: "10",
-			Required:    false,
-			Condition:   "has_seating_places=true",
+			Required:   false,
+			Condition:  "has_seating_places=true",
 		},
 		{
-			Step:        4,
-			Order:       3,
-			Key:         "has_takeaway",
-			Type:        "boolean",
-			Label:       "Принимаете ли заказы на вынос?",
-			Required:    true,
+			Step:         4,
+			Order:        3,
+			Key:          "has_takeaway",
+			Type:         "boolean",
+			Label:        "Принимаете ли заказы на вынос?",
+			Required:     true,
 			DefaultValue: "true",
 		},
 		{
-			Step:        4,
-			Order:       4,
-			Key:         "has_delivery",
-			Type:        "boolean",
-			Label:       "Есть ли доставка?",
-			Required:    true,
+			Step:         4,
+			Order:        4,
+			Key:          "has_delivery",
+			Type:         "boolean",
+			Label:        "Есть ли доставка?",
+			Required:     true,
 			DefaultValue: "false",
 		},
 		{
-			Step:        4,
-			Order:       5,
-			Key:         "has_reservations",
-			Type:        "boolean",
-			Label:       "Принимаете ли бронирования столов?",
-			Required:    false,
+			Step:         4,
+			Order:        5,
+			Key:          "has_reservations",
+			Type:         "boolean",
+			Label:        "Принимаете ли бронирования столов?",
+			Required:     false,
 			DefaultValue: "false",
-			Condition:   "has_seating_places=true",
+			Condition:    "has_seating_places=true",
 		},
 	}
 
