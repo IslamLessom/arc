@@ -1305,10 +1305,11 @@ type UpdateIngredientCategoryRequest struct {
 
 // GetIngredientCategories возвращает список категорий ингредиентов
 // @Summary Получить список категорий ингредиентов
-// @Description Возвращает список категорий ингредиентов
+// @Description Возвращает список категорий ингредиентов с информацией о количестве ингредиентов и остатках на складах
 // @Tags menu
 // @Produce json
 // @Security Bearer
+// @Param search query string false "Поиск по названию"
 // @Success 200 {object} map[string]interface{}
 // @Router /menu/ingredient-categories [get]
 func (h *MenuHandler) GetIngredientCategories(c *gin.Context) {
@@ -1321,7 +1322,7 @@ func (h *MenuHandler) GetIngredientCategories(c *gin.Context) {
 	if s := c.Query("search"); s != "" {
 		filter.Search = &s
 	}
-	list, err := h.usecase.GetIngredientCategories(c.Request.Context(), filter)
+	list, err := h.usecase.GetIngredientCategoriesWithStats(c.Request.Context(), filter)
 	if err != nil {
 		h.logger.Error("Failed to get ingredient categories", zap.Error(err))
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to get ingredient categories"})
@@ -1332,7 +1333,7 @@ func (h *MenuHandler) GetIngredientCategories(c *gin.Context) {
 
 // GetIngredientCategory возвращает категорию ингредиентов по ID
 // @Summary Получить категорию ингредиентов по ID
-// @Description Возвращает категорию ингредиентов по ID
+// @Description Возвращает категорию ингредиентов по ID с информацией о количестве ингредиентов и остатках на складах
 // @Tags menu
 // @Produce json
 // @Security Bearer
@@ -1354,7 +1355,7 @@ func (h *MenuHandler) GetIngredientCategory(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id"})
 		return
 	}
-	cat, err := h.usecase.GetIngredientCategoryByID(c.Request.Context(), id, estID)
+	cat, err := h.usecase.GetIngredientCategoryWithStatsByID(c.Request.Context(), id, estID)
 	if err != nil {
 		h.logger.Error("Failed to get ingredient category", zap.Error(err))
 		c.JSON(http.StatusNotFound, gin.H{"error": "ingredient category not found"})

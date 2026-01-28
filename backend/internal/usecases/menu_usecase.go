@@ -308,6 +308,16 @@ func (uc *MenuUseCase) DeleteIngredientCategory(ctx context.Context, id uuid.UUI
 	return uc.ingredientCategoryRepo.Delete(ctx, id)
 }
 
+// GetIngredientCategoriesWithStats возвращает список категорий ингредиентов со статистикой
+func (uc *MenuUseCase) GetIngredientCategoriesWithStats(ctx context.Context, filter *repositories.IngredientCategoryFilter) ([]*models.IngredientCategoryWithStats, error) {
+	return uc.ingredientCategoryRepo.ListWithStats(ctx, filter)
+}
+
+// GetIngredientCategoryWithStatsByID возвращает категорию ингредиентов со статистикой по ID
+func (uc *MenuUseCase) GetIngredientCategoryWithStatsByID(ctx context.Context, id uuid.UUID, establishmentID uuid.UUID) (*models.IngredientCategoryWithStats, error) {
+	return uc.ingredientCategoryRepo.GetWithStats(ctx, id, &establishmentID)
+}
+
 // ——— SemiFinishedProducts (полуфабрикаты) ———
 
 func (uc *MenuUseCase) GetSemiFinishedProducts(ctx context.Context, filter *repositories.SemiFinishedFilter) ([]*models.SemiFinishedProduct, error) {
