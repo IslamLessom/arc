@@ -73,3 +73,23 @@ func (ic *IngredientCategory) BeforeCreate(tx *gorm.DB) error {
 	}
 	return nil
 }
+
+// IngredientCategoryWithStats представляет категорию ингредиентов со статистикой
+type IngredientCategoryWithStats struct {
+	ID              uuid.UUID      `json:"id"`
+	EstablishmentID uuid.UUID      `json:"establishment_id"`
+	Name            string         `json:"name"`
+	CreatedAt       time.Time      `json:"created_at"`
+	UpdatedAt       time.Time      `json:"updated_at"`
+	// Дополнительная статистика
+	IngredientsCount int                `json:"ingredients_count"`
+	TotalStock       []WarehouseStockInfo `json:"total_stock"`
+}
+
+// WarehouseStockInfo представляет информацию об остатках на складе
+type WarehouseStockInfo struct {
+	WarehouseID uuid.UUID `json:"warehouse_id"`
+	WarehouseName string  `json:"warehouse_name"`
+	TotalQuantity  float64 `json:"total_quantity"`
+	Unit          string  `json:"unit"` // основная единица измерения (может быть несколько)
+}
