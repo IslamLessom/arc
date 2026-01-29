@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react'
 import { useSupplyDetailsModal } from '../hooks/useSupplyDetailsModal'
 import type { SupplyDetailsModalProps } from '../model/types'
 import * as Styled from './styled'
@@ -27,7 +28,17 @@ const statusLabels: Record<string, string> = {
 
 export const SupplyDetailsModal = (props: SupplyDetailsModalProps) => {
   const { isOpen, onClose } = props
-  const { supply, isLoading, error } = useSupplyDetailsModal(props)
+  const { supply, isLoading, error, mode, setMode, onSave, onCancel, onToggleStatus } = useSupplyDetailsModal(props)
+
+  const [editedSupply, setEditedSupply] = useState(supply)
+
+  useEffect(() => {
+    setEditedSupply(supply)
+  }, [supply])
+
+  const handleSave = () => {
+    onSave(editedSupply)
+  }
 
   if (!isOpen) {
     return null
@@ -50,7 +61,22 @@ export const SupplyDetailsModal = (props: SupplyDetailsModalProps) => {
               </Styled.HeaderSubtitle>
             </div>
           </Styled.HeaderContent>
-          <Styled.CloseButton onClick={onClose}>×</Styled.CloseButton>
+          <Styled.HeaderActions>
+            {mode === 'view' ? (
+              <>
+                <Styled.ActionButton onClick={onToggleStatus}>
+                  {supply?.status === 'completed' ? 'Отметить неоплаченной' : 'Отметить оплаченной'}
+                </Styled.ActionButton>
+                <Styled.ActionButton onClick={() => setMode('edit')}>Редактировать</Styled.ActionButton>
+                <Styled.CloseButton onClick={onClose}>×</Styled.CloseButton>
+              </>
+            ) : (
+              <>
+                <Styled.ActionButton onClick={onCancel}>Отмена</Styled.ActionButton>
+                <Styled.ActionButton $variant="primary" onClick={handleSave}>Сохранить</Styled.ActionButton>
+              </>
+            )}
+          </Styled.HeaderActions>
         </Styled.ModalHeader>
 
         <Styled.ModalBody>

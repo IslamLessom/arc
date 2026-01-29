@@ -105,12 +105,12 @@ export const EmptyStateContainer = styled.div(({ theme }) => ({
   textAlign: 'center',
 }))
 
-export const EmptyStateImage = styled.img({
+export const EmptyStateImage = styled.img(({ theme }) => ({
   width: '200px',
   height: 'auto',
   marginBottom: '24px',
-  borderRadius: theme => theme.borderRadius.md,
-})
+  borderRadius: theme.borderRadius.md,
+}))
 
 export const EmptyStateTitle = styled.h2(({ theme }) => ({
   margin: 0,

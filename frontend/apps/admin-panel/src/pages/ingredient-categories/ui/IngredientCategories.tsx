@@ -20,6 +20,7 @@ export const IngredientCategories = () => {
     isModalOpen,
     handleCloseModal,
     handleCategoryCreated,
+    totals,
   } = useIngredientCategories()
 
   if (isLoading) {
@@ -40,17 +41,12 @@ export const IngredientCategories = () => {
     )
   }
 
-  const categoriesList = categories || []
-  const totalIngredientCount = 0 // TODO: Calculate from ingredients
-  const totalStock = null // TODO: Calculate from warehouse
-  const totalValue = null // TODO: Calculate from warehouse
-
   return (
     <Styled.PageContainer>
       <Styled.Header>
         <Styled.HeaderLeft>
           <Styled.BackButton onClick={handleBack}>←</Styled.BackButton>
-          <Styled.Title>Категории ингредиентов {categoriesList.length}</Styled.Title>
+          <Styled.Title>Категории ингредиентов {categories.length}</Styled.Title>
         </Styled.HeaderLeft>
         <Styled.HeaderActions>
           <Styled.ActionButton onClick={handleColumns}>
@@ -100,7 +96,7 @@ export const IngredientCategories = () => {
             </tr>
           </Styled.TableHead>
           <Styled.TableBody>
-            {categoriesList.length === 0 ? (
+            {categories.length === 0 ? (
               <tr>
                 <Styled.TableCell colSpan={5} style={{ textAlign: 'center', padding: '2rem' }}>
                   Нет категорий
@@ -108,12 +104,12 @@ export const IngredientCategories = () => {
               </tr>
             ) : (
               <>
-                {categoriesList.map((category) => (
+                {categories.map((category) => (
                   <Styled.TableRow key={category.id}>
                     <Styled.TableCell>{category.name}</Styled.TableCell>
-                    <Styled.TableCell>0 шт.</Styled.TableCell>
-                    <Styled.TableCell></Styled.TableCell>
-                    <Styled.TableCell>0,00 ₽</Styled.TableCell>
+                    <Styled.TableCell>{category.ingredientCount} шт.</Styled.TableCell>
+                    <Styled.TableCell>{category.totalStock > 0 ? `${category.totalStock.toFixed(2)}` : '-'}</Styled.TableCell>
+                    <Styled.TableCell>{category.totalValue.toFixed(2)} ₽</Styled.TableCell>
                     <Styled.TableCell>
                       <Styled.RowActions>
                         <Styled.EditLink onClick={() => handleEdit(category.id)}>
@@ -129,10 +125,10 @@ export const IngredientCategories = () => {
                 <Styled.TotalRow>
                   <Styled.TableCell>Итого</Styled.TableCell>
                   <Styled.TableCell>
-                    {totalIngredientCount} шт.
+                    {totals.totalIngredientCount} шт.
                   </Styled.TableCell>
-                  <Styled.TableCell></Styled.TableCell>
-                  <Styled.TableCell></Styled.TableCell>
+                  <Styled.TableCell>{totals.totalStock > 0 ? totals.totalStock.toFixed(2) : '-'}</Styled.TableCell>
+                  <Styled.TableCell>{totals.totalValue.toFixed(2)} ₽</Styled.TableCell>
                   <Styled.TableCell></Styled.TableCell>
                 </Styled.TotalRow>
               </>

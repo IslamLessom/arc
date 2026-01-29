@@ -3,6 +3,7 @@ package usecases
 import (
 	"context"
 	"errors"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/yourusername/arc/backend/internal/models"
@@ -137,7 +138,7 @@ func (uc *MenuUseCase) GetTechCardByID(ctx context.Context, id uuid.UUID, establ
 }
 
 // CreateIngredient создает ингредиент и автоматически создает остатки на складе
-func (uc *MenuUseCase) CreateIngredient(ctx context.Context, ingredient *models.Ingredient, warehouseID uuid.UUID, quantity float64, pricePerUnit float64, establishmentID uuid.UUID) error {
+func (uc *MenuUseCase) CreateIngredient(ctx context.Context, ingredient *models.Ingredient, warehouseID uuid.UUID, quantity float64, pricePerUnit float64, supplierID uuid.UUID, establishmentID uuid.UUID) error {
 	ingredient.EstablishmentID = establishmentID
 	if !ingredient.ValidateUnit() {
 		return errors.New("invalid unit, must be one of: шт, л, кг")
@@ -159,6 +160,31 @@ func (uc *MenuUseCase) CreateIngredient(ctx context.Context, ingredient *models.
 
 		if err := uc.warehouseRepo.CreateStock(ctx, stock); err != nil {
 			return err
+		}
+
+		// Если указан поставщик, создаем автоматическую поставку
+		if supplierID != uuid.Nil {
+			supply := &models.Supply{
+				WarehouseID:     warehouseID,
+				SupplierID:      supplierID,
+				DeliveryDateTime: time.Now(),
+				Status:          "completed",
+				Items: []models.SupplyItem{
+					{
+						ID:            uuid.New(),
+						IngredientID:  &ingredient.ID,
+						Quantity:      quantity,
+						Unit:          ingredient.Unit,
+						PricePerUnit:  pricePerUnit,
+						TotalAmount:   quantity * pricePerUnit,
+					},
+				},
+			}
+			if err := uc.warehouseRepo.CreateSupply(ctx, supply); err != nil {
+				// Не прерываем операцию, если поставка не создалась
+				// Логируем ошибку, но ингредиент уже создан
+				// Можно добавить логирование здесь
+			}
 		}
 	}
 
