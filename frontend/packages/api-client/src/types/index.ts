@@ -2,6 +2,7 @@
 export type { LoginRequest, AuthUser, AuthResponse } from '../hooks/useAuth'
 export type { CurrentUserResponse } from '../hooks/useCurrentUser'
 export type { RegisterRequest } from '../hooks/useRegister'
+export type { PinLoginRequest, PinAuthUser, PinLoginResponse } from '../hooks/usePinLogin'
 
 // Onboarding types
 export type {

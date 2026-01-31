@@ -2,6 +2,7 @@
 export { useCreateOrder } from './useOrders'
 export { useAuth } from './useAuth'
 export { useRegister } from './useRegister'
+export { usePinLogin } from './usePinLogin'
 export { useOnboarding, useOnboardingQuestions } from './useOnboarding'
 export { useCurrentUser } from './useCurrentUser'
 export { useGetStock, useUpdateStockLimit } from './useStock'

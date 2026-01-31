@@ -83,7 +83,7 @@ export const useSidebar = (props: SidebarProps): UseSidebarResult => {
       localStorage.removeItem('auth_token');
       localStorage.removeItem('refresh_token');
       // Редиректим на страницу авторизации
-      window.location.href = '/auth';
+      navigate('/auth');
     }
   }, []);
 

@@ -27,12 +27,13 @@ export function useCurrentUser() {
         const response = await apiClient.get<CurrentUserResponse>('/auth/me')
         return response.data
       } catch (error) {
-        // Если ошибка 401, удаляем токен
+        // Если ошибка 401, удаляем токен и тип пользователя
         if (error && typeof error === 'object' && 'response' in error) {
           const axiosError = error as { response?: { status?: number } }
           if (axiosError.response?.status === 401) {
             localStorage.removeItem('auth_token')
             localStorage.removeItem('refresh_token')
+            localStorage.removeItem('user_type')
           }
         }
         throw error

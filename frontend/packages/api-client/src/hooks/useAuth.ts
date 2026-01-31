@@ -28,9 +28,10 @@ export function useAuth() {
         password: credentials.password,
       })
 
-      // Сохраняем токен в localStorage (interceptor уже настроен для этого)
+      // Сохраняем токен и тип пользователя в localStorage
       if (typeof window !== 'undefined' && response.data.access_token) {
         localStorage.setItem('auth_token', response.data.access_token)
+        localStorage.setItem('user_type', 'owner')
         if (response.data.refresh_token) {
           localStorage.setItem('refresh_token', response.data.refresh_token)
         }

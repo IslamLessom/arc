@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useProductCategories } from '../hooks/useProductCategories'
 import { Input } from '@restaurant-pos/ui'
 import { getCategoryIconComponent, getCategoryTypeLabel } from '../lib/categoryHelpers'
@@ -7,6 +8,7 @@ import type { ProductCategory } from '@restaurant-pos/api-client'
 import * as Styled from './styled'
 
 export const ProductCategories = () => {
+  const navigate = useNavigate()
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [categoryToEdit, setCategoryToEdit] = useState<ProductCategory | undefined>()
   const {
@@ -109,8 +111,8 @@ export const ProductCategories = () => {
           <Styled.EmptyStateDescription>
             Добавьте категории товаров и блюд, чтобы официант быстрее находил их на кассе.
             Например, «Первые блюда», «Выпечка» и «Напитки». Во вкладке{' '}
-            <Styled.EmptyStateLink onClick={() => window.location.href = '/statistics'}>Статистика</Styled.EmptyStateLink> →{' '}
-            <Styled.EmptyStateLink onClick={() => window.location.href = '/statistics/categories'}>Категории</Styled.EmptyStateLink>{' '}
+            <Styled.EmptyStateLink onClick={() => navigate('/statistics')}>Статистика</Styled.EmptyStateLink> →{' '}
+            <Styled.EmptyStateLink onClick={() => navigate('/statistics/categories')}>Категории</Styled.EmptyStateLink>{' '}
             смотрите статистику продаж и food cost по этим категориям.
           </Styled.EmptyStateDescription>
           <Styled.AddButton onClick={handleOpenModal} style={{ marginTop: '1rem' }}>

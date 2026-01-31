@@ -1,0 +1,38 @@
+.container {
+  margin-top: 2rem;
+}
+
+.title {
+  margin-bottom: 1rem;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1rem;
+}
+
+.card {
+  padding: 1.5rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.cardTitle {
+  margin: 0;
+  font-size: 1.125rem;
+  font-weight: 600;
+}
+
+.cardDescription {
+  margin: 0;
+  color: #6b7280;
+  font-size: 0.875rem;
+}
+
+.button {
+  margin-top: 0.5rem;
+}

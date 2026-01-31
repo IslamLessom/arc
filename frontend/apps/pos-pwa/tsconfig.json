@@ -1,10 +1,33 @@
 {
-  "extends": "../../tsconfig.json",
   "compilerOptions": {
-    "jsx": "preserve",
-    "plugins": [{ "name": "next" }]
+    "target": "ES2020",
+    "module": "ESNext",
+    "lib": ["ES2020", "DOM", "DOM.Iterable"],
+    "jsx": "react-jsx",
+    "moduleResolution": "bundler",
+    "resolveJsonModule": true,
+    "allowImportingTsExtensions": true,
+    "isolatedModules": true,
+    "noEmit": true,
+    "strict": true,
+    "skipLibCheck": true,
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "forceConsistentCasingInFileNames": true,
+    "plugins": [],
+    "types": [],
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./src/*"],
+      "@restaurant-pos/ui": ["../../packages/ui/src"],
+      "@restaurant-pos/pwa-core": ["../../packages/pwa-core/src"],
+      "@restaurant-pos/api-client": ["../../packages/api-client/src"],
+      "@restaurant-pos/types": ["../../packages/types/src"],
+      "@restaurant-pos/real-time": ["../../packages/real-time/src"],
+      "@restaurant-pos/print-service": ["../../packages/print-service/src"],
+      "@restaurant-pos/assets": ["../../packages/assets/src"]
+    }
   },
-  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
-  "exclude": ["node_modules"]
+  "include": ["src", "vite.config.ts"],
+  "exclude": ["node_modules", "dist"]
 }
-

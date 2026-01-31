@@ -1,4 +1,5 @@
 import { useState, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@restaurant-pos/api-client';
 import { saveUserData } from '../../../shared/hooks/useOnboardingStatus';
 import type { UseAuthFormResult, AuthFormProps } from '../model/types';
@@ -57,7 +58,7 @@ export function useAuthForm(props: AuthFormProps): UseAuthFormResult {
         }
 
         // Перенаправление на главную страницу
-        window.location.href = '/';
+        navigate('/');
       } catch (err: unknown) {
         let errorMessage = 'Неверный email или пароль';
         

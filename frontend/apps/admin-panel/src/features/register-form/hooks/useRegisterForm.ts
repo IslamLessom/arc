@@ -1,4 +1,5 @@
 import { useState, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useRegister } from '@restaurant-pos/api-client';
 import { saveUserData } from '../../../shared/hooks/useOnboardingStatus';
 import type { UseRegisterFormResult, RegisterFormProps } from '../model/types';
@@ -70,7 +71,7 @@ export function useRegisterForm(props: RegisterFormProps): UseRegisterFormResult
         }
 
         // Перенаправление на главную страницу
-        window.location.href = '/';
+        navigate('/');
       } catch (err: unknown) {
         let errorMessage = 'Ошибка при регистрации';
         

@@ -42,9 +42,11 @@ apiClient.interceptors.response.use(
   (response) => response,
   async (error) => {
     if (error.response?.status === 401 && typeof window !== 'undefined') {
-      // Refresh token logic
+      // Refresh token logic - очищаем все данные авторизации
       localStorage.removeItem('auth_token')
-      window.location.href = '/login'
+      localStorage.removeItem('refresh_token')
+      localStorage.removeItem('user_type')
+      window.location.href = '/auth'
     }
     return Promise.reject(error)
   }

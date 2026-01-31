@@ -23,7 +23,12 @@
       "Bash(pnpm --filter @restaurant-pos/admin-panel typecheck:*)",
       "mcp__zai-mcp-server__extract_text_from_screenshot",
       "Bash(pnpm --filter @restaurant-pos/admin-panel build:*)",
-      "Bash(npm run type-check:*)"
+      "Bash(npm run type-check:*)",
+      "Bash(pnpm run build:*)",
+      "Bash(pnpm remove:*)",
+      "Bash(tree:*)",
+      "Bash(find:*)",
+      "Bash(go build:*)"
     ]
   }
 }

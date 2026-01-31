@@ -17,9 +17,10 @@ export function useRegister() {
         name: data.name,
       })
 
-      // Сохраняем токен в localStorage
+      // Сохраняем токен и тип пользователя в localStorage
       if (typeof window !== 'undefined' && response.data.access_token) {
         localStorage.setItem('auth_token', response.data.access_token)
+        localStorage.setItem('user_type', 'owner')
         if (response.data.refresh_token) {
           localStorage.setItem('refresh_token', response.data.refresh_token)
         }

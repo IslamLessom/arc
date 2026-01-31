@@ -20,3 +20,6 @@ body {
   -webkit-tap-highlight-color: transparent;
 }
 
+#root {
+  min-height: 100vh;
+}
