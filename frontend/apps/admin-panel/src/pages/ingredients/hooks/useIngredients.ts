@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useGetIngredients } from '@restaurant-pos/api-client'
+import { useGetIngredients, useGetStock, useGetSuppliers, useGetSupplies } from '@restaurant-pos/api-client'
 import type { Ingredient, IngredientsFilter, IngredientsSort } from '../model/types'
 import { MeasureUnit, SortField } from '../model/enums'
 
@@ -22,18 +22,81 @@ export const useIngredients = () => {
   }), [searchQuery, filter.category])
 
   const { data: apiIngredients = [], isLoading, error } = useGetIngredients(apiFilter)
+  const { data: stock = [] } = useGetStock({ type: 'ingredient' })
+  const { data: suppliers = [] } = useGetSuppliers()
+  const { data: supplies = [] } = useGetSupplies()
 
-  const ingredients = useMemo(() => apiIngredients.map(api => ({
-    id: api.id,
-    name: api.name,
-    category: api.category?.name || api.category_id,
-    measureUnit: api.unit,
-    count: 0,
-    stock: 0,
-    cost: 0,
-    supplier: undefined,
-    lastDelivery: undefined,
-  })), [apiIngredients])
+  // Создаём мапу ингредиент -> остатки на складах
+  const stockByIngredient = useMemo(() => {
+    const map = new Map<string, { quantity: number; value: number }>()
+    stock.forEach(s => {
+      if (s.ingredient_id) {
+        const current = map.get(s.ingredient_id) || { quantity: 0, value: 0 }
+        map.set(s.ingredient_id, {
+          quantity: current.quantity + s.quantity,
+          value: current.value + (s.quantity * s.price_per_unit)
+        })
+      }
+    })
+    return map
+  }, [stock])
+
+  // Создаём мапу ингредиент -> последняя поставка с поставщиком
+  const lastSupplyByIngredient = useMemo(() => {
+    const map = new Map<string, { supplierName: string; deliveryDate: string }>()
+
+    supplies.forEach(supply => {
+      supply.items?.forEach(item => {
+        if (item.ingredient_id && !map.has(item.ingredient_id)) {
+          const supplier = suppliers.find(s => s.id === supply.supplier_id)
+          if (supplier) {
+            map.set(item.ingredient_id, {
+              supplierName: supplier.name,
+              deliveryDate: supply.delivery_date_time
+            })
+          }
+        }
+      })
+    })
+
+    // Сортируем поставки по дате (самые поздние первые)
+    const sortedSupplies = [...supplies].sort((a, b) =>
+      new Date(b.delivery_date_time).getTime() - new Date(a.delivery_date_time).getTime()
+    )
+
+    sortedSupplies.forEach(supply => {
+      supply.items?.forEach(item => {
+        if (item.ingredient_id && !map.has(item.ingredient_id)) {
+          const supplier = suppliers.find(s => s.id === supply.supplier_id)
+          if (supplier) {
+            map.set(item.ingredient_id, {
+              supplierName: supplier.name,
+              deliveryDate: supply.delivery_date_time
+            })
+          }
+        }
+      })
+    })
+
+    return map
+  }, [supplies, suppliers])
+
+  const ingredients = useMemo(() => apiIngredients.map(api => {
+    const stockData = stockByIngredient.get(api.id)
+    const supplyData = lastSupplyByIngredient.get(api.id)
+
+    return {
+      id: api.id,
+      name: api.name,
+      category: api.category?.name || api.category_id,
+      measureUnit: api.unit,
+      count: 1,
+      stock: stockData?.quantity || 0,
+      cost: stockData?.value || 0,
+      supplier: supplyData?.supplierName,
+      lastDelivery: supplyData?.deliveryDate ? new Date(supplyData.deliveryDate) : undefined,
+    }
+  }), [apiIngredients, stockByIngredient, lastSupplyByIngredient])
 
   const filteredAndSortedIngredients = useMemo(() => {
     let result = [...ingredients]

@@ -64,17 +64,17 @@ func (uc *FinanceUseCase) CreateTransaction(ctx context.Context, transaction *mo
 	// Обновляем баланс счета в зависимости от типа транзакции
 	if transaction.Type == "income" {
 		// Доход - добавляем деньги
-		account.CurrentBalance += transaction.Amount
+		account.Balance += transaction.Amount
 	} else if transaction.Type == "expense" {
 		// Расход - отнимаем деньги
-		if account.CurrentBalance < transaction.Amount {
+		if account.Balance < transaction.Amount {
 			return errors.New("insufficient balance")
 		}
-		account.CurrentBalance -= transaction.Amount
+		account.Balance -= transaction.Amount
 	}
 	// Для transfer логика будет сложнее (перевод между счетами) - TODO
-	
-	if err := uc.accountRepo.UpdateBalance(ctx, transaction.AccountID, account.CurrentBalance); err != nil {
+
+	if err := uc.accountRepo.UpdateBalance(ctx, transaction.AccountID, account.Balance); err != nil {
 		return err
 	}
 	
@@ -115,22 +115,22 @@ func (uc *FinanceUseCase) UpdateTransaction(ctx context.Context, transaction *mo
 	oldAccount, _ := uc.accountRepo.GetByID(ctx, existing.AccountID, nil)
 	if oldAccount != nil {
 		if existing.Type == "income" {
-			oldAccount.CurrentBalance -= existing.Amount
+			oldAccount.Balance -= existing.Amount
 		} else if existing.Type == "expense" {
-			oldAccount.CurrentBalance += existing.Amount
+			oldAccount.Balance += existing.Amount
 		}
-		uc.accountRepo.UpdateBalance(ctx, existing.AccountID, oldAccount.CurrentBalance)
+		uc.accountRepo.UpdateBalance(ctx, existing.AccountID, oldAccount.Balance)
 	}
-	
+
 	// Применяем изменения новой транзакции
 	newAccount, _ := uc.accountRepo.GetByID(ctx, transaction.AccountID, nil)
 	if newAccount != nil {
 		if transaction.Type == "income" {
-			newAccount.CurrentBalance += transaction.Amount
+			newAccount.Balance += transaction.Amount
 		} else if transaction.Type == "expense" {
-			newAccount.CurrentBalance -= transaction.Amount
+			newAccount.Balance -= transaction.Amount
 		}
-		uc.accountRepo.UpdateBalance(ctx, transaction.AccountID, newAccount.CurrentBalance)
+		uc.accountRepo.UpdateBalance(ctx, transaction.AccountID, newAccount.Balance)
 	}
 	
 	// Обновляем транзакцию
@@ -148,11 +148,11 @@ func (uc *FinanceUseCase) DeleteTransaction(ctx context.Context, id uuid.UUID, e
 	account, err := uc.accountRepo.GetByID(ctx, transaction.AccountID, nil)
 	if err == nil && account != nil {
 		if transaction.Type == "income" {
-			account.CurrentBalance -= transaction.Amount
+			account.Balance -= transaction.Amount
 		} else if transaction.Type == "expense" {
-			account.CurrentBalance += transaction.Amount
+			account.Balance += transaction.Amount
 		}
-		uc.accountRepo.UpdateBalance(ctx, transaction.AccountID, account.CurrentBalance)
+		uc.accountRepo.UpdateBalance(ctx, transaction.AccountID, account.Balance)
 	}
 	
 	// Удаляем транзакцию

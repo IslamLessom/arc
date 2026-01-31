@@ -5,8 +5,14 @@ import type {
   UpdateIngredientCategoryRequest,
 } from '@restaurant-pos/api-client'
 
+export interface CategoryTotals {
+  totalIngredientCount: number
+  totalStock: number
+  totalValue: number
+}
+
 export interface UseIngredientCategoriesResult {
-  categories: IngredientCategory[] | undefined
+  categories: IngredientCategoryTableRow[]
   isLoading: boolean
   error: Error | null
   filters: IngredientCategoryFilter
@@ -33,13 +39,14 @@ export interface UseIngredientCategoriesResult {
   isModalOpen: boolean
   handleCloseModal: () => void
   handleCategoryCreated: () => void
+  totals: CategoryTotals
 }
 
 export interface IngredientCategoryTableRow {
   id: string
   name: string
   ingredientCount: number
-  totalStock: number | null
-  totalValue: number | null
+  totalStock: number
+  totalValue: number
 }
 

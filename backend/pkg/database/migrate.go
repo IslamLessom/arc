@@ -9,6 +9,43 @@ import (
 	"github.com/yourusername/arc/backend/internal/models"
 )
 
+// migrateAccountBalances мигрирует данные из initial_balance и current_balance в balance
+// и удаляет старые колонки
+func migrateAccountBalances(db *gorm.DB, logger *zap.Logger) error {
+	// Проверяем, существует ли колонка balance (значит миграция уже была)
+	if db.Migrator().HasColumn(&models.Account{}, "balance") {
+		return nil
+	}
+
+	if logger != nil {
+		logger.Info("Migrating Account: merging initial_balance and current_balance into balance...")
+	}
+
+	// Шаг 1: добавляем новую колонку balance
+	if err := db.Migrator().AddColumn(&models.Account{}, "balance"); err != nil {
+		return fmt.Errorf("failed to add balance column: %w", err)
+	}
+
+	// Шаг 2: копируем данные из current_balance в balance
+	if err := db.Exec("UPDATE accounts SET balance = current_balance WHERE balance = 0").Error; err != nil {
+		return fmt.Errorf("failed to copy current_balance to balance: %w", err)
+	}
+
+	// Шаг 3: удаляем старые колонки
+	if err := db.Migrator().DropColumn(&models.Account{}, "initial_balance"); err != nil {
+		return fmt.Errorf("failed to drop initial_balance column: %w", err)
+	}
+	if err := db.Migrator().DropColumn(&models.Account{}, "current_balance"); err != nil {
+		return fmt.Errorf("failed to drop current_balance column: %w", err)
+	}
+
+	if logger != nil {
+		logger.Info("✅ Account balances migration completed successfully")
+	}
+
+	return nil
+}
+
 // RunMigrations выполняет автоматические миграции для всех моделей
 func RunMigrations(db *gorm.DB, logger *zap.Logger) error {
 	if logger != nil {
@@ -58,6 +95,10 @@ func RunMigrations(db *gorm.DB, logger *zap.Logger) error {
 	// 4. Финансовые модели
 	if err := migrateDB.AutoMigrate(&models.Account{}); err != nil {
 		return fmt.Errorf("failed to migrate Account: %w", err)
+	}
+	// Миграция Account: объединение initial_balance и current_balance в balance
+	if err := migrateAccountBalances(migrateDB, logger); err != nil {
+		return fmt.Errorf("failed to migrate account balances: %w", err)
 	}
 	if err := migrateDB.AutoMigrate(&models.Transaction{}); err != nil {
 		return fmt.Errorf("failed to migrate Transaction: %w", err)

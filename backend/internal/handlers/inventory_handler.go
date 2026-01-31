@@ -54,6 +54,11 @@ type UpdateInventoryStatusRequest struct {
 	Status models.InventoryStatus `json:"status" binding:"required,oneof=draft in_progress completed cancelled"`
 }
 
+type UpdateInventoryRequest struct {
+	ScheduledDate *string `json:"scheduled_date"`
+	Comment       string  `json:"comment"`
+}
+
 // ——— Handlers ———
 
 // List возвращает список инвентаризаций
@@ -129,6 +134,66 @@ func (h *InventoryHandler) GetByID(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
+	c.JSON(http.StatusOK, gin.H{"data": inventory})
+}
+
+// Update обновляет инвентаризацию
+// @Summary Обновить инвентаризацию
+// @Description Обновляет комментарий и запланированную дату инвентаризации
+// @Tags inventory
+// @Accept json
+// @Produce json
+// @Security Bearer
+// @Param id path string true "ID инвентаризации"
+// @Param request body UpdateInventoryRequest true "Данные для обновления"
+// @Success 200 {object} map[string]interface{}
+// @Failure 400 {object} map[string]string
+// @Failure 403 {object} map[string]string
+// @Failure 404 {object} map[string]string
+// @Failure 500 {object} map[string]string
+// @Router /inventory/{id} [put]
+func (h *InventoryHandler) Update(c *gin.Context) {
+	estID, err := getEstablishmentID(c)
+	if err != nil {
+		c.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
+		return
+	}
+
+	id, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id"})
+		return
+	}
+
+	var req UpdateInventoryRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Парсим scheduled_date если указан
+	var scheduledDate *time.Time
+	if req.ScheduledDate != nil && *req.ScheduledDate != "" {
+		t, err := time.Parse(time.RFC3339, *req.ScheduledDate)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid scheduled_date format, expected RFC3339"})
+			return
+		}
+		scheduledDate = &t
+	}
+
+	updateReq := &usecases.UpdateInventoryRequest{
+		ScheduledDate: scheduledDate,
+		Comment:       req.Comment,
+	}
+
+	inventory, err := h.usecase.Update(c.Request.Context(), id, updateReq, estID)
+	if err != nil {
+		h.logger.Error("Failed to update inventory", zap.Error(err))
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
 	c.JSON(http.StatusOK, gin.H{"data": inventory})
 }
 

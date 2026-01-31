@@ -59,7 +59,7 @@ func (h *RoleHandler) CreateRole(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusCreated, role)
+	c.JSON(http.StatusCreated, gin.H{"data": role})
 }
 
 // GetRole возвращает роль по ID
@@ -88,7 +88,7 @@ func (h *RoleHandler) GetRole(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, role)
+	c.JSON(http.StatusOK, gin.H{"data": role})
 }
 
 // ListRoles возвращает список всех ролей
@@ -149,7 +149,7 @@ func (h *RoleHandler) UpdateRole(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, updatedRole)
+	c.JSON(http.StatusOK, gin.H{"data": updatedRole})
 }
 
 // DeleteRole удаляет роль

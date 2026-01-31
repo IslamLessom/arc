@@ -847,6 +847,7 @@ type CreateIngredientRequest struct {
 	LossBaking    float64 `json:"loss_baking"`
 	// Складской учет (опционально)
 	WarehouseID   *string `json:"warehouse_id,omitempty" binding:"omitempty,uuid"`
+	SupplierID    *string `json:"supplier_id,omitempty" binding:"omitempty,uuid"` // Поставщик для автоматического создания поставки
 	Quantity      float64 `json:"quantity"` // Количество в наличии
 	PricePerUnit  float64 `json:"price_per_unit"` // Цена за единицу измерения
 }
@@ -987,7 +988,16 @@ func (h *MenuHandler) CreateIngredient(c *gin.Context) {
 		}
 	}
 
-	if err := h.usecase.CreateIngredient(c.Request.Context(), ingredient, warehouseID, req.Quantity, req.PricePerUnit, estID); err != nil {
+	var supplierID uuid.UUID
+	if req.SupplierID != nil && *req.SupplierID != "" {
+		supplierID, err = uuid.Parse(*req.SupplierID)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid supplier_id"})
+			return
+		}
+	}
+
+	if err := h.usecase.CreateIngredient(c.Request.Context(), ingredient, warehouseID, req.Quantity, req.PricePerUnit, supplierID, estID); err != nil {
 		h.logger.Error("Failed to create ingredient", zap.Error(err))
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return

@@ -33,5 +33,13 @@ export enum MenuItemId {
   AccessCashRegisters = 'access-cash-registers',
   AccessEstablishments = 'access-establishments',
   AccessIntegrations = 'access-integrations',
+  // Finance sub-items
+  FinanceTransactions = 'finance-transactions',
+  FinanceCashFlow = 'finance-cash-flow',
+  FinanceCashRegisterShifts = 'finance-cash-register-shifts',
+  FinanceSalary = 'finance-salary',
+  FinanceInvoices = 'finance-invoices',
+  FinanceCategories = 'finance-categories',
+  FinanceProfitAndLoss = 'finance-profit-and-loss',
 }
 

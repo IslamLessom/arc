@@ -3,7 +3,6 @@ package usecases
 import (
 	"context"
 	"errors"
-	"fmt"
 	"testing"
 
 	"github.com/google/uuid"
@@ -11,7 +10,6 @@ import (
 	"github.com/stretchr/testify/mock"
 
 	"github.com/yourusername/arc/backend/internal/models"
-	"github.com/yourusername/arc/backend/internal/repositories"
 )
 
 // MockOrderRepository is a mock implementation of repositories.OrderRepository

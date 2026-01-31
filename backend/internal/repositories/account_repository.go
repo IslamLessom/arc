@@ -89,7 +89,7 @@ func (r *accountRepository) UpdateBalance(ctx context.Context, id uuid.UUID, bal
 	return r.db.WithContext(ctx).
 		Model(&models.Account{}).
 		Where("id = ?", id).
-		Update("current_balance", balance).Error
+		Update("balance", balance).Error
 }
 
 // AccountTypeRepository для работы с типами счетов

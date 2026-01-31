@@ -46,6 +46,36 @@ export const ModalHeader = styled.div({
   flexShrink: 0,
 })
 
+export const HeaderActions = styled.div({
+  display: 'flex',
+  gap: '8px',
+})
+
+export const ActionButton = styled.button<{ $variant?: 'primary' | 'secondary' | 'danger' }>((props) => ({
+  padding: '8px 16px',
+  borderRadius: '8px',
+  fontSize: '13px',
+  fontWeight: 500,
+  cursor: 'pointer',
+  border: '1px solid transparent',
+  transition: 'all 0.2s',
+  backgroundColor: props.$variant === 'primary'
+    ? ({ theme }: any) => theme.colors.primary
+    : props.$variant === 'danger'
+      ? ({ theme }: any) => theme.colors.danger
+      : 'transparent',
+  color: props.$variant === 'primary' || props.$variant === 'danger'
+    ? '#fff'
+    : ({ theme }: any) => theme.colors.textSecondary,
+  '&:hover': {
+    opacity: 0.9,
+  },
+  '&:disabled': {
+    opacity: 0.5,
+    cursor: 'not-allowed',
+  },
+}))
+
 export const HeaderContent = styled.div({
   display: 'flex',
   alignItems: 'center',
@@ -195,6 +225,54 @@ export const SmallInfoValue = styled.div({
   fontWeight: 500,
   color: ({ theme }) => theme.colors.textPrimary,
   wordBreak: 'break-word',
+})
+
+export const EditableInput = styled.input({
+  padding: '8px 12px',
+  border: `1px solid ${({ theme }) => theme.colors.border}`,
+  borderRadius: '6px',
+  fontSize: '15px',
+  fontWeight: 500,
+  color: ({ theme }) => theme.colors.textPrimary,
+  width: '100%',
+  transition: 'border-color 0.2s',
+  '&:focus': {
+    outline: 'none',
+    borderColor: ({ theme }) => theme.colors.primary,
+  },
+})
+
+export const EditableSelect = styled.select({
+  padding: '8px 12px',
+  border: `1px solid ${({ theme }) => theme.colors.border}`,
+  borderRadius: '6px',
+  fontSize: '15px',
+  fontWeight: 500,
+  color: ({ theme }) => theme.colors.textPrimary,
+  width: '100%',
+  backgroundColor: '#fff',
+  transition: 'border-color 0.2s',
+  '&:focus': {
+    outline: 'none',
+    borderColor: ({ theme }) => theme.colors.primary,
+  },
+})
+
+export const EditableTextArea = styled.textarea({
+  padding: '12px',
+  border: `1px solid ${({ theme }) => theme.colors.border}`,
+  borderRadius: '8px',
+  fontSize: '14px',
+  color: ({ theme }) => theme.colors.textPrimary,
+  width: '100%',
+  minHeight: '80px',
+  resize: 'vertical',
+  fontFamily: 'inherit',
+  transition: 'border-color 0.2s',
+  '&:focus': {
+    outline: 'none',
+    borderColor: ({ theme }) => theme.colors.primary,
+  },
 })
 
 export const StatusBadge = styled.div<{ $status: string }>((props) => {

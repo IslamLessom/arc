@@ -200,7 +200,16 @@ func (h *FinanceHandler) CreateTransaction(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	c.JSON(http.StatusCreated, gin.H{"data": transaction})
+
+	// Загружаем транзакцию с связанными данными для ответа
+	transactionWithRelations, err := h.usecase.GetTransaction(c.Request.Context(), transaction.ID, estID)
+	if err != nil {
+		h.logger.Error("Failed to get transaction with relations", zap.Error(err))
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusCreated, gin.H{"data": transactionWithRelations})
 }
 
 // UpdateTransaction обновляет транзакцию

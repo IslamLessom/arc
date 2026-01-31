@@ -48,6 +48,12 @@ type UpdateInventoryItemRequest struct {
 	Comment        string  `json:"comment"`
 }
 
+// UpdateInventoryRequest запрос на обновление инвентаризации
+type UpdateInventoryRequest struct {
+	ScheduledDate *time.Time `json:"scheduled_date"`
+	Comment       string     `json:"comment"`
+}
+
 // List возвращает список инвентаризаций
 func (uc *InventoryUseCase) List(ctx context.Context, establishmentID uuid.UUID, filter *repositories.InventoryFilter) ([]*models.Inventory, error) {
 	if filter == nil {
@@ -348,4 +354,30 @@ func (uc *InventoryUseCase) GetStockSnapshot(ctx context.Context, warehouseID uu
 	}
 
 	return uc.repo.GetStockSnapshot(ctx, warehouseID, date)
+}
+
+// Update обновляет инвентаризацию
+func (uc *InventoryUseCase) Update(ctx context.Context, id uuid.UUID, req *UpdateInventoryRequest, establishmentID uuid.UUID) (*models.Inventory, error) {
+	// Проверяем существование
+	inventory, err := uc.repo.GetByID(ctx, id, &establishmentID)
+	if err != nil || inventory == nil {
+		return nil, errors.New("inventory not found")
+	}
+
+	// Можно обновлять только черновики и те, что в процессе
+	if inventory.Status != models.InventoryStatusDraft && inventory.Status != models.InventoryStatusInProgress {
+		return nil, errors.New("can only update inventories in draft or in_progress status")
+	}
+
+	// Обновляем поля
+	if req.ScheduledDate != nil {
+		inventory.ScheduledDate = req.ScheduledDate
+	}
+	inventory.Comment = req.Comment
+
+	if err := uc.repo.Update(ctx, inventory); err != nil {
+		return nil, err
+	}
+
+	return inventory, nil
 }
