@@ -102,7 +102,7 @@ func TestFinanceUseCase_CreateTransaction(t *testing.T) {
 
 	// Helper to create a basic account
 	createTestAccount := func(balance float64) *models.Account {
-		return &models.Account{ID: accountID, EstablishmentID: establishmentID, CurrentBalance: balance}
+		return &models.Account{ID: accountID, EstablishmentID: establishmentID, Balance: balance}
 	}
 
 	// Test case 1: Successfully create income transaction
@@ -272,10 +272,10 @@ func TestFinanceUseCase_UpdateTransaction(t *testing.T) {
 
 	// Helper to create basic accounts
 	createOldAccount := func(balance float64) *models.Account {
-		return &models.Account{ID: oldAccountID, EstablishmentID: establishmentID, CurrentBalance: balance}
+		return &models.Account{ID: oldAccountID, EstablishmentID: establishmentID, Balance: balance}
 	}
 	createNewAccount := func(balance float64) *models.Account {
-		return &models.Account{ID: newAccountID, EstablishmentID: establishmentID, CurrentBalance: balance}
+		return &models.Account{ID: newAccountID, EstablishmentID: establishmentID, Balance: balance}
 	}
 
 	// Test case 1: Successfully update income transaction, account not changed
@@ -345,7 +345,7 @@ func TestFinanceUseCase_DeleteTransaction(t *testing.T) {
 
 	// Helper to create a basic account
 	createTestAccount := func(balance float64) *models.Account {
-		return &models.Account{ID: accountID, EstablishmentID: establishmentID, CurrentBalance: balance}
+		return &models.Account{ID: accountID, EstablishmentID: establishmentID, Balance: balance}
 	}
 
 	// Test case 1: Successfully delete income transaction

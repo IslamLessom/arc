@@ -44,10 +44,9 @@ func (uc *AccountUseCase) CreateAccount(ctx context.Context, account *models.Acc
 	if _, err := uc.accountTypeRepo.GetByID(ctx, account.TypeID); err != nil {
 		return errors.New("account type not found")
 	}
-	
+
 	account.EstablishmentID = establishmentID
-	account.CurrentBalance = account.InitialBalance
-	
+
 	return uc.repo.Create(ctx, account)
 }
 
@@ -57,10 +56,10 @@ func (uc *AccountUseCase) UpdateAccount(ctx context.Context, account *models.Acc
 	if err != nil || existing == nil {
 		return errors.New("account not found or access denied")
 	}
-	
-	// Не позволяем изменять текущий баланс напрямую (он обновляется через транзакции)
-	account.CurrentBalance = existing.CurrentBalance
-	
+
+	// Не позволяем изменять баланс напрямую (он обновляется через транзакции)
+	account.Balance = existing.Balance
+
 	return uc.repo.Update(ctx, account)
 }
 
@@ -78,9 +77,9 @@ func (uc *AccountUseCase) UpdateAccountBalance(ctx context.Context, accountID uu
 	if err != nil || account == nil {
 		return errors.New("account not found")
 	}
-	
+
 	account.UpdateBalance(amount, transactionType)
-	return uc.repo.UpdateBalance(ctx, accountID, account.CurrentBalance)
+	return uc.repo.UpdateBalance(ctx, accountID, account.Balance)
 }
 
 // GetAccountTypes возвращает все типы счетов
@@ -95,44 +94,43 @@ func (uc *AccountUseCase) CreateDefaultAccounts(ctx context.Context, establishme
 	if err != nil {
 		return err
 	}
-	
+
 	// Создаем маппинг типов по имени
 	typeMap := make(map[string]*models.AccountType)
 	for _, t := range types {
 		typeMap[t.Name] = t
 	}
-	
+
 	// Определяем какие типы нужны для дефолтных счетов
 	defaultAccounts := []struct {
-		name           string
-		typeName       string
-		initialBalance float64
+		name   string
+		typeName string
+		balance float64
 	}{
 		{"Денежный ящик", "наличные", 0},
 		{"Расчетный счет", "безналичный счет", 0},
 		{"Сейф", "наличные", 0},
 	}
-	
+
 	for _, acc := range defaultAccounts {
 		accountType, ok := typeMap[acc.typeName]
 		if !ok {
 			continue // Пропускаем если тип не найден
 		}
-		
+
 		account := &models.Account{
 			EstablishmentID: establishmentID,
 			Name:           acc.name,
 			Currency:       "RUB",
 			TypeID:         accountType.ID,
-			InitialBalance: acc.initialBalance,
-			CurrentBalance: acc.initialBalance,
+			Balance:        acc.balance,
 			Active:         true,
 		}
-		
+
 		if err := uc.repo.Create(ctx, account); err != nil {
 			return err
 		}
 	}
-	
+
 	return nil
 }

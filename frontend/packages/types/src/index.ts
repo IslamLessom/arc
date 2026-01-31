@@ -340,6 +340,28 @@ export interface Promotion {
 
 // ===== Финансы =====
 
+export interface AccountType {
+  id: string
+  name: string
+  displayName: string
+  createdAt: string
+  updatedAt: string
+}
+
+export interface Account {
+  id: string
+  establishmentId: string
+  establishment?: Establishment
+  name: string
+  currency: string
+  typeId: string
+  type?: AccountType
+  balance: number
+  active: boolean
+  createdAt: string
+  updatedAt: string
+}
+
 export interface Shift {
   id: string
   establishmentId: string
@@ -358,7 +380,11 @@ export interface Shift {
 
 export interface Transaction {
   id: string
-  shiftId: string
+  establishmentId: string
+  establishment?: Establishment
+  accountId: string
+  account?: Account
+  shiftId?: string
   shift?: Shift
   orderId?: string
   order?: Order
@@ -366,6 +392,7 @@ export interface Transaction {
   category?: string
   amount: number
   description?: string
+  transactionDate: string
   createdAt: string
   updatedAt: string
 }

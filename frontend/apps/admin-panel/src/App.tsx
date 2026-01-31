@@ -31,6 +31,13 @@ import { CashRegisters } from './pages/cash-registers'
 import { Establishments } from './pages/establishments'
 import { Integrations } from './pages/integrations'
 import { NotFound } from './pages/not-found'
+import { Transactions } from './pages/transactions'
+import { CashFlow } from './pages/cash-flow'
+import { CashRegisterShifts } from './pages/cash-register-shifts'
+import { Salary } from './pages/salary'
+import { Invoices } from './pages/invoices'
+import { FinanceCategories } from './pages/finance-categories'
+import { ProfitAndLoss } from './pages/profit-and-loss'
 
 export function App() {
   const location = useLocation()
@@ -89,6 +96,13 @@ export function App() {
           <Route path="/access/cash-registers" element={<CashRegisters />} />
           <Route path="/access/establishments" element={<Establishments />} />
           <Route path="/access/integrations" element={<Integrations />} />
+          <Route path="/finance/transactions" element={<Transactions />} />
+          <Route path="/finance/cash-flow" element={<CashFlow />} />
+          <Route path="/finance/cash-register-shifts" element={<CashRegisterShifts />} />
+          <Route path="/finance/salary" element={<Salary />} />
+          <Route path="/finance/invoices" element={<Invoices />} />
+          <Route path="/finance/categories" element={<FinanceCategories />} />
+          <Route path="/finance/profit-and-loss" element={<ProfitAndLoss />} />
           <Route path="/" element={<Home />} />
           <Route path="*" element={<NotFound />} />
         </Routes>

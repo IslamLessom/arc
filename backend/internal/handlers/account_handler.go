@@ -25,18 +25,18 @@ func NewAccountHandler(usecase *usecases.AccountUseCase, logger *zap.Logger) *Ac
 }
 
 type CreateAccountRequest struct {
-	Name           string  `json:"name" binding:"required" example:"Основной счет"`
-	Currency       string  `json:"currency" binding:"required" example:"RUB"`
-	TypeID         string  `json:"type_id" binding:"required,uuid" example:"550e8400-e29b-41d4-a716-446655440000"`
-	InitialBalance float64 `json:"initial_balance" example:"0"`
+	Name     string  `json:"name" binding:"required" example:"Основной счет"`
+	Currency string  `json:"currency" binding:"required" example:"RUB"`
+	TypeID   string  `json:"typeId" binding:"required,uuid" example:"550e8400-e29b-41d4-a716-446655440000"`
+	Balance  float64 `json:"balance" example:"0"`
 }
 
 type UpdateAccountRequest struct {
-	Name           *string `json:"name,omitempty"`
-	Currency       *string `json:"currency,omitempty"`
-	TypeID         *string `json:"type_id,omitempty" binding:"omitempty,uuid"`
-	InitialBalance *float64 `json:"initial_balance,omitempty"`
-	Active         *bool   `json:"active,omitempty"`
+	Name     *string `json:"name,omitempty"`
+	Currency *string `json:"currency,omitempty"`
+	TypeID   *string `json:"typeId,omitempty" binding:"omitempty,uuid"`
+	Balance  *float64 `json:"balance,omitempty"`
+	Active   *bool   `json:"active,omitempty"`
 }
 
 // ListAccounts возвращает список счетов
@@ -150,12 +150,11 @@ func (h *AccountHandler) CreateAccount(c *gin.Context) {
 	}
 	
 	account := &models.Account{
-		Name:           req.Name,
-		Currency:       req.Currency,
-		TypeID:         typeID,
-		InitialBalance: req.InitialBalance,
-		CurrentBalance: req.InitialBalance,
-		Active:         true,
+		Name:     req.Name,
+		Currency: req.Currency,
+		TypeID:   typeID,
+		Balance:  req.Balance,
+		Active:   true,
 	}
 	
 	if err := h.usecase.CreateAccount(c.Request.Context(), account, estID); err != nil {
@@ -213,13 +212,10 @@ func (h *AccountHandler) UpdateAccount(c *gin.Context) {
 	if req.TypeID != nil {
 		typeID, err := uuid.Parse(*req.TypeID)
 		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid type_id"})
+			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid typeId"})
 			return
 		}
 		account.TypeID = typeID
-	}
-	if req.InitialBalance != nil {
-		account.InitialBalance = *req.InitialBalance
 	}
 	if req.Active != nil {
 		account.Active = *req.Active

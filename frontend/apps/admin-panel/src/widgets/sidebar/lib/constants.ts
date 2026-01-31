@@ -20,6 +20,50 @@ export const menuItems: MenuItem[] = [
     label: 'Финансы',
     icon: '💰',
     path: '/finance',
+    children: [
+      {
+        id: MenuItemId.FinanceTransactions,
+        label: 'Транзакции',
+        icon: '💳',
+        path: '/finance/transactions',
+      },
+      {
+        id: MenuItemId.FinanceCashFlow,
+        label: 'Поток денег',
+        icon: '💵',
+        path: '/finance/cash-flow',
+      },
+      {
+        id: MenuItemId.FinanceCashRegisterShifts,
+        label: 'Кассовые смены',
+        icon: '🕐',
+        path: '/finance/cash-register-shifts',
+      },
+      {
+        id: MenuItemId.FinanceSalary,
+        label: 'Зарплата',
+        icon: '💸',
+        path: '/finance/salary',
+      },
+      {
+        id: MenuItemId.FinanceInvoices,
+        label: 'Счета',
+        icon: '📄',
+        path: '/finance/invoices',
+      },
+      {
+        id: MenuItemId.FinanceCategories,
+        label: 'Категории',
+        icon: '🏷️',
+        path: '/finance/categories',
+      },
+      {
+        id: MenuItemId.FinanceProfitAndLoss,
+        label: 'P&L',
+        icon: '📊',
+        path: '/finance/profit-and-loss',
+      },
+    ],
   },
   {
     id: MenuItemId.Menu,
@@ -196,6 +240,13 @@ export const PATH_PATTERNS: Array<[string, MenuItemId]> = [
   ['/', MenuItemId.GettingStarted],
   ['/statistics', MenuItemId.Statistics],
   ['/finance', MenuItemId.Finance],
+  ['/finance/transactions', MenuItemId.FinanceTransactions],
+  ['/finance/cash-flow', MenuItemId.FinanceCashFlow],
+  ['/finance/cash-register-shifts', MenuItemId.FinanceCashRegisterShifts],
+  ['/finance/salary', MenuItemId.FinanceSalary],
+  ['/finance/invoices', MenuItemId.FinanceInvoices],
+  ['/finance/categories', MenuItemId.FinanceCategories],
+  ['/finance/profit-and-loss', MenuItemId.FinanceProfitAndLoss],
   ['/menu', MenuItemId.Menu],
   ['/menu/products', MenuItemId.MenuProducts],
   ['/menu/tech-cards', MenuItemId.MenuTechCards],
@@ -255,4 +306,14 @@ export const ACCESS_SUB_ITEMS = [
   MenuItemId.AccessCashRegisters,
   MenuItemId.AccessEstablishments,
   MenuItemId.AccessIntegrations,
+] as const;
+
+export const FINANCE_SUB_ITEMS = [
+  MenuItemId.FinanceTransactions,
+  MenuItemId.FinanceCashFlow,
+  MenuItemId.FinanceCashRegisterShifts,
+  MenuItemId.FinanceSalary,
+  MenuItemId.FinanceInvoices,
+  MenuItemId.FinanceCategories,
+  MenuItemId.FinanceProfitAndLoss,
 ] as const;
