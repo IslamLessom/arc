@@ -94,29 +94,6 @@ export function useGetActiveShift() {
  * POST /shifts/end
  * Завершить смену с подсчётом наличных
  */
-/**
- * POST /shifts/start
- * Открыть новую смену
- */
-export function useStartShift() {
-  const queryClient = useQueryClient()
-
-  return useMutation({
-    mutationFn: async (data: CreateShiftRequest): Promise<Shift> => {
-      const response = await apiClient.post<ShiftResponse>('/shifts/start', data)
-      return transformShift(response.data.data)
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['shifts'] })
-      queryClient.invalidateQueries({ queryKey: ['shift', 'active'] })
-    },
-  })
-}
-
-/**
- * POST /shifts/end
- * Завершить смену с подсчётом наличных
- */
 export function useEndShift() {
   return useMutation({
     mutationFn: async (request: EndShiftRequest): Promise<Shift> => {
@@ -147,6 +124,47 @@ export function useStartShift() {
     mutationFn: async (request: StartShiftRequest): Promise<Shift> => {
       const response = await apiClient.post<StartShiftResponse>('/shifts/start', request)
       return response.data
+    },
+  })
+}
+
+/**
+ * GET /shifts
+ * Получить список всех смен с фильтрацией (для админ-панели)
+ */
+export interface GetShiftsFilter {
+  status?: 'open' | 'closed'
+  establishmentId?: string
+  employeeId?: string
+  startDate?: string
+  endDate?: string
+}
+
+export function useGetShifts(filter?: GetShiftsFilter) {
+  return useQuery<Shift[], Error>({
+    queryKey: ['shifts', 'list', filter],
+    queryFn: async (): Promise<Shift[]> => {
+      const params = new URLSearchParams()
+      if (filter?.status) params.append('status', filter.status)
+      if (filter?.establishmentId) params.append('establishment_id', filter.establishmentId)
+      if (filter?.employeeId) params.append('employee_id', filter.employeeId)
+      if (filter?.startDate) params.append('start_date', filter.startDate)
+      if (filter?.endDate) params.append('end_date', filter.endDate)
+
+      const response = await apiClient.get<Shift[]>(`/shifts?${params.toString()}`)
+      return response.data
+    },
+  })
+}
+
+/**
+ * DELETE /shifts/:id
+ * Удалить смену
+ */
+export function useDeleteShift() {
+  return useMutation({
+    mutationFn: async (shiftId: string): Promise<void> => {
+      await apiClient.delete(`/shifts/${shiftId}`)
     },
   })
 }
