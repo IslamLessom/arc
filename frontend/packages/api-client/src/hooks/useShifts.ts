@@ -94,6 +94,29 @@ export function useGetActiveShift() {
  * POST /shifts/end
  * Завершить смену с подсчётом наличных
  */
+/**
+ * POST /shifts/start
+ * Открыть новую смену
+ */
+export function useStartShift() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: async (data: CreateShiftRequest): Promise<Shift> => {
+      const response = await apiClient.post<ShiftResponse>('/shifts/start', data)
+      return transformShift(response.data.data)
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['shifts'] })
+      queryClient.invalidateQueries({ queryKey: ['shift', 'active'] })
+    },
+  })
+}
+
+/**
+ * POST /shifts/end
+ * Завершить смену с подсчётом наличных
+ */
 export function useEndShift() {
   return useMutation({
     mutationFn: async (request: EndShiftRequest): Promise<Shift> => {
