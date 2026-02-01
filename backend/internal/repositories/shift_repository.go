@@ -73,7 +73,7 @@ func (r *shiftRepository) GetActiveShiftByEstablishmentID(ctx context.Context, e
 
 func (r *shiftRepository) ListByFilter(ctx context.Context, filter *ShiftFilter) ([]*models.Shift, error) {
 	var shifts []*models.Shift
-	query := r.db.WithContext(ctx).Preload("Sessions")
+	query := r.db.WithContext(ctx).Preload("Sessions").Preload("Establishment")
 
 	if filter != nil {
 		if filter.EstablishmentID != nil {

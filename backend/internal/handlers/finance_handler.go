@@ -377,17 +377,56 @@ func (h *FinanceHandler) GetTotalTransactionsAmount(c *gin.Context) {
 
 // GetShifts возвращает смены
 // @Summary Получить смены
-// @Description Возвращает список смен
+// @Description Возвращает список смен с возможностью фильтрации по датам
 // @Tags finance
 // @Produce json
 // @Security Bearer
-// @Param start_date query string false "Начальная дата"
-// @Param end_date query string false "Конечная дата"
+// @Param establishment_id query string false "ID заведения"
+// @Param start_date query string false "Начальная дата (RFC3339)"
+// @Param end_date query string false "Конечная дата (RFC3339)"
 // @Success 200 {object} map[string]interface{}
 // @Router /finance/shifts [get]
 func (h *FinanceHandler) GetShifts(c *gin.Context) {
-	// TODO: Implement get shifts logic
-	c.JSON(http.StatusOK, gin.H{"data": []interface{}{}})
+	ctx := c.Request.Context()
+
+	// Получаем параметры фильтрации
+	var establishmentID *uuid.UUID
+	if estIDStr := c.Query("establishment_id"); estIDStr != "" {
+		id, err := uuid.Parse(estIDStr)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid establishment_id format"})
+			return
+		}
+		establishmentID = &id
+	}
+
+	var startDate, endDate *time.Time
+	if startDateStr := c.Query("start_date"); startDateStr != "" {
+		t, err := time.Parse(time.RFC3339, startDateStr)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid start_date format, use RFC3339"})
+			return
+		}
+		startDate = &t
+	}
+
+	if endDateStr := c.Query("end_date"); endDateStr != "" {
+		t, err := time.Parse(time.RFC3339, endDateStr)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid end_date format, use RFC3339"})
+			return
+		}
+		endDate = &t
+	}
+
+	shifts, err := h.usecase.GetShifts(ctx, establishmentID, startDate, endDate)
+	if err != nil {
+		h.logger.Error("failed to get shifts", zap.Error(err))
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to get shifts"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"data": shifts})
 }
 
 // GetPNL возвращает отчет о прибылях и убытках

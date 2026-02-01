@@ -175,3 +175,114 @@ export const SearchInput = styled(Input)({
   width: '100%',
   paddingLeft: '36px'
 })
+
+// Table styles
+export const Table = styled.table({
+  width: '100%',
+  borderCollapse: 'collapse',
+  fontSize: '14px'
+})
+
+export const TableHeader = styled.thead({
+  backgroundColor: '#f8fafc',
+  borderBottom: '1px solid #e2e8f0'
+})
+
+export const TableRow = styled.tr({
+  borderBottom: '1px solid #e2e8f0',
+  transition: 'background-color 0.2s ease',
+
+  '&:hover': {
+    backgroundColor: '#f8fafc'
+  },
+
+  '&:last-child': {
+    borderBottom: 'none'
+  }
+})
+
+export const TableHeadCell = styled.th<{ $width?: number; $align?: 'left' | 'center' | 'right' }>({
+  padding: '12px 16px',
+  textAlign: ({ $align = 'left' }) => $align,
+  fontWeight: '500',
+  color: '#64748b',
+  fontSize: '13px',
+  textTransform: 'uppercase',
+  letterSpacing: '0.05em',
+  width: ({ $width }) => $width ? `${$width}px` : 'auto',
+  userSelect: 'none',
+})
+
+export const TableCell = styled.td<{ $align?: 'left' | 'center' | 'right' }>({
+  padding: '14px 16px',
+  textAlign: ({ $align = 'left' }) => $align,
+  color: '#334155'
+})
+
+export const StatusBadge = styled.span<{ $status: 'open' | 'closed' }>({
+  display: 'inline-flex',
+  alignItems: 'center',
+  gap: '6px',
+  padding: '4px 12px',
+  borderRadius: '20px',
+  fontSize: '13px',
+  fontWeight: '500',
+  backgroundColor: ({ $status }) => $status === 'open' ? '#dcfce7' : '#fef3c7',
+  color: ({ $status }) => $status === 'open' ? '#16a34a' : '#d97706',
+
+  '&::before': {
+    content: '""',
+    width: '6px',
+    height: '6px',
+    borderRadius: '50%',
+    backgroundColor: 'currentColor'
+  }
+})
+
+export const PositiveAmount = styled.span({
+  color: '#16a34a',
+  fontWeight: '500'
+})
+
+export const NegativeAmount = styled.span({
+  color: '#dc2626',
+  fontWeight: '500'
+})
+
+export const ActionCell = styled.div({
+  display: 'flex',
+  gap: '8px',
+  alignItems: 'center',
+  justifyContent: 'flex-end'
+})
+
+export const ActionIconButton = styled.button({
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  width: '32px',
+  height: '32px',
+  border: '1px solid #e2e8f0',
+  backgroundColor: '#ffffff',
+  borderRadius: '6px',
+  cursor: 'pointer',
+  fontSize: '14px',
+  transition: 'all 0.2s ease',
+
+  '&:hover': {
+    backgroundColor: '#f8fafc',
+    borderColor: '#cbd5e1'
+  },
+
+  '&:disabled': {
+    opacity: 0.5,
+    cursor: 'not-allowed'
+  }
+})
+
+export const NoResultsMessage = styled.div({
+  padding: '40px',
+  textAlign: 'center',
+  color: '#64748b',
+  fontSize: '14px'
+})

@@ -367,7 +367,7 @@ export interface Shift {
   id: string
   establishmentId: string
   establishment?: Establishment
-  employeeId: string
+  employeeId?: string
   employee?: User
   openedAt: string
   closedAt?: string

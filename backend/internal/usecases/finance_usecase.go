@@ -297,3 +297,19 @@ func (uc *FinanceUseCase) GenerateShiftReport(ctx context.Context, establishment
 
 	return report, nil
 }
+
+// GetShifts возвращает список смен с фильтрацией
+func (uc *FinanceUseCase) GetShifts(ctx context.Context, establishmentID *uuid.UUID, startDate *time.Time, endDate *time.Time) ([]*models.Shift, error) {
+	filter := &repositories.ShiftFilter{
+		EstablishmentID: establishmentID,
+		StartDate:       startDate,
+		EndDate:         endDate,
+	}
+
+	shifts, err := uc.shiftRepo.ListByFilter(ctx, filter)
+	if err != nil {
+		return nil, fmt.Errorf("failed to list shifts: %w", err)
+	}
+
+	return shifts, nil
+}
