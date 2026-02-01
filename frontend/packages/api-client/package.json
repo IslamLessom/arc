@@ -22,14 +22,14 @@
     "axios": "^1.7.0"
   },
   "devDependencies": {
+    "@types/minimatch": "^6.0.0",
     "@types/react": "^18.3.0",
     "tsup": "^8.0.0",
     "typescript": "^5.4.0"
   },
   "peerDependencies": {
-    "react": "^18.0.0",
+    "@restaurant-pos/pwa-core": "workspace:*",
     "@restaurant-pos/types": "workspace:*",
-    "@restaurant-pos/pwa-core": "workspace:*"
+    "react": "^18.0.0"
   }
 }
-

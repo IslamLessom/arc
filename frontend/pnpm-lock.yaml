@@ -241,6 +241,9 @@ importers:
         specifier: ^18.0.0
         version: 18.3.1
     devDependencies:
+      '@types/minimatch':
+        specifier: ^6.0.0
+        version: 6.0.0
       '@types/react':
         specifier: ^18.3.0
         version: 18.3.27

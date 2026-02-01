@@ -28,7 +28,12 @@
       "Bash(pnpm remove:*)",
       "Bash(tree:*)",
       "Bash(find:*)",
-      "Bash(go build:*)"
+      "Bash(go build:*)",
+      "Bash(pnpm --filter pos-pwa exec tsc:*)",
+      "Bash(pnpm --filter api-client exec tsc:*)",
+      "Bash(pnpm --filter api-client build:*)",
+      "Bash(pnpm --filter api-client add:*)",
+      "Bash(pnpm --filter types build:*)"
     ]
   }
 }

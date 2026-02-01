@@ -6,7 +6,7 @@ interface LoginRequest {
   password: string
 }
 
-interface AuthUser {
+export interface AuthUser {
   id: string
   email: string
   name: string
@@ -14,7 +14,7 @@ interface AuthUser {
   establishment_id?: string
 }
 
-interface AuthResponse {
+export interface AuthResponse {
   access_token: string
   refresh_token: string
   user: AuthUser

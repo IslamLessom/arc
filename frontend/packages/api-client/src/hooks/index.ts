@@ -141,6 +141,11 @@ export {
   useDeleteTransaction,
 } from './useTransactions'
 export type { TransactionFilter, CreateTransactionRequest, UpdateTransactionRequest } from './useTransactions'
+export {
+  useGetActiveShift,
+  useEndShift,
+} from './useShifts'
+export type { Shift, EndShiftRequest } from './useShifts'
 
 // Types
 export * from '../types'

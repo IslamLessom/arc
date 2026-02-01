@@ -37,7 +37,7 @@ interface IngredientResponse {
   data: Ingredient
 }
 
-interface CreateIngredientRequest {
+export interface CreateIngredientRequest {
   name: string
   category_id: string
   unit: 'шт' | 'л' | 'кг'
@@ -52,7 +52,7 @@ interface CreateIngredientRequest {
   price_per_unit?: number
 }
 
-interface UpdateIngredientRequest {
+export interface UpdateIngredientRequest {
   name?: string
   category_id?: string
   unit?: 'шт' | 'л' | 'кг'
