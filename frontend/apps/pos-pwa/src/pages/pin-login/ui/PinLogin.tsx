@@ -1,18 +1,13 @@
-import { useNavigate } from 'react-router-dom';
 import { LogoutOutlined } from '@ant-design/icons';
 import { usePinLogin } from '../hooks/usePinLogin';
 import { usePinLoginAuth } from '../hooks/usePinLoginAuth';
+import { useLogoutWithShiftEnd } from '../hooks/useLogoutWithShiftEnd';
 import { PinLength } from '../model/enums';
 import * as Styled from './styled';
 
 export const PinLogin = () => {
-  const navigate = useNavigate();
   const { mutate: pinLoginMutation, isLoading, error } = usePinLoginAuth();
-
-  const handleLogout = () => {
-    localStorage.clear();
-    navigate('/auth');
-  };
+  const { handleLogout, isEndingShift } = useLogoutWithShiftEnd();
 
   const { pin, handleNumberClick, handleDelete, handleClear } = usePinLogin({
     onPinComplete: async (pin: string) => {
@@ -72,7 +67,7 @@ export const PinLogin = () => {
         <Styled.ClientNumber>Клиентский номер: 590518</Styled.ClientNumber>
       </Styled.Footer>
 
-      <Styled.LogoutButton onClick={handleLogout} title="Выход">
+      <Styled.LogoutButton onClick={handleLogout} title="Выход" disabled={isEndingShift}>
         <LogoutOutlined />
       </Styled.LogoutButton>
     </Styled.PinLoginContainer>

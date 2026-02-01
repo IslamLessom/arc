@@ -14,14 +14,14 @@ interface AccountTypesResponse {
   data: AccountType[]
 }
 
-interface CreateAccountRequest {
+export interface CreateAccountRequest {
   name: string
   currency: string
   typeId: string
   balance: number
 }
 
-interface UpdateAccountRequest {
+export interface UpdateAccountRequest {
   name?: string
   currency?: string
   typeId?: string

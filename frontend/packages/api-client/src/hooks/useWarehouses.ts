@@ -19,12 +19,12 @@ interface WarehouseResponse {
   data: Warehouse
 }
 
-interface CreateWarehouseRequest {
+export interface CreateWarehouseRequest {
   name: string
   address?: string
 }
 
-interface UpdateWarehouseRequest {
+export interface UpdateWarehouseRequest {
   name?: string
   address?: string
   active?: boolean

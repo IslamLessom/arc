@@ -1,5 +1,5 @@
 export interface PinLoginProps {
-  onPinComplete?: (pin: string) => void;
+  onPinComplete?: (pin: string) => void | Promise<void>;
 }
 
 export interface UsePinLoginResult {
