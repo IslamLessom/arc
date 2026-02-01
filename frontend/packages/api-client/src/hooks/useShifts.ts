@@ -1,4 +1,4 @@
-import { useQuery, useMutation } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { apiClient } from '../client'
 
 // Types
@@ -91,19 +91,6 @@ export function useGetActiveShift() {
 }
 
 /**
- * POST /shifts/end
- * Завершить смену с подсчётом наличных
- */
-export function useEndShift() {
-  return useMutation({
-    mutationFn: async (request: EndShiftRequest): Promise<Shift> => {
-      const response = await apiClient.post<Shift>('/shifts/end', request)
-      return response.data
-    },
-  })
-}
-
-/**
  * POST /shifts/start
  * Открыть новую смену с указанием начальной суммы в кассе
  *
@@ -120,10 +107,33 @@ export function useEndShift() {
  * }
  */
 export function useStartShift() {
+  const queryClient = useQueryClient()
+
   return useMutation({
-    mutationFn: async (request: StartShiftRequest): Promise<Shift> => {
+    mutationFn: async (request: StartShiftRequest): Promise<StartShiftResponse> => {
       const response = await apiClient.post<StartShiftResponse>('/shifts/start', request)
       return response.data
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['shifts', 'active'] })
+    },
+  })
+}
+
+/**
+ * POST /shifts/end
+ * Завершить смену с подсчётом наличных
+ */
+export function useEndShift() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: async (request: EndShiftRequest): Promise<Shift> => {
+      const response = await apiClient.post<Shift>('/shifts/end', request)
+      return response.data
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['shifts', 'active'] })
     },
   })
 }
