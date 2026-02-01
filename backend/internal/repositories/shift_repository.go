@@ -13,14 +13,13 @@ import (
 
 type ShiftFilter struct {
 	EstablishmentID *uuid.UUID
-	UserID          *uuid.UUID
 	StartDate       *time.Time
 	EndDate         *time.Time
 }
 
 type ShiftRepository interface {
 	GetByID(ctx context.Context, id uuid.UUID) (*models.Shift, error)
-	GetActiveShiftByUserID(ctx context.Context, userID uuid.UUID) (*models.Shift, error)
+	GetActiveShiftByEstablishmentID(ctx context.Context, establishmentID uuid.UUID) (*models.Shift, error)
 	ListByFilter(ctx context.Context, filter *ShiftFilter) ([]*models.Shift, error)
 	Create(ctx context.Context, shift *models.Shift) error
 	Update(ctx context.Context, shift *models.Shift) error
@@ -36,7 +35,9 @@ func NewShiftRepository(db *gorm.DB) ShiftRepository {
 
 func (r *shiftRepository) GetByID(ctx context.Context, id uuid.UUID) (*models.Shift, error) {
 	var shift models.Shift
-	err := r.db.WithContext(ctx).First(&shift, "id = ?", id).Error
+	err := r.db.WithContext(ctx).
+		Preload("Sessions").
+		First(&shift, "id = ?", id).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, ErrShiftNotFound
@@ -54,9 +55,13 @@ func (r *shiftRepository) Update(ctx context.Context, shift *models.Shift) error
 	return r.db.WithContext(ctx).Save(shift).Error
 }
 
-func (r *shiftRepository) GetActiveShiftByUserID(ctx context.Context, userID uuid.UUID) (*models.Shift, error) {
+// GetActiveShiftByEstablishmentID находит активную смену заведения (end_time IS NULL)
+func (r *shiftRepository) GetActiveShiftByEstablishmentID(ctx context.Context, establishmentID uuid.UUID) (*models.Shift, error) {
 	var shift models.Shift
-	err := r.db.WithContext(ctx).Where("user_id = ? AND end_time IS NULL", userID).First(&shift).Error
+	err := r.db.WithContext(ctx).
+		Preload("Sessions").
+		Where("establishment_id = ? AND end_time IS NULL", establishmentID).
+		First(&shift).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, ErrShiftNotFound
@@ -68,14 +73,11 @@ func (r *shiftRepository) GetActiveShiftByUserID(ctx context.Context, userID uui
 
 func (r *shiftRepository) ListByFilter(ctx context.Context, filter *ShiftFilter) ([]*models.Shift, error) {
 	var shifts []*models.Shift
-	query := r.db.WithContext(ctx).Preload("User")
+	query := r.db.WithContext(ctx).Preload("Sessions")
 
 	if filter != nil {
 		if filter.EstablishmentID != nil {
 			query = query.Where("establishment_id = ?", *filter.EstablishmentID)
-		}
-		if filter.UserID != nil {
-			query = query.Where("user_id = ?", *filter.UserID)
 		}
 		if filter.StartDate != nil {
 			query = query.Where("start_time >= ?", *filter.StartDate)

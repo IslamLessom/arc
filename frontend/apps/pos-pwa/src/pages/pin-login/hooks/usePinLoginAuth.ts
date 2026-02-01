@@ -28,7 +28,7 @@ export function usePinLoginAuth() {
         // После успешного входа по PIN перенаправляем на главную
         navigate('/');
       } catch (err: unknown) {
-        let errorMessage = 'Неверный PIN-код или сотрудник не найден в этом заведении';
+        let errorMessage = 'Неверный PIN-код';
 
         if (err && typeof err === 'object' && 'response' in err) {
           const axiosError = err as { response?: { data?: { error?: string; message?: string } } };

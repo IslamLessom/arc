@@ -22,6 +22,7 @@ type Repositories struct {
 	Order        OrderRepository
 	Transaction  TransactionRepository
 	Shift        ShiftRepository
+	ShiftSession ShiftSessionRepository
 	Onboarding   OnboardingRepository
 	Subscription SubscriptionRepository
 	Token        TokenRepository
@@ -49,6 +50,7 @@ func NewRepositories(db *gorm.DB) *Repositories {
 		Order:        NewOrderRepository(db),
 		Transaction:  NewTransactionRepository(db),
 		Shift:        NewShiftRepository(db),
+		ShiftSession: NewShiftSessionRepository(db),
 		Onboarding:   NewOnboardingRepository(db),
 		Subscription: NewSubscriptionRepository(db),
 		Token:        NewTokenRepository(db),

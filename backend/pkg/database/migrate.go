@@ -108,6 +108,9 @@ func RunMigrations(db *gorm.DB, logger *zap.Logger) error {
 	if err := migrateDB.AutoMigrate(&models.Shift{}); err != nil {
 		return fmt.Errorf("failed to migrate Shift: %w", err)
 	}
+	if err := migrateDB.AutoMigrate(&models.ShiftSession{}); err != nil {
+		return fmt.Errorf("failed to migrate ShiftSession: %w", err)
+	}
 
 	// 6. Модели для меню и склада
 	if err := migrateDB.AutoMigrate(&models.Category{}); err != nil {

@@ -6,6 +6,7 @@ import type { UseAuthFormResult, AuthFormProps } from '../model/types';
 
 export function useAuthForm(props: AuthFormProps): UseAuthFormResult {
   const { onSubmit } = props;
+  const navigate = useNavigate();
   const authMutation = useAuth();
 
   const [email, setEmail] = useState('');
@@ -76,7 +77,7 @@ export function useAuthForm(props: AuthFormProps): UseAuthFormResult {
         setError(errorMessage);
       }
     },
-    [email, password, authMutation, onSubmit]
+    [email, password, authMutation, onSubmit, navigate]
   );
 
   return {

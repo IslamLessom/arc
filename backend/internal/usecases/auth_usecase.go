@@ -150,22 +150,27 @@ func (uc *AuthUseCase) Login(ctx context.Context, email, password string) (*mode
 	return user, accessToken, refreshToken, nil
 }
 
-func (uc *AuthUseCase) LoginEmployee(ctx context.Context, pin string, initialCash float64, establishmentID uuid.UUID) (*models.User, string, string, error) { // Изменена сигнатура
-	user, err := uc.userRepo.GetByPIN(ctx, pin, establishmentID) // Передаем establishmentID
+func (uc *AuthUseCase) LoginEmployee(ctx context.Context, pin string, initialCash float64, establishmentID uuid.UUID) (*models.User, string, string, error) {
+	user, err := uc.userRepo.GetByPIN(ctx, pin, establishmentID)
 	if err != nil {
 		return nil, "", "", repositories.ErrUserNotFound
 	}
 
-	// Check if user has an establishment (this check is now redundant but kept for safety)
+	// Check if user has an establishment
 	if user.EstablishmentID == nil || *user.EstablishmentID != establishmentID {
-		return nil, "", "", errors.New("employee not found in this establishment") // Более точное сообщение об ошибке
+		return nil, "", "", errors.New("employee not found in this establishment")
 	}
 
-	// Create a new shift
-	_, err = uc.shiftUseCase.StartShift(ctx, user.ID, *user.EstablishmentID, initialCash)
-	if err != nil {
-		return nil, "", "", fmt.Errorf("failed to start shift: %w", err)
+	// Проверяем, есть ли уже активная сессия у пользователя
+	existingSession, err := uc.shiftUseCase.GetUserActiveSession(ctx, user.ID)
+	if err != nil || existingSession == nil {
+		// Нет активной сессии - создаём новую
+		_, err = uc.shiftUseCase.StartUserSession(ctx, user.ID, *user.EstablishmentID, initialCash)
+		if err != nil {
+			return nil, "", "", fmt.Errorf("failed to start shift session: %w", err)
+		}
 	}
+	// Если сессия есть - продолжаем вход (используем существующую)
 
 	// Generate tokens
 	accessToken, err := auth.GenerateToken(user.ID, *user.Email, uc.config.JWT.Secret, uc.config.JWT.Expiration)

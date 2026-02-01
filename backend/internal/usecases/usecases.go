@@ -41,7 +41,7 @@ func NewUseCases(repos *repositories.Repositories, cfg *config.Config, logger *z
 	accountUseCase := NewAccountUseCase(repos.Account, repos.AccountType)
 	userUseCase := NewUserUseCase(repos.User, repos.Role)
 	roleUseCase := NewRoleUseCase(repos.Role)
-	shiftUseCase := NewShiftUseCase(repos.Shift, repos.User, repos.Transaction) // Инициализация ShiftUseCase
+	shiftUseCase := NewShiftUseCase(repos.Shift, repos.ShiftSession, repos.User, repos.Transaction)
 	inventoryUseCase := NewInventoryUseCase(repos.Inventory, repos.Warehouse)
 
 	financeUseCase := NewFinanceUseCase(repos.Transaction, repos.Account, repos.Shift, repos.Order)
@@ -56,12 +56,12 @@ func NewUseCases(repos *repositories.Repositories, cfg *config.Config, logger *z
 		Finance:      financeUseCase,
 		Statistics:   NewStatisticsUseCase(repos.Order),
 		Order:        NewOrderUseCase(repos.Order, repos.Warehouse, repos.Transaction, accountUseCase),
-		Shift:        NewShiftUseCase(repos.Shift, repos.User, repos.Transaction),
+		Shift:        shiftUseCase,
 		Onboarding:   NewOnboardingUseCase(repos.Onboarding, repos.Establishment, repos.Table, repos.User, accountUseCase),
 		Account:      accountUseCase,
 		Table:        NewTableUseCase(repos.Table),
 		User:         userUseCase,
-		Role:         roleUseCase, // Присвоение нового RoleUseCase
+		Role:         roleUseCase,
 		Inventory:    inventoryUseCase,
 		Storage:      storageClient,
 	}, nil

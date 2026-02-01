@@ -36,7 +36,7 @@ type StartShiftRequest struct {
 
 // StartShift начинает новую смену
 // @Summary Начать смену
-// @Description Начинает новую смену для текущего авторизованного кассира, фиксируя начальную сумму наличных.
+// @Description Начинает новую смену в заведении, фиксируя начальную сумму наличных.
 // @Tags shifts
 // @Accept json
 // @Produce json
@@ -54,25 +54,13 @@ func (h *ShiftHandler) StartShift(c *gin.Context) {
 		return
 	}
 
-	userIDStr, exists := c.Get("user_id")
-	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Пользователь не авторизован"})
-		return
-	}
-
-	userID, err := uuid.Parse(userIDStr.(string))
+	estID, err := uuid.Parse(req.EstablishmentID)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Неверный ID пользователя"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Неверный ID заведения"})
 		return
 	}
 
-	estID, err := getEstablishmentID(c)
-	if err != nil {
-		c.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
-		return
-	}
-
-	shift, err := h.usecase.StartShift(c.Request.Context(), userID, estID, req.InitialCash)
+	shift, err := h.usecase.StartShift(c.Request.Context(), estID, req.InitialCash)
 	if err != nil {
 		h.logger.Error("Failed to start shift", zap.Error(err))
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Не удалось начать смену"})
@@ -129,9 +117,9 @@ func (h *ShiftHandler) EndShift(c *gin.Context) {
 	c.JSON(http.StatusOK, shift)
 }
 
-// GetCurrentActiveShift возвращает текущую активную смену для пользователя
+// GetCurrentActiveShift возвращает текущую активную смену для заведения
 // @Summary Получить текущую активную смену
-// @Description Возвращает текущую активную смену кассира.
+// @Description Возвращает текущую активную смену заведения.
 // @Tags shifts
 // @Produce json
 // @Security Bearer
@@ -141,23 +129,17 @@ func (h *ShiftHandler) EndShift(c *gin.Context) {
 // @Failure 500 {object} map[string]string
 // @Router /shifts/me/active [get]
 func (h *ShiftHandler) GetCurrentActiveShift(c *gin.Context) {
-	userIDStr, exists := c.Get("user_id")
-	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Пользователь не авторизован"})
-		return
-	}
-
-	userID, err := uuid.Parse(userIDStr.(string))
+	estID, err := getEstablishmentID(c)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Неверный ID пользователя"})
+		c.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
 		return
 	}
 
-	shift, err := h.usecase.GetCurrentActiveShift(c.Request.Context(), userID)
+	shift, err := h.usecase.GetActiveShiftByEstablishment(c.Request.Context(), estID)
 	if err != nil {
 		h.logger.Error("Failed to get current active shift", zap.Error(err))
 		c.JSON(http.StatusNotFound, gin.H{"error": "Активная смена не найдена"})
-		return	
+		return
 	}
 
 	c.JSON(http.StatusOK, shift)

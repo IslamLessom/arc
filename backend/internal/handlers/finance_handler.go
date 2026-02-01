@@ -466,12 +466,8 @@ func (h *FinanceHandler) GenerateShiftReport(c *gin.Context) {
 	}
 
 	if employeeIDStr != "" {
-		employeeID, err := uuid.Parse(employeeIDStr)
-		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Неверный формат employee_id"})
-			return
-		}
-		filter.EmployeeID = &employeeID
+		// Фильтрация по сотрудникам пока не поддерживается - убираем этот параметр
+		// В будущем можно будет добавить фильтрацию через sessions
 	}
 
 	if includeProductsStr == "true" {

@@ -12,16 +12,23 @@ import (
 )
 
 type ShiftUseCase struct {
-	shiftRepo       repositories.ShiftRepository
-	userRepo        repositories.UserRepository
-	transactionRepo repositories.TransactionRepository
+	shiftRepo          repositories.ShiftRepository
+	shiftSessionRepo   repositories.ShiftSessionRepository
+	userRepo           repositories.UserRepository
+	transactionRepo    repositories.TransactionRepository
 }
 
-func NewShiftUseCase(shiftRepo repositories.ShiftRepository, userRepo repositories.UserRepository, transactionRepo repositories.TransactionRepository) *ShiftUseCase {
+func NewShiftUseCase(
+	shiftRepo repositories.ShiftRepository,
+	shiftSessionRepo repositories.ShiftSessionRepository,
+	userRepo repositories.UserRepository,
+	transactionRepo repositories.TransactionRepository,
+) *ShiftUseCase {
 	return &ShiftUseCase{
-		shiftRepo:       shiftRepo,
-		userRepo:        userRepo,
-		transactionRepo: transactionRepo,
+		shiftRepo:          shiftRepo,
+		shiftSessionRepo:   shiftSessionRepo,
+		userRepo:           userRepo,
+		transactionRepo:    transactionRepo,
 	}
 }
 
@@ -33,22 +40,23 @@ func (uc *ShiftUseCase) GetShiftByID(ctx context.Context, id uuid.UUID) (*models
 	return shift, nil
 }
 
-func (uc *ShiftUseCase) GetCurrentActiveShift(ctx context.Context, userID uuid.UUID) (*models.Shift, error) {
-	shift, err := uc.shiftRepo.GetActiveShiftByUserID(ctx, userID)
+// GetActiveShiftByEstablishment находит активную смену заведения
+func (uc *ShiftUseCase) GetActiveShiftByEstablishment(ctx context.Context, establishmentID uuid.UUID) (*models.Shift, error) {
+	shift, err := uc.shiftRepo.GetActiveShiftByEstablishmentID(ctx, establishmentID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get active shift: %w", err)
 	}
 	return shift, nil
 }
 
-func (uc *ShiftUseCase) StartShift(ctx context.Context, userID uuid.UUID, establishmentID uuid.UUID, initialCash float64) (*models.Shift, error) {
-	// Проверяем, нет ли уже активной смены для этого пользователя
-	if existingShift, _ := uc.shiftRepo.GetActiveShiftByUserID(ctx, userID); existingShift != nil {
-		return nil, errors.New("user already has an active shift")
+// StartShift создает новую смену для заведения
+func (uc *ShiftUseCase) StartShift(ctx context.Context, establishmentID uuid.UUID, initialCash float64) (*models.Shift, error) {
+	// Проверяем, нет ли уже активной смены в заведении
+	if existingShift, _ := uc.shiftRepo.GetActiveShiftByEstablishmentID(ctx, establishmentID); existingShift != nil {
+		return nil, errors.New("establishment already has an active shift")
 	}
 
 	shift := &models.Shift{
-		UserID:          userID,
 		EstablishmentID: establishmentID,
 		StartTime:       time.Now(),
 		InitialCash:     initialCash,
@@ -61,6 +69,47 @@ func (uc *ShiftUseCase) StartShift(ctx context.Context, userID uuid.UUID, establ
 	return shift, nil
 }
 
+// StartUserSession создает сессию для пользователя на активной смене
+// Если смены нет - создает её
+func (uc *ShiftUseCase) StartUserSession(ctx context.Context, userID uuid.UUID, establishmentID uuid.UUID, initialCash float64) (*models.ShiftSession, error) {
+	// Проверяем, нет ли уже активной сессии у пользователя
+	if existingSession, _ := uc.shiftSessionRepo.GetActiveSessionByUserID(ctx, userID); existingSession != nil {
+		return nil, errors.New("user already has an active session")
+	}
+
+	// Получаем или создаем активную смену заведения
+	shift, err := uc.shiftRepo.GetActiveShiftByEstablishmentID(ctx, establishmentID)
+	if err != nil {
+		// Смены нет - создаем новую
+		shift, err = uc.StartShift(ctx, establishmentID, initialCash)
+		if err != nil {
+			return nil, fmt.Errorf("failed to start shift: %w", err)
+		}
+	}
+
+	// Создаем сессию для пользователя
+	session := &models.ShiftSession{
+		ShiftID:   shift.ID,
+		UserID:    userID,
+		StartTime: time.Now(),
+	}
+
+	if err := uc.shiftSessionRepo.Create(ctx, session); err != nil {
+		return nil, fmt.Errorf("failed to create shift session: %w", err)
+	}
+
+	return session, nil
+}
+
+// EndUserSession завершает сессию пользователя
+func (uc *ShiftUseCase) EndUserSession(ctx context.Context, sessionID uuid.UUID) error {
+	if err := uc.shiftSessionRepo.EndSession(ctx, sessionID); err != nil {
+		return fmt.Errorf("failed to end shift session: %w", err)
+	}
+	return nil
+}
+
+// EndShift завершает смену заведения
 func (uc *ShiftUseCase) EndShift(ctx context.Context, shiftID uuid.UUID, finalCash float64, comment *string, cashAccountID uuid.UUID) (*models.Shift, error) {
 	shift, err := uc.shiftRepo.GetByID(ctx, shiftID)
 	if err != nil {
@@ -96,4 +145,13 @@ func (uc *ShiftUseCase) EndShift(ctx context.Context, shiftID uuid.UUID, finalCa
 	}
 
 	return shift, nil
+}
+
+// GetUserActiveSession возвращает активную сессию пользователя
+func (uc *ShiftUseCase) GetUserActiveSession(ctx context.Context, userID uuid.UUID) (*models.ShiftSession, error) {
+	session, err := uc.shiftSessionRepo.GetActiveSessionByUserID(ctx, userID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get active session: %w", err)
+	}
+	return session, nil
 }

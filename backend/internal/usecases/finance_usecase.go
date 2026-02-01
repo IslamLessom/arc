@@ -14,7 +14,6 @@ import (
 type ShiftReportFilter struct {
 	StartDate       time.Time
 	EndDate         time.Time
-	EmployeeID      *uuid.UUID
 	IncludeProducts bool
 }
 
@@ -179,22 +178,20 @@ func (uc *FinanceUseCase) GetTotalTransactionsAmount(ctx context.Context, establ
 
 // ShiftReport представляет отчет о смене
 type ShiftReport struct {
-	ShiftID         uuid.UUID        `json:"shift_id"`
-	UserID          uuid.UUID        `json:"user_id"`
-	UserName        string           `json:"user_name"`
-	StartTime       time.Time        `json:"start_time"`
-	EndTime         *time.Time       `json:"end_time,omitempty"`
-	InitialCash     float64          `json:"initial_cash"`
-	FinalCash       *float64         `json:"final_cash,omitempty"`
-	Comment         *string          `json:"comment,omitempty"`
-	TotalOrders     int              `json:"total_orders"`
-	TotalAmount     float64          `json:"total_amount"`
-	TotalDiscounts  float64          `json:"total_discounts"`
-	AmountAfterDiscounts float64      `json:"amount_after_discounts"`
-	CashPayments    float64          `json:"cash_payments"`
-	CardPayments    float64          `json:"card_payments"`
-	Transactions    []models.Transaction `json:"transactions"`
-	OrderSummaries  []ShiftReportOrderSummary `json:"order_summaries,omitempty"`
+	ShiftID              uuid.UUID        `json:"shift_id"`
+	StartTime            time.Time        `json:"start_time"`
+	EndTime              *time.Time       `json:"end_time,omitempty"`
+	InitialCash          float64          `json:"initial_cash"`
+	FinalCash            *float64         `json:"final_cash,omitempty"`
+	Comment              *string          `json:"comment,omitempty"`
+	TotalOrders          int              `json:"total_orders"`
+	TotalAmount          float64          `json:"total_amount"`
+	TotalDiscounts       float64          `json:"total_discounts"`
+	AmountAfterDiscounts float64          `json:"amount_after_discounts"`
+	CashPayments         float64          `json:"cash_payments"`
+	CardPayments         float64          `json:"card_payments"`
+	Transactions         []models.Transaction `json:"transactions"`
+	OrderSummaries       []ShiftReportOrderSummary `json:"order_summaries,omitempty"`
 }
 
 // ShiftReportOrderSummary представляет краткую информацию о заказе для отчета
@@ -213,7 +210,6 @@ func (uc *FinanceUseCase) GenerateShiftReport(ctx context.Context, establishment
 	// Получаем смены по фильтру
 	shifts, err := uc.shiftRepo.ListByFilter(ctx, &repositories.ShiftFilter{
 		EstablishmentID: &establishmentID,
-		UserID:          filter.EmployeeID,
 		StartDate:       &filter.StartDate,
 		EndDate:         &filter.EndDate,
 	})
@@ -222,16 +218,14 @@ func (uc *FinanceUseCase) GenerateShiftReport(ctx context.Context, establishment
 	}
 
 	if len(shifts) == 0 {
-		return nil, errors.New("no shifts found for the specified period and employee")
+		return nil, errors.New("no shifts found for the specified period")
 	}
 
-	// Assuming one shift per report for a single employee and period for simplicity
+	// Assuming one shift per report for simplicity
 	shift := shifts[0]
 
 	report := &ShiftReport{
 		ShiftID:         shift.ID,
-		UserID:          shift.UserID,
-		UserName:        shift.User.Name,
 		StartTime:       shift.StartTime,
 		EndTime:         shift.EndTime,
 		InitialCash:     shift.InitialCash,
