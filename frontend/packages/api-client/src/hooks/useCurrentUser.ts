@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { apiClient } from '../client'
 
-interface CurrentUserResponse {
+export interface CurrentUserResponse {
   id: string
   email: string
   name: string

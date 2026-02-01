@@ -38,6 +38,7 @@ import { Salary } from './pages/salary'
 import { Invoices } from './pages/invoices'
 import { FinanceCategories } from './pages/finance-categories'
 import { ProfitAndLoss } from './pages/profit-and-loss'
+import { HallMap } from './pages/hall-map'
 
 export function App() {
   const location = useLocation()
@@ -103,6 +104,7 @@ export function App() {
           <Route path="/finance/invoices" element={<Invoices />} />
           <Route path="/finance/categories" element={<FinanceCategories />} />
           <Route path="/finance/profit-and-loss" element={<ProfitAndLoss />} />
+          <Route path="/settings/tables" element={<HallMap />} />
           <Route path="/" element={<Home />} />
           <Route path="*" element={<NotFound />} />
         </Routes>

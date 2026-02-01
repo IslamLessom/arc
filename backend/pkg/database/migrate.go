@@ -82,6 +82,20 @@ func RunMigrations(db *gorm.DB, logger *zap.Logger) error {
 	if err := migrateDB.AutoMigrate(&models.Establishment{}); err != nil {
 		return fmt.Errorf("failed to migrate Establishment: %w", err)
 	}
+	if err := migrateDB.AutoMigrate(&models.Room{}); err != nil {
+		return fmt.Errorf("failed to migrate Room: %w", err)
+	}
+
+	// Remove establishment_id from tables if it still exists (was replaced by room_id)
+	if migrateDB.Migrator().HasColumn(&models.Table{}, "establishment_id") {
+		if logger != nil {
+			logger.Info("Migrating Table: removing establishment_id column...")
+		}
+		if err := migrateDB.Migrator().DropColumn(&models.Table{}, "establishment_id"); err != nil {
+			return fmt.Errorf("failed to drop establishment_id column from tables: %w", err)
+		}
+	}
+
 	if err := migrateDB.AutoMigrate(&models.Table{}); err != nil {
 		return fmt.Errorf("failed to migrate Table: %w", err)
 	}

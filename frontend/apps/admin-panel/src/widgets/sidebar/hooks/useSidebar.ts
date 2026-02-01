@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { MenuItemId } from '../model/enums';
 import type { SidebarProps, MenuItem, UseSidebarResult } from '../model/types';
 import { apiClient } from '@restaurant-pos/api-client';
-import { PATH_PATTERNS, WAREHOUSE_SUB_ITEMS, MENU_SUB_ITEMS, ACCESS_SUB_ITEMS } from '../lib/constants';
+import { PATH_PATTERNS, WAREHOUSE_SUB_ITEMS, MENU_SUB_ITEMS, ACCESS_SUB_ITEMS, SETTINGS_SUB_ITEMS } from '../lib/constants';
 
 export const useSidebar = (props: SidebarProps): UseSidebarResult => {
   const { currentPath } = props;
@@ -42,6 +42,10 @@ export const useSidebar = (props: SidebarProps): UseSidebarResult => {
 
     if (ACCESS_SUB_ITEMS.includes(activeId)) {
       setExpandedItems(prev => new Set(prev).add(MenuItemId.Access));
+    }
+
+    if (SETTINGS_SUB_ITEMS.includes(activeId)) {
+      setExpandedItems(prev => new Set(prev).add(MenuItemId.Settings));
     }
   }, [currentPath]);
 

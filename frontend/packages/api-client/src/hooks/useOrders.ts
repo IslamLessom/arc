@@ -5,7 +5,7 @@ import type { Order } from '@restaurant-pos/types'
 
 export function useCreateOrder() {
   const queryClient = useQueryClient()
-  
+
   return useMutation({
     mutationFn: async (order: {
       establishmentId: string
@@ -18,6 +18,7 @@ export function useCreateOrder() {
         totalPrice: number
       }>
       totalAmount: number
+      guestsCount?: number
     }) => {
       // Сначала сохраняем локально
       const localId = await db.orders.add({
@@ -25,10 +26,11 @@ export function useCreateOrder() {
         tableNumber: order.tableNumber,
         items: order.items,
         totalAmount: order.totalAmount,
+        guestsCount: order.guestsCount,
         status: 'pending',
         createdAt: new Date()
       })
-      
+
       try {
         // Пытаемся отправить на сервер
         const response = await apiClient.post<Order>('/orders', {
@@ -36,16 +38,17 @@ export function useCreateOrder() {
           tableNumber: order.tableNumber,
           status: 'draft',
           totalAmount: order.totalAmount,
+          guestsCount: order.guestsCount,
           items: order.items
         })
-        
+
         // Обновляем статус
         await db.orders.update(localId, {
           serverId: response.data.id,
           status: 'synced',
           syncedAt: new Date()
         })
-        
+
         return response.data
       } catch (error) {
         // Если офлайн - оставляем pending для фоновой синхронизации

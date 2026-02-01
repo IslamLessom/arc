@@ -19,16 +19,16 @@ func NewTableUseCase(tableRepo repositories.TableRepository) *TableUseCase {
 	}
 }
 
-func (uc *TableUseCase) GetTableByID(ctx context.Context, id uuid.UUID, establishmentID uuid.UUID) (*models.Table, error) {
-	table, err := uc.tableRepo.GetByID(ctx, id, establishmentID)
+func (uc *TableUseCase) GetTableByID(ctx context.Context, id uuid.UUID, roomID uuid.UUID) (*models.Table, error) {
+	table, err := uc.tableRepo.GetByID(ctx, id, roomID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get table: %w", err)
 	}
 	return table, nil
 }
 
-func (uc *TableUseCase) ListTablesByEstablishmentID(ctx context.Context, establishmentID uuid.UUID) ([]*models.Table, error) {
-	tables, err := uc.tableRepo.ListByEstablishmentID(ctx, establishmentID)
+func (uc *TableUseCase) ListTablesByRoomID(ctx context.Context, roomID uuid.UUID) ([]*models.Table, error) {
+	tables, err := uc.tableRepo.ListByRoomID(ctx, roomID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to list tables: %w", err)
 	}
@@ -42,15 +42,15 @@ func (uc *TableUseCase) CreateTable(ctx context.Context, table *models.Table) er
 	return nil
 }
 
-func (uc *TableUseCase) UpdateTable(ctx context.Context, table *models.Table, establishmentID uuid.UUID) error {
-	if err := uc.tableRepo.Update(ctx, table, establishmentID); err != nil {
+func (uc *TableUseCase) UpdateTable(ctx context.Context, table *models.Table, roomID uuid.UUID) error {
+	if err := uc.tableRepo.Update(ctx, table, roomID); err != nil {
 		return fmt.Errorf("failed to update table: %w", err)
 	}
 	return nil
 }
 
-func (uc *TableUseCase) DeleteTable(ctx context.Context, id uuid.UUID, establishmentID uuid.UUID) error {
-	if err := uc.tableRepo.Delete(ctx, id, establishmentID); err != nil {
+func (uc *TableUseCase) DeleteTable(ctx context.Context, id uuid.UUID, roomID uuid.UUID) error {
+	if err := uc.tableRepo.Delete(ctx, id, roomID); err != nil {
 		return fmt.Errorf("failed to delete table: %w", err)
 	}
 	return nil

@@ -133,6 +133,7 @@ func NewRouter(usecases *usecases.UseCases, cfg *config.Config, logger *zap.Logg
 
 			// Establishments (заведение создаётся при onboarding; здесь — просмотр/редактирование)
 			establishmentHandler := NewEstablishmentHandler(usecases.Establishment, logger)
+			roomHandler := NewRoomHandler(usecases.Room, logger)
 			tableHandler := NewTableHandler(usecases.Table, logger)
 			establishments := protected.Group("/establishments")
 			establishments.Use(middleware.RequireEstablishment(usecases.Auth))
@@ -144,15 +145,24 @@ func NewRouter(usecases *usecases.UseCases, cfg *config.Config, logger *zap.Logg
 				establishments.DELETE("/:id", establishmentHandler.Delete)
 				establishments.GET("/me/settings", establishmentHandler.GetEstablishmentSettings)
 
-
-				// Tables
-				tables := establishments.Group("/:id/tables")
+				// Tables через rooms
+				rooms := protected.Group("/rooms")
 				{
-					tables.GET("", tableHandler.ListTables)
-					tables.POST("", tableHandler.CreateTable)
-					tables.GET("/:id", tableHandler.GetTable)
-					tables.PUT("/:id", tableHandler.UpdateTable)
-					tables.DELETE("/:id", tableHandler.DeleteTable)
+					rooms.GET("/:id/tables", tableHandler.ListTables)
+					rooms.POST("/:id/tables", tableHandler.CreateTable)
+					rooms.GET("/:id/tables/:table_id", tableHandler.GetTable)
+					rooms.PUT("/:id/tables/:table_id", tableHandler.UpdateTable)
+					rooms.DELETE("/:id/tables/:table_id", tableHandler.DeleteTable)
+				}
+
+				// Rooms внутри establishments
+				estRooms := establishments.Group("/:id/rooms")
+				{
+					estRooms.GET("", roomHandler.ListRooms)
+					estRooms.POST("", roomHandler.CreateRoom)
+					estRooms.GET("/:room_id", roomHandler.GetRoom)
+					estRooms.PUT("/:room_id", roomHandler.UpdateRoom)
+					estRooms.DELETE("/:room_id", roomHandler.DeleteRoom)
 				}
 			}
 

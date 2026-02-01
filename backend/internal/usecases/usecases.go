@@ -14,6 +14,7 @@ import (
 type UseCases struct {
 	Auth         *AuthUseCase
 	Establishment *EstablishmentUseCase
+	Room         *RoomUseCase
 	Menu         *MenuUseCase
 	Warehouse    *WarehouseUseCase
 	Workshop     *WorkshopUseCase
@@ -49,7 +50,8 @@ func NewUseCases(repos *repositories.Repositories, cfg *config.Config, logger *z
 
 	return &UseCases{
 		Auth:         NewAuthUseCase(repos.User, repos.Role, repos.Subscription, repos.Token, repos.Establishment, shiftUseCase, cfg),
-		Establishment: NewEstablishmentUseCase(repos.Establishment, repos.Table),
+		Establishment: NewEstablishmentUseCase(repos.Establishment, repos.Table, repos.Room),
+		Room:         NewRoomUseCase(repos.Room),
 		Menu:         NewMenuUseCase(repos.Product, repos.TechCard, repos.SemiFinished, repos.Ingredient, repos.Category, repos.IngredientCategory, repos.Warehouse),
 		Warehouse:    warehouseUseCase,
 		Workshop:     NewWorkshopUseCase(repos.Workshop),
@@ -57,7 +59,7 @@ func NewUseCases(repos *repositories.Repositories, cfg *config.Config, logger *z
 		Statistics:   NewStatisticsUseCase(repos.Order),
 		Order:        NewOrderUseCase(repos.Order, repos.Warehouse, repos.Transaction, accountUseCase),
 		Shift:        shiftUseCase,
-		Onboarding:   NewOnboardingUseCase(repos.Onboarding, repos.Establishment, repos.Table, repos.User, accountUseCase),
+		Onboarding:   NewOnboardingUseCase(repos.Onboarding, repos.Establishment, repos.Table, repos.Room, repos.User, accountUseCase),
 		Account:      accountUseCase,
 		Table:        NewTableUseCase(repos.Table),
 		User:         userUseCase,

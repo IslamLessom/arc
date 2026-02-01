@@ -1,5 +1,6 @@
 import { useSidebar } from '../hooks/useSidebar';
 import type { SidebarProps } from '../model/types';
+import { MenuItemId } from '../model/enums';
 import { menuItems } from '../lib/constants';
 import * as Styled from '../styled';
 

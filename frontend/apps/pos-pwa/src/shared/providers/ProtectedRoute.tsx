@@ -5,6 +5,8 @@ import { Suspense, lazy } from 'react'
 const LazyAuthPage = lazy(() => import('@/pages/auth').then(m => ({ default: m.AuthPage })))
 const LazyPinLogin = lazy(() => import('@/pages/pin-login').then(m => ({ default: m.PinLogin })))
 const LazyHomePage = lazy(() => import('@/pages/home').then(m => ({ default: m.HomePage })))
+const LazyTableSelection = lazy(() => import('@/pages/table-selection').then(m => ({ default: m.TableSelection })))
+const LazyOrder = lazy(() => import('@/pages/order').then(m => ({ default: m.Order })))
 
 interface ProtectedRouteProps {
   children: React.ReactNode
@@ -106,6 +108,42 @@ export function HomeRoute() {
   return (
     <Suspense fallback={<div className="flex items-center justify-center min-h-screen">Загрузка...</div>}>
       <LazyHomePage />
+    </Suspense>
+  )
+}
+
+export function TableSelectionRoute() {
+  const authState = getAuthState()
+
+  if (authState === 'none') {
+    return <Navigate to="/auth" replace />
+  }
+
+  if (authState === 'owner') {
+    return <Navigate to="/pin-login" replace />
+  }
+
+  return (
+    <Suspense fallback={<div className="flex items-center justify-center min-h-screen">Загрузка...</div>}>
+      <LazyTableSelection />
+    </Suspense>
+  )
+}
+
+export function OrderRoute() {
+  const authState = getAuthState()
+
+  if (authState === 'none') {
+    return <Navigate to="/auth" replace />
+  }
+
+  if (authState === 'owner') {
+    return <Navigate to="/pin-login" replace />
+  }
+
+  return (
+    <Suspense fallback={<div className="flex items-center justify-center min-h-screen">Загрузка...</div>}>
+      <LazyOrder />
     </Suspense>
   )
 }

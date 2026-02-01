@@ -1,7 +1,7 @@
 import { useMutation } from '@tanstack/react-query'
 import { apiClient } from '../client'
 
-interface LoginRequest {
+export interface LoginRequest {
   email: string
   password: string
 }

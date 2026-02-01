@@ -11,12 +11,12 @@ import (
 )
 
 type TableRepository interface {
-	GetByID(ctx context.Context, id uuid.UUID, establishmentID uuid.UUID) (*models.Table, error)
-	ListByEstablishmentID(ctx context.Context, establishmentID uuid.UUID) ([]*models.Table, error)
+	GetByID(ctx context.Context, id uuid.UUID, roomID uuid.UUID) (*models.Table, error)
+	ListByRoomID(ctx context.Context, roomID uuid.UUID) ([]*models.Table, error)
 	Create(ctx context.Context, table *models.Table) error
 	CreateBatch(ctx context.Context, tables []*models.Table) error
-	Update(ctx context.Context, table *models.Table, establishmentID uuid.UUID) error
-	Delete(ctx context.Context, id uuid.UUID, establishmentID uuid.UUID) error
+	Update(ctx context.Context, table *models.Table, roomID uuid.UUID) error
+	Delete(ctx context.Context, id uuid.UUID, roomID uuid.UUID) error
 }
 
 type tableRepository struct {
@@ -31,9 +31,9 @@ func (r *tableRepository) CreateBatch(ctx context.Context, tables []*models.Tabl
 	return r.db.WithContext(ctx).Create(&tables).Error
 }
 
-func (r *tableRepository) GetByID(ctx context.Context, id uuid.UUID, establishmentID uuid.UUID) (*models.Table, error) {
+func (r *tableRepository) GetByID(ctx context.Context, id uuid.UUID, roomID uuid.UUID) (*models.Table, error) {
 	var table models.Table
-	err := r.db.WithContext(ctx).Where("establishment_id = ?", establishmentID).First(&table, "id = ?", id).Error
+	err := r.db.WithContext(ctx).Where("room_id = ?", roomID).First(&table, "id = ?", id).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, ErrTableNotFound
@@ -43,9 +43,9 @@ func (r *tableRepository) GetByID(ctx context.Context, id uuid.UUID, establishme
 	return &table, nil
 }
 
-func (r *tableRepository) ListByEstablishmentID(ctx context.Context, establishmentID uuid.UUID) ([]*models.Table, error) {
+func (r *tableRepository) ListByRoomID(ctx context.Context, roomID uuid.UUID) ([]*models.Table, error) {
 	var tables []*models.Table
-	err := r.db.WithContext(ctx).Where("establishment_id = ?", establishmentID).Find(&tables).Error
+	err := r.db.WithContext(ctx).Where("room_id = ?", roomID).Find(&tables).Error
 	return tables, err
 }
 
@@ -53,10 +53,10 @@ func (r *tableRepository) Create(ctx context.Context, table *models.Table) error
 	return r.db.WithContext(ctx).Create(table).Error
 }
 
-func (r *tableRepository) Update(ctx context.Context, table *models.Table, establishmentID uuid.UUID) error {
-	return r.db.WithContext(ctx).Where("establishment_id = ?", establishmentID).Save(table).Error
+func (r *tableRepository) Update(ctx context.Context, table *models.Table, roomID uuid.UUID) error {
+	return r.db.WithContext(ctx).Where("room_id = ?", roomID).Save(table).Error
 }
 
-func (r *tableRepository) Delete(ctx context.Context, id uuid.UUID, establishmentID uuid.UUID) error {
-	return r.db.WithContext(ctx).Where("establishment_id = ?", establishmentID).Delete(&models.Table{}, "id = ?", id).Error
+func (r *tableRepository) Delete(ctx context.Context, id uuid.UUID, roomID uuid.UUID) error {
+	return r.db.WithContext(ctx).Where("room_id = ?", roomID).Delete(&models.Table{}, "id = ?", id).Error
 }

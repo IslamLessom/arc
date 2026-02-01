@@ -3,8 +3,8 @@ import { apiClient } from '../client'
 
 export interface PinLoginRequest {
   pin: string
-  initial_cash: number
   establishment_id: string
+  initial_cash?: number
 }
 
 export interface PinAuthUser {
@@ -20,13 +20,25 @@ export interface PinLoginResponse {
   user: PinAuthUser
 }
 
+/**
+ * POST /auth/employee/login
+ *
+ * Авторизация сотрудника по PIN-коду
+ *
+ * Flow:
+ * 1. Owner логинится (user_type='owner')
+ * 2. Redirect на /pin-login (ввод PIN сотрудника)
+ * 3. GET /auth/me (получить establishment_id от владельца)
+ * 4. POST /auth/employee/login (заменить токены, user_type='employee')
+ * 5. Redirect на / (главная страница POS)
+ */
 export function usePinLogin() {
   return useMutation({
     mutationFn: async (request: PinLoginRequest): Promise<PinLoginResponse> => {
       const response = await apiClient.post<PinLoginResponse>('/auth/employee/login', {
         pin: request.pin,
-        initial_cash: request.initial_cash,
         establishment_id: request.establishment_id,
+        ...(request.initial_cash !== undefined && { initial_cash: request.initial_cash }),
       })
 
       // Сохраняем токен и тип пользователя в localStorage

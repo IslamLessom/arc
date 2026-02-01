@@ -233,6 +233,14 @@ export const menuItems: MenuItem[] = [
     label: 'Настройки',
     icon: '⚙️',
     path: '/settings',
+    children: [
+      {
+        id: MenuItemId.SettingsTables,
+        label: 'Столы',
+        icon: '🪑',
+        path: '/settings/tables',
+      },
+    ],
   },
 ];
 
@@ -275,6 +283,7 @@ export const PATH_PATTERNS: Array<[string, MenuItemId]> = [
   ['/access/integrations', MenuItemId.AccessIntegrations],
   ['/all-applications', MenuItemId.AllApplications],
   ['/settings', MenuItemId.Settings],
+  ['/settings/tables', MenuItemId.SettingsTables],
 ];
 
 export const WAREHOUSE_SUB_ITEMS = [
@@ -316,4 +325,8 @@ export const FINANCE_SUB_ITEMS = [
   MenuItemId.FinanceInvoices,
   MenuItemId.FinanceCategories,
   MenuItemId.FinanceProfitAndLoss,
+] as const;
+
+export const SETTINGS_SUB_ITEMS = [
+  MenuItemId.SettingsTables,
 ] as const;

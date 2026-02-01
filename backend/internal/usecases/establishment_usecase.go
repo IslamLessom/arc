@@ -11,15 +11,18 @@ import (
 type EstablishmentUseCase struct {
 	repo      repositories.EstablishmentRepository
 	tableRepo repositories.TableRepository
+	roomRepo  repositories.RoomRepository
 }
 
 func NewEstablishmentUseCase(
 	repo repositories.EstablishmentRepository,
 	tableRepo repositories.TableRepository,
+	roomRepo repositories.RoomRepository,
 ) *EstablishmentUseCase {
 	return &EstablishmentUseCase{
 		repo:      repo,
 		tableRepo: tableRepo,
+		roomRepo:  roomRepo,
 	}
 }
 
@@ -43,31 +46,41 @@ func (uc *EstablishmentUseCase) Update(ctx context.Context, e *models.Establishm
 }
 
 // CreateWithSettings создает заведение с настройками из опросника
-// Если has_seating_places = true, автоматически создает столы
+// Если has_seating_places = true, автоматически создает зал и столы
 func (uc *EstablishmentUseCase) CreateWithSettings(ctx context.Context, establishment *models.Establishment) error {
 	// Создаем заведение
 	if err := uc.repo.Create(ctx, establishment); err != nil {
 		return err
 	}
 
-	// Если есть сидячие места, создаем столы
-	// При создании столы будут без координат (position_x = 0, position_y = 0)
-	// Администратор сможет расставить их визуально через интерфейс
+	// Если есть сидячие места, создаем зал по умолчанию и столы
 	if establishment.HasSeatingPlaces && establishment.TableCount != nil && *establishment.TableCount > 0 {
+		// Сначала создаем зал по умолчанию
+		defaultRoom := &models.Room{
+			EstablishmentID: establishment.ID,
+			Name:            "Основной зал",
+			Floor:           1,
+			Active:          true,
+		}
+		if err := uc.roomRepo.Create(ctx, defaultRoom); err != nil {
+			return err
+		}
+
+		// Затем создаем столы, привязанные к залу
 		tables := make([]*models.Table, 0, *establishment.TableCount)
 		for i := 1; i <= *establishment.TableCount; i++ {
 			tables = append(tables, &models.Table{
-				EstablishmentID: establishment.ID,
-				Number:          i,
-				Capacity:        4, // по умолчанию 4 места
-				PositionX:       0, // Координаты будут установлены при визуальной расстановке
-				PositionY:       0,
-				Rotation:        0,
-				Status:          "available",
-				Active:          true,
+				RoomID:    defaultRoom.ID,
+				Number:    i,
+				Capacity:  4, // по умолчанию 4 места
+				PositionX: 0, // Координаты будут установлены при визуальной расстановке
+				PositionY: 0,
+				Rotation:  0,
+				Status:    "available",
+				Active:    true,
 			})
 		}
-		
+
 		if err := uc.tableRepo.CreateBatch(ctx, tables); err != nil {
 			return err
 		}

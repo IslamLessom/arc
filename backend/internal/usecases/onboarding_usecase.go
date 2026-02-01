@@ -15,6 +15,7 @@ type OnboardingUseCase struct {
 	onboardingRepo   repositories.OnboardingRepository
 	establishmentRepo repositories.EstablishmentRepository
 	tableRepo        repositories.TableRepository
+	roomRepo         repositories.RoomRepository
 	userRepo         repositories.UserRepository
 	accountUseCase   *AccountUseCase
 }
@@ -23,6 +24,7 @@ func NewOnboardingUseCase(
 	onboardingRepo repositories.OnboardingRepository,
 	establishmentRepo repositories.EstablishmentRepository,
 	tableRepo repositories.TableRepository,
+	roomRepo repositories.RoomRepository,
 	userRepo repositories.UserRepository,
 	accountUseCase *AccountUseCase,
 ) *OnboardingUseCase {
@@ -30,6 +32,7 @@ func NewOnboardingUseCase(
 		onboardingRepo:    onboardingRepo,
 		establishmentRepo: establishmentRepo,
 		tableRepo:         tableRepo,
+		roomRepo:          roomRepo,
 		userRepo:          userRepo,
 		accountUseCase:    accountUseCase,
 	}
@@ -201,19 +204,31 @@ func (uc *OnboardingUseCase) createEstablishmentFromAnswers(ctx context.Context,
 		return nil, err
 	}
 
-	// Если есть сидячие места, создаем столы
+	// Если есть сидячие места, создаем зал по умолчанию и столы
 	if establishment.HasSeatingPlaces && establishment.TableCount != nil && *establishment.TableCount > 0 {
+		// Сначала создаем зал по умолчанию
+		defaultRoom := &models.Room{
+			EstablishmentID: establishment.ID,
+			Name:            "Основной зал",
+			Floor:           1,
+			Active:          true,
+		}
+		if err := uc.roomRepo.Create(ctx, defaultRoom); err != nil {
+			return nil, err
+		}
+
+		// Затем создаем столы, привязанные к залу
 		tables := make([]*models.Table, 0, *establishment.TableCount)
 		for i := 1; i <= *establishment.TableCount; i++ {
 			tables = append(tables, &models.Table{
-				EstablishmentID: establishment.ID,
-				Number:          i,
-				Capacity:        4, // по умолчанию 4 места
-				PositionX:       0,
-				PositionY:       0,
-				Rotation:        0,
-				Status:          "available",
-				Active:          true,
+				RoomID:    defaultRoom.ID,
+				Number:    i,
+				Capacity:  4, // по умолчанию 4 места
+				PositionX: 0,
+				PositionY: 0,
+				Rotation:  0,
+				Status:    "available",
+				Active:    true,
 			})
 		}
 

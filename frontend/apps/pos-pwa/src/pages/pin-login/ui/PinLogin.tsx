@@ -1,12 +1,22 @@
+import { useState } from 'react';
 import { LogoutOutlined } from '@ant-design/icons';
+import { useNavigate } from 'react-router-dom';
 import { usePinLogin } from '../hooks/usePinLogin';
 import { usePinLoginAuth } from '../hooks/usePinLoginAuth';
 import { useLogoutWithShiftEnd } from '../hooks/useLogoutWithShiftEnd';
 import { PinLength } from '../model/enums';
+import { ShiftStartModal } from '../../../features/shift-start-modal';
 import * as Styled from './styled';
 
 export const PinLogin = () => {
-  const { mutate: pinLoginMutation, isLoading, error } = usePinLoginAuth();
+  const navigate = useNavigate();
+  const [isShiftModalOpen, setIsShiftModalOpen] = useState(false);
+
+  const { mutate: pinLoginMutation, isLoading, error } = usePinLoginAuth({
+    onNoActiveShift: () => {
+      setIsShiftModalOpen(true);
+    },
+  });
   const { handleLogout, isEndingShift } = useLogoutWithShiftEnd();
 
   const { pin, handleNumberClick, handleDelete, handleClear } = usePinLogin({
@@ -14,6 +24,15 @@ export const PinLogin = () => {
       await pinLoginMutation(pin);
     },
   });
+
+  const handleShiftModalClose = () => {
+    setIsShiftModalOpen(false);
+  };
+
+  const handleShiftModalSuccess = () => {
+    setIsShiftModalOpen(false);
+    navigate('/');
+  };
 
   const renderPinIndicators = () => {
     return Array.from({ length: PinLength.MAX }, (_, index) => (
@@ -70,6 +89,12 @@ export const PinLogin = () => {
       <Styled.LogoutButton onClick={handleLogout} title="Выход" disabled={isEndingShift}>
         <LogoutOutlined />
       </Styled.LogoutButton>
+
+      <ShiftStartModal
+        isOpen={isShiftModalOpen}
+        onClose={handleShiftModalClose}
+        onSuccess={handleShiftModalSuccess}
+      />
     </Styled.PinLoginContainer>
   );
 };

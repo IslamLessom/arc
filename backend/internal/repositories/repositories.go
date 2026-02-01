@@ -9,6 +9,7 @@ type Repositories struct {
 	User         UserRepository
 	Role         RoleRepository
 	Establishment EstablishmentRepository
+	Room         RoomRepository
 	Table        TableRepository
 	Product            ProductRepository
 	TechCard           TechCardRepository
@@ -37,6 +38,7 @@ func NewRepositories(db *gorm.DB) *Repositories {
 		User:         NewUserRepository(db),
 		Role:         NewRoleRepository(db),
 		Establishment: NewEstablishmentRepository(db),
+		Room:         NewRoomRepository(db),
 		Table:        NewTableRepository(db),
 		Product:            NewProductRepository(db),
 		TechCard:           NewTechCardRepository(db),

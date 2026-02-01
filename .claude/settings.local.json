@@ -33,7 +33,17 @@
       "Bash(pnpm --filter api-client exec tsc:*)",
       "Bash(pnpm --filter api-client build:*)",
       "Bash(pnpm --filter api-client add:*)",
-      "Bash(pnpm --filter types build:*)"
+      "Bash(pnpm --filter types build:*)",
+      "Bash(pnpm run typecheck:*)",
+      "Bash(pnpm run type-check)",
+      "Bash(pnpm --filter pos-pwa run tsc:*)",
+      "Bash(pnpm --filter @restaurant-pos/api-client build:*)",
+      "Bash(go run:*)",
+      "Bash(make migrate-up:*)",
+      "Bash(pkill:*)",
+      "Bash(docker restart:*)",
+      "Bash(docker compose exec:*)",
+      "Bash(pnpm --filter pos-pwa build:*)"
     ]
   }
 }

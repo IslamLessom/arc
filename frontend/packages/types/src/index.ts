@@ -176,6 +176,7 @@ export interface Order {
   tableNumber?: number
   status: OrderStatus
   totalAmount: number
+  guestsCount?: number
   items?: OrderItem[]
   createdAt: string
   updatedAt: string

@@ -9,6 +9,7 @@ export interface LocalOrder {
   tableNumber?: number
   items: LocalOrderItem[]
   totalAmount: number
+  guestsCount?: number
   status: 'pending' | 'synced' | 'failed'
   createdAt: Date
   syncedAt?: Date

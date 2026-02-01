@@ -2,7 +2,12 @@ import { useCallback, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { usePinLogin as usePinLoginMutation, useCurrentUser } from '@restaurant-pos/api-client';
 
-export function usePinLoginAuth() {
+export interface UsePinLoginAuthOptions {
+  onNoActiveShift?: () => void;
+}
+
+export function usePinLoginAuth(options?: UsePinLoginAuthOptions) {
+  const { onNoActiveShift } = options || {};
   const navigate = useNavigate();
   const mutation = usePinLoginMutation();
   const { data: currentUser, isLoading: isUserLoading, error: userError } = useCurrentUser();
@@ -20,13 +25,44 @@ export function usePinLoginAuth() {
       }
 
       try {
+        // Логинимся без initial_cash, так как пользователь введет его в модалке
         await mutation.mutateAsync({
           pin,
-          initial_cash: 1000,
           establishment_id: establishmentId,
         });
-        // После успешного входа по PIN перенаправляем на главную
-        navigate('/');
+
+        // После успешного входа по PIN проверяем активную смену
+        // Небольшая задержка, чтобы токен успел сохраниться
+        await new Promise(resolve => setTimeout(resolve, 100));
+
+        // Проверяем активную смену
+        try {
+          const shiftResponse = await fetch(`${import.meta.env.VITE_API_URL || '/api/v1'}/shifts/me/active`, {
+            headers: {
+              'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
+            },
+          });
+
+          if (shiftResponse.status === 404) {
+            // Активной смены нет - показываем модалку
+            if (onNoActiveShift) {
+              onNoActiveShift();
+            }
+            return;
+          }
+
+          if (shiftResponse.ok) {
+            // Активная смена есть - перенаправляем на главную
+            navigate('/');
+          } else {
+            // Ошибка при проверке смены - всё равно перенаправляем
+            navigate('/');
+          }
+        } catch (shiftError) {
+          // При ошибке проверки смены - перенаправляем на главную
+          console.error('Ошибка при проверке активной смены:', shiftError);
+          navigate('/');
+        }
       } catch (err: unknown) {
         let errorMessage = 'Неверный PIN-код';
 
@@ -45,7 +81,7 @@ export function usePinLoginAuth() {
         throw err;
       }
     },
-    [mutation, navigate, currentUser]
+    [mutation, navigate, currentUser, onNoActiveShift]
   );
 
   return {

@@ -41,5 +41,7 @@ export enum MenuItemId {
   FinanceInvoices = 'finance-invoices',
   FinanceCategories = 'finance-categories',
   FinanceProfitAndLoss = 'finance-profit-and-loss',
+  // Settings sub-items
+  SettingsTables = 'settings-tables',
 }
 
