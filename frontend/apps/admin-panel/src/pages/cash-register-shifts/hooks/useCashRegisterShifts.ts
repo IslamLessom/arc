@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useGetShifts, useDeleteShift } from '@restaurant-pos/api-client'
+import { useGetShifts, useDeleteShift, transformApiShiftToShift } from '@restaurant-pos/api-client'
 import type { CashRegisterShiftTable, CashRegisterShiftsFilter } from '../model'
 import { transformShiftToTable } from '../lib'
 
@@ -17,7 +17,10 @@ export const useCashRegisterShifts = () => {
 
   // Transform data for table
   const shiftsTable = useMemo(() => {
-    return shifts.map((shift, index) => transformShiftToTable(shift, index))
+    return shifts.map((shift, index) => {
+      const transformed = transformApiShiftToShift(shift)
+      return transformShiftToTable(transformed, index)
+    })
   }, [shifts])
 
   // Filter and sort by default (openedAt desc)

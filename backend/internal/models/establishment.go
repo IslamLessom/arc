@@ -70,7 +70,7 @@ func (r *Room) BeforeCreate(tx *gorm.DB) error {
 // Table представляет стол в зале
 type Table struct {
 	ID              uuid.UUID      `json:"id" gorm:"type:uuid;primaryKey;default:gen_random_uuid()"`
-	RoomID          uuid.UUID      `json:"room_id" gorm:"type:uuid;not null;index"`
+	RoomID          uuid.UUID      `json:"room_id" gorm:"type:uuid;index"`
 	Room            *Room          `json:"room,omitempty" gorm:"foreignKey:RoomID"`
 	Number          int            `json:"number" gorm:"not null"` // Номер стола (уникален в рамках зала)
 	Name            string         `json:"name"`                   // Название стола (опционально)

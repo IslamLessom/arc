@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { apiClient } from '../client'
 
-// Types
+// Types из API (snake_case - как возвращает backend)
 export interface ShiftSession {
   id: string
   shift_id: string
@@ -10,27 +10,37 @@ export interface ShiftSession {
   end_time: string | null
 }
 
-export interface Shift {
+export interface ApiShift {
   id: string
   establishment_id: string
+  establishment?: {
+    id: string
+    owner_id: string
+    name: string
+    address?: string
+    phone?: string
+    email?: string
+    type?: string
+    has_seating_places?: boolean
+    table_count?: number
+    has_delivery?: boolean
+    has_takeaway?: boolean
+    has_reservations?: boolean
+    active?: boolean
+    created_at: string
+    updated_at: string
+  }
   start_time: string
   end_time: string | null
   initial_cash: number
   final_cash: number | null
   comment: string | null
   sessions: ShiftSession[]
+  created_at: string
+  updated_at: string
 }
 
-export interface ActiveShiftResponse {
-  id: string
-  establishment_id: string
-  start_time: string
-  end_time: string | null
-  initial_cash: number
-  final_cash: number | null
-  comment: string | null
-  sessions: ShiftSession[]
-}
+export interface ActiveShiftResponse extends ApiShift {}
 
 export interface ActiveShiftErrorResponse {
   error: string
@@ -47,16 +57,7 @@ export interface StartShiftRequest {
   initial_cash: number
 }
 
-export interface StartShiftResponse {
-  id: string
-  establishment_id: string
-  start_time: string
-  end_time: string | null
-  initial_cash: number
-  final_cash: number | null
-  comment: string | null
-  sessions: ShiftSession[]
-}
+export interface StartShiftResponse extends ApiShift {}
 
 /**
  * GET /shifts/me/active
@@ -78,9 +79,9 @@ export interface StartShiftResponse {
  * { "error": "Активная смена не найдена" }
  */
 export function useGetActiveShift() {
-  return useQuery<Shift, { error: string }>({
+  return useQuery<ApiShift, { error: string }>({
     queryKey: ['shifts', 'active'],
-    queryFn: async (): Promise<Shift> => {
+    queryFn: async (): Promise<ApiShift> => {
       const response = await apiClient.get<ActiveShiftResponse>('/shifts/me/active')
       return response.data
     },
@@ -128,8 +129,8 @@ export function useEndShift() {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: async (request: EndShiftRequest): Promise<Shift> => {
-      const response = await apiClient.post<Shift>('/shifts/end', request)
+    mutationFn: async (request: EndShiftRequest): Promise<ApiShift> => {
+      const response = await apiClient.post<ApiShift>('/shifts/end', request)
       return response.data
     },
     onSuccess: () => {
@@ -151,9 +152,9 @@ export interface GetShiftsFilter {
 }
 
 export function useGetShifts(filter?: GetShiftsFilter) {
-  return useQuery<Shift[], Error>({
+  return useQuery<ApiShift[], Error>({
     queryKey: ['shifts', 'list', filter],
-    queryFn: async (): Promise<Shift[]> => {
+    queryFn: async (): Promise<ApiShift[]> => {
       const params = new URLSearchParams()
       if (filter?.status) params.append('status', filter.status)
       if (filter?.establishmentId) params.append('establishment_id', filter.establishmentId)
@@ -161,8 +162,8 @@ export function useGetShifts(filter?: GetShiftsFilter) {
       if (filter?.startDate) params.append('start_date', filter.startDate)
       if (filter?.endDate) params.append('end_date', filter.endDate)
 
-      const response = await apiClient.get<Shift[]>(`/shifts?${params.toString()}`)
-      return response.data
+      const response = await apiClient.get<{ data: ApiShift[] }>(`/finance/shifts?${params.toString()}`)
+      return response.data.data
     },
   })
 }
@@ -177,4 +178,39 @@ export function useDeleteShift() {
       await apiClient.delete(`/shifts/${shiftId}`)
     },
   })
+}
+
+/**
+ * Трансформирует ApiShift в формат Shift (camelCase)
+ * Используется в админ-панели для преобразования данных из API
+ */
+export function transformApiShiftToShift(apiShift: ApiShift) {
+  return {
+    id: apiShift.id,
+    establishmentId: apiShift.establishment_id,
+    establishment: apiShift.establishment ? {
+      id: apiShift.establishment.id,
+      ownerId: apiShift.establishment.owner_id,
+      name: apiShift.establishment.name,
+      address: apiShift.establishment.address,
+      phone: apiShift.establishment.phone,
+      email: apiShift.establishment.email,
+      type: apiShift.establishment.type,
+      hasSeatingPlaces: apiShift.establishment.has_seating_places,
+      tableCount: apiShift.establishment.table_count,
+      hasDelivery: apiShift.establishment.has_delivery,
+      hasTakeaway: apiShift.establishment.has_takeaway,
+      hasReservations: apiShift.establishment.has_reservations,
+      active: apiShift.establishment.active,
+      createdAt: apiShift.establishment.created_at,
+      updatedAt: apiShift.establishment.updated_at,
+    } : undefined,
+    openedAt: apiShift.start_time,
+    closedAt: apiShift.end_time,
+    openingBalance: apiShift.initial_cash,
+    closingBalance: apiShift.final_cash,
+    status: apiShift.end_time ? 'closed' : 'open' as const,
+    createdAt: apiShift.created_at,
+    updatedAt: apiShift.updated_at,
+  }
 }

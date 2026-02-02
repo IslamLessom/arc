@@ -1,5 +1,5 @@
 // Shifts types
 export type {
-  Shift,
+  ApiShift,
   EndShiftRequest,
 } from '../hooks/useShifts'

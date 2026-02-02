@@ -37,7 +37,9 @@ BEGIN
     DELETE FROM tables WHERE room_id IS NULL;
 END $$;
 
--- Make room_id NOT NULL
+-- Make room_id NOT NULL using ALTER COLUMN (must be done after all NULLs are removed)
+-- First drop any existing values
+ALTER TABLE tables ALTER COLUMN room_id DROP DEFAULT;
 ALTER TABLE tables ALTER COLUMN room_id SET NOT NULL;
 
 -- Drop establishment_id from tables (if it still exists)

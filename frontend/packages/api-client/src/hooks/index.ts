@@ -150,8 +150,9 @@ export {
   useStartShift,
   useGetShifts,
   useDeleteShift,
+  transformApiShiftToShift,
 } from './useShifts'
-export type { Shift, ShiftSession, EndShiftRequest, StartShiftRequest, StartShiftResponse, ActiveShiftResponse, ActiveShiftErrorResponse, GetShiftsFilter } from './useShifts'
+export type { ApiShift, ShiftSession, EndShiftRequest, StartShiftRequest, StartShiftResponse, ActiveShiftResponse, ActiveShiftErrorResponse, GetShiftsFilter } from './useShifts'
 export { useLogout } from './useLogout'
 export type { LogoutResponse } from './useLogout'
 export {
