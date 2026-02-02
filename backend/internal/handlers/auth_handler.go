@@ -38,7 +38,7 @@ type LoginRequest struct {
 
 type EmployeeLoginRequest struct {
 	PIN           string  `json:"pin" binding:"required,numeric,len=4"`
-	InitialCash   float64 `json:"initial_cash" binding:"required,min=0"`
+	InitialCash   float64 `json:"initial_cash" binding:"omitempty,min=0"`
 	EstablishmentID string  `json:"establishment_id" binding:"required,uuid"` // Добавлено поле заведения
 }
 
