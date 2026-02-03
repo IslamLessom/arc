@@ -431,17 +431,71 @@ func (h *FinanceHandler) GetShifts(c *gin.Context) {
 
 // GetPNL возвращает отчет о прибылях и убытках
 // @Summary Получить отчет P&L
-// @Description Возвращает отчет о прибылях и убытках
+// @Description Возвращает отчет о прибылях и убытках за период
 // @Tags finance
 // @Produce json
 // @Security Bearer
-// @Param start_date query string false "Начальная дата"
-// @Param end_date query string false "Конечная дата"
+// @Param start_date query string false "Начальная дата (RFC3339)"
+// @Param end_date query string false "Конечная дата (RFC3339)"
 // @Success 200 {object} map[string]interface{}
+// @Failure 400 {object} map[string]string
+// @Failure 403 {object} map[string]string
+// @Failure 500 {object} map[string]string
 // @Router /finance/pnl [get]
 func (h *FinanceHandler) GetPNL(c *gin.Context) {
-	// TODO: Implement P&L report logic
-	c.JSON(http.StatusOK, gin.H{"data": map[string]interface{}{}})
+	estID, err := getEstablishmentID(c)
+	if err != nil {
+		c.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Default to current month if no dates provided
+	now := time.Now()
+	var startDate, endDate time.Time
+
+	// Try multiple date formats
+	dateFormats := []string{time.RFC3339, "2006-01-02", "2006-01-02T15:04:05Z"}
+
+	if startDateStr := c.Query("start_date"); startDateStr != "" {
+		for _, format := range dateFormats {
+			startDate, err = time.Parse(format, startDateStr)
+			if err == nil {
+				break
+			}
+		}
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid start_date format"})
+			return
+		}
+	} else {
+		startDate = time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, time.UTC)
+	}
+
+	if endDateStr := c.Query("end_date"); endDateStr != "" {
+		for _, format := range dateFormats {
+			endDate, err = time.Parse(format, endDateStr)
+			if err == nil {
+				break
+			}
+		}
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid end_date format"})
+			return
+		}
+		// Set end of day for end date
+		endDate = time.Date(endDate.Year(), endDate.Month(), endDate.Day(), 23, 59, 59, 0, endDate.Location())
+	} else {
+		endDate = now
+	}
+
+	report, err := h.usecase.GetPNL(c.Request.Context(), estID, startDate, endDate)
+	if err != nil {
+		h.logger.Error("Failed to generate P&L report", zap.Error(err))
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to generate P&L report"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"data": report})
 }
 
 // GetCashFlow возвращает отчет о движении денежных средств

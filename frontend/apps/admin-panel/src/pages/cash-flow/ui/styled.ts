@@ -76,50 +76,116 @@ export const ActionButton = styled.button({
   }
 })
 
-export const SearchContainer = styled.div({
+export const FiltersContainer = styled.div({
   display: 'flex',
   gap: '16px',
-  marginBottom: '24px'
+  marginBottom: '24px',
+  alignItems: 'center',
+  flexWrap: 'wrap'
 })
 
-export const SearchInputWrapper = styled.div({
-  flex: 1,
-  position: 'relative',
-  maxWidth: '400px'
-})
-
-export const SearchIcon = styled.span({
-  position: 'absolute',
-  left: '12px',
-  top: '50%',
-  transform: 'translateY(-50%)',
-  color: '#94a3b8',
-  pointerEvents: 'none'
-})
-
-export const FilterButton = styled.button({
-  padding: '10px 16px',
-  border: '1px solid #e2e8f0',
-  backgroundColor: '#ffffff',
-  borderRadius: '8px',
-  cursor: 'pointer',
+export const FilterLabel = styled.span({
   fontSize: '14px',
   color: '#64748b',
+  fontWeight: '500'
+})
+
+export const AccountFilterButton = styled.button<{ $selected: boolean }>(props => ({
+  padding: '8px 14px',
+  border: `1px solid ${props.$selected ? '#3b82f6' : '#e2e8f0'}`,
+  backgroundColor: props.$selected ? '#eff6ff' : '#ffffff',
+  borderRadius: '8px',
+  cursor: 'pointer',
+  fontSize: '13px',
+  color: props.$selected ? '#3b82f6' : '#64748b',
   transition: 'all 0.2s ease',
 
   '&:hover': {
-    backgroundColor: '#f8fafc',
-    borderColor: '#cbd5e1'
+    borderColor: '#cbd5e1',
+    backgroundColor: '#f8fafc'
   }
-})
+}))
 
 export const TableContainer = styled.div({
   border: '1px solid #e2e8f0',
   borderRadius: '12px',
   overflow: 'hidden',
-  backgroundColor: '#ffffff',
-  minHeight: '400px'
+  backgroundColor: '#ffffff'
 })
+
+export const Table = styled.table({
+  width: '100%',
+  borderCollapse: 'collapse',
+  fontSize: '14px'
+})
+
+export const TableHead = styled.thead({
+  backgroundColor: '#f8fafc',
+  borderBottom: '2px solid #e2e8f0'
+})
+
+export const TableHeadCell = styled.th<{ $width?: string; $align?: 'left' | 'right' | 'center' }>(props => ({
+  padding: '14px 16px',
+  textAlign: props.$align || 'left',
+  fontSize: '12px',
+  fontWeight: '600',
+  color: '#64748b',
+  textTransform: 'uppercase',
+  letterSpacing: '0.5px',
+  width: props.$width || 'auto',
+  whiteSpace: 'nowrap'
+}))
+
+export const TableBody = styled.tbody({})
+
+export const TableRow = styled.tr<{ $level: number; $isHeader?: boolean }>(props => ({
+  borderBottom: '1px solid #f1f5f9',
+  transition: 'background-color 0.2s ease',
+  backgroundColor: props.$isHeader ? '#f8fafc' : 'transparent',
+
+  '&:hover': {
+    backgroundColor: props.$isHeader ? '#f1f5f9' : '#f8fafc'
+  },
+
+  ...(props.$level === 1 && {
+    paddingLeft: '24px'
+  })
+}))
+
+export const TableCell = styled.td<{ $align?: 'left' | 'right' | 'center'; $isBold?: boolean; $isMainRow?: boolean }>(props => ({
+  padding: '12px 16px',
+  textAlign: props.$align || 'left',
+  fontSize: props.$isMainRow ? '14px' : '13px',
+  fontWeight: props.$isBold ? '600' : '400',
+  color: props.$isMainRow ? '#1e293b' : '#475569',
+  whiteSpace: 'nowrap'
+}))
+
+export const RowLabelCell = styled(TableCell)<{ $level: number }>(props => ({
+  paddingLeft: props.$level === 1 ? '48px' : '16px',
+  cursor: props.$level === 0 ? 'pointer' : 'default',
+  display: 'flex',
+  alignItems: 'center',
+  gap: '8px'
+}))
+
+export const ExpandIcon = styled.span<{ $isExpanded: boolean }>(props => ({
+  fontSize: '12px',
+  transition: 'transform 0.2s ease',
+  transform: props.$isExpanded ? 'rotate(0deg)' : 'rotate(-90deg)',
+  color: '#94a3b8'
+}))
+
+export const AmountCell = styled(TableCell)<{ $type: 'income' | 'expense' | 'balance' | 'net' | 'transfer'; $isNegative?: boolean }>(props => ({
+  fontWeight: '600',
+  color: props.$type === 'income' ? '#22c55e' :
+         props.$type === 'expense' ? '#ef4444' :
+         props.$type === 'transfer' ? '#3b82f6' :
+         props.$type === 'net' && props.$isNegative ? '#ef4444' :
+         props.$type === 'net' && !props.$isNegative ? '#22c55e' :
+         '#1e293b',
+  fontFamily: "'SF Mono', 'Monaco', 'Inconsolata', 'Fira Code', monospace"
+}))
 
 export const LoadingContainer = styled.div({
   display: 'flex',
@@ -155,45 +221,19 @@ export const EmptySubtext = styled.div({
   color: '#94a3b8'
 })
 
-export const SearchInput = styled(Input)({
-  width: '100%',
-  paddingLeft: '36px'
-})
-
-export const StatsContainer = styled.div({
-  display: 'flex',
-  gap: '16px',
-  marginBottom: '24px'
-})
-
-export const StatCard = styled.div({
-  display: 'flex',
-  alignItems: 'center',
-  gap: '16px',
-  padding: '20px',
-  border: '1px solid #e2e8f0',
-  borderRadius: '12px',
-  backgroundColor: '#ffffff',
-  flex: 1
-})
-
-export const StatIcon = styled.div({
-  fontSize: '32px'
-})
-
-export const StatContent = styled.div({
-  display: 'flex',
-  flexDirection: 'column',
-  gap: '4px'
-})
-
-export const StatLabel = styled.div({
+export const InfoBanner = styled.div({
+  padding: '16px',
+  backgroundColor: '#eff6ff',
+  border: '1px solid #dbeafe',
+  borderRadius: '8px',
+  marginBottom: '20px',
   fontSize: '14px',
-  color: '#64748b'
+  color: '#1e40af',
+  lineHeight: '1.5'
 })
 
-export const StatValue = styled.div({
-  fontSize: '24px',
-  fontWeight: '600',
-  color: '#1e293b'
+export const InfoBannerLink = styled.a({
+  color: '#3b82f6',
+  textDecoration: 'underline',
+  cursor: 'pointer'
 })

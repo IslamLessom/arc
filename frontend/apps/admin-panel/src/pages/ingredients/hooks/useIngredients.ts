@@ -94,7 +94,7 @@ export const useIngredients = () => {
       stock: stockData?.quantity || 0,
       cost: stockData?.value || 0,
       supplier: supplyData?.supplierName,
-      lastDelivery: supplyData?.deliveryDate ? new Date(supplyData.deliveryDate) : undefined,
+      lastDelivery: supplyData?.deliveryDate,
     }
   }), [apiIngredients, stockByIngredient, lastSupplyByIngredient])
 

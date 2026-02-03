@@ -28,6 +28,7 @@ type UseCases struct {
 	User         *UserUseCase
 	Role         *RoleUseCase // Добавлен новый UseCase для управления ролями
 	Inventory    *InventoryUseCase
+	Salary       *SalaryUseCase
 	Storage      *storage.MinIOClient
 }
 
@@ -47,6 +48,7 @@ func NewUseCases(repos *repositories.Repositories, cfg *config.Config, logger *z
 
 	financeUseCase := NewFinanceUseCase(repos.Transaction, repos.Account, repos.Shift, repos.Order)
 	warehouseUseCase := NewWarehouseUseCase(repos.Warehouse, repos.Supplier, financeUseCase)
+	salaryUseCase := NewSalaryUseCase(repos.User, repos.Role, repos.Shift, repos.Order)
 
 	return &UseCases{
 		Auth:         NewAuthUseCase(repos.User, repos.Role, repos.Subscription, repos.Token, repos.Establishment, shiftUseCase, cfg),
@@ -65,6 +67,7 @@ func NewUseCases(repos *repositories.Repositories, cfg *config.Config, logger *z
 		User:         userUseCase,
 		Role:         roleUseCase,
 		Inventory:    inventoryUseCase,
+		Salary:       salaryUseCase,
 		Storage:      storageClient,
 	}, nil
 }

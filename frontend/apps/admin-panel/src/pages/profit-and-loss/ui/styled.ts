@@ -45,6 +45,12 @@ export const Title = styled.h1({
   color: '#1e293b'
 })
 
+export const Period = styled.div({
+  fontSize: '14px',
+  color: '#64748b',
+  marginLeft: '12px'
+})
+
 export const HeaderActions = styled.div({
   display: 'flex',
   alignItems: 'center',
@@ -135,11 +141,11 @@ export const SummaryLabel = styled.div({
   color: '#1e293b'
 })
 
-export const SummaryValue = styled.div({
+export const SummaryValue = styled.div<{ type?: 'positive' | 'negative' }>(({ type = 'positive' }) => ({
   fontSize: '28px',
   fontWeight: '700',
-  color: '#3b82f6'
-})
+  color: type === 'positive' ? '#10b981' : '#ef4444'
+}))
 
 export const LoadingContainer = styled.div({
   display: 'flex',

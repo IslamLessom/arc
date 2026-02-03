@@ -200,6 +200,10 @@ export type {
   CreateEstablishmentRequest,
   UpdateEstablishmentRequest,
 } from './useEstablishments'
+export { useSalaryReport } from './useSalary'
+export type { SalaryEntry, SalaryReport } from './useSalary'
+export { useProfitAndLossReport } from './useProfitAndLoss'
+export type { ProfitAndLossParams } from './useProfitAndLoss'
 
 // Types
 export * from '../types'

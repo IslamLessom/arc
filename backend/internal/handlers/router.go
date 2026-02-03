@@ -299,6 +299,7 @@ func NewRouter(usecases *usecases.UseCases, cfg *config.Config, logger *zap.Logg
 			// Finance
 			financeHandler := NewFinanceHandler(usecases.Finance, logger)
 			accountHandler := NewAccountHandler(usecases.Account, logger)
+			salaryHandler := NewSalaryHandler(usecases.Salary, logger)
 			finance := protected.Group("/finance")
 			finance.Use(middleware.RequireEstablishment(usecases.Auth))
 			{
@@ -328,6 +329,8 @@ func NewRouter(usecases *usecases.UseCases, cfg *config.Config, logger *zap.Logg
 				finance.GET("/pnl", financeHandler.GetPNL)
 				finance.GET("/cash-flow", financeHandler.GetCashFlow)
 				finance.GET("/reports/shift", financeHandler.GenerateShiftReport)
+				// Salary
+				finance.GET("/salary", salaryHandler.GetSalaryReport)
 			}
 
 			// Statistics

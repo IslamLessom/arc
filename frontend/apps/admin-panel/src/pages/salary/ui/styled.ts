@@ -76,56 +76,36 @@ export const ActionButton = styled.button({
   }
 })
 
-export const AddButton = styled.button({
-  padding: '10px 20px',
-  border: 'none',
-  backgroundColor: '#3b82f6',
-  color: '#ffffff',
-  borderRadius: '8px',
-  cursor: 'pointer',
-  fontSize: '14px',
-  fontWeight: '500',
-  transition: 'all 0.2s ease',
-
-  '&:hover': {
-    backgroundColor: '#2563eb'
-  }
-})
-
-export const SearchContainer = styled.div({
+export const FilterContainer = styled.div({
   display: 'flex',
   gap: '16px',
-  marginBottom: '24px'
+  marginBottom: '24px',
+  alignItems: 'center'
 })
 
-export const SearchInputWrapper = styled.div({
-  flex: 1,
-  position: 'relative',
-  maxWidth: '400px'
+export const DateFilter = styled.div({
+  display: 'flex',
+  alignItems: 'center',
+  gap: '8px'
 })
 
-export const SearchIcon = styled.span({
-  position: 'absolute',
-  left: '12px',
-  top: '50%',
-  transform: 'translateY(-50%)',
-  color: '#94a3b8',
-  pointerEvents: 'none'
-})
-
-export const FilterButton = styled.button({
-  padding: '10px 16px',
-  border: '1px solid #e2e8f0',
-  backgroundColor: '#ffffff',
-  borderRadius: '8px',
-  cursor: 'pointer',
+export const DateLabel = styled.span({
   fontSize: '14px',
   color: '#64748b',
-  transition: 'all 0.2s ease',
+  fontWeight: '500'
+})
 
-  '&:hover': {
-    backgroundColor: '#f8fafc',
-    borderColor: '#cbd5e1'
+export const DateInput = styled.input({
+  padding: '8px 12px',
+  border: '1px solid #e2e8f0',
+  borderRadius: '8px',
+  fontSize: '14px',
+  color: '#1e293b',
+  outline: 'none',
+  transition: 'border-color 0.2s ease',
+
+  '&:focus': {
+    borderColor: '#3b82f6'
   }
 })
 
@@ -133,18 +113,63 @@ export const TableContainer = styled.div({
   border: '1px solid #e2e8f0',
   borderRadius: '12px',
   overflow: 'hidden',
-  backgroundColor: '#ffffff',
-  minHeight: '400px'
+  backgroundColor: '#ffffff'
 })
 
-export const LoadingContainer = styled.div({
-  display: 'flex',
-  justifyContent: 'center',
-  alignItems: 'center',
-  height: '400px',
-  fontSize: '16px',
-  color: '#64748b'
+export const Table = styled.table({
+  width: '100%',
+  borderCollapse: 'collapse'
 })
+
+export const TableHeader = styled.thead({
+  backgroundColor: '#f8fafc'
+})
+
+export const TableRow = styled.tr({
+  '&:hover': {
+    backgroundColor: '#f8fafc'
+  }
+})
+
+export const TableCell = styled.th<{
+  $align?: 'left' | 'center' | 'right'
+  $width?: string
+}>((props) => ({
+  padding: '12px 16px',
+  textAlign: props.$align || 'left',
+  fontSize: '13px',
+  fontWeight: '600',
+  color: '#64748b',
+  borderBottom: '1px solid #e2e8f0',
+  width: props.$width,
+  whiteSpace: 'nowrap'
+}))
+
+export const TableData = styled.td<{
+  $align?: 'left' | 'center' | 'right'
+}>((props) => ({
+  padding: '12px 16px',
+  textAlign: props.$align || 'left',
+  fontSize: '14px',
+  color: '#1e293b',
+  borderBottom: '1px solid #e2e8f0'
+}))
+
+export const TotalRow = styled.tr({
+  backgroundColor: '#f1f5f9',
+  fontWeight: '600'
+})
+
+export const TotalCell = styled.td<{
+  $align?: 'left' | 'center' | 'right'
+}>((props) => ({
+  padding: '16px',
+  textAlign: props.$align || 'right',
+  fontSize: '15px',
+  color: '#1e293b',
+  fontWeight: '600',
+  borderTop: '2px solid #e2e8f0'
+}))
 
 export const EmptyState = styled.div({
   display: 'flex',
@@ -171,7 +196,27 @@ export const EmptySubtext = styled.div({
   color: '#94a3b8'
 })
 
-export const SearchInput = styled(Input)({
-  width: '100%',
-  paddingLeft: '36px'
+export const LoadingContainer = styled.div({
+  display: 'flex',
+  justifyContent: 'center',
+  alignItems: 'center',
+  height: '400px',
+  fontSize: '16px',
+  color: '#64748b'
+})
+
+export const SalaryValue = styled.span<{
+  $highlight?: boolean
+}>((props) => ({
+  fontWeight: props.$highlight ? '600' : '400',
+  color: props.$highlight ? '#3b82f6' : '#1e293b'
+}))
+
+export const ErrorMessage = styled.div({
+  padding: '16px',
+  backgroundColor: '#fee2e2',
+  border: '1px solid #fecaca',
+  borderRadius: '8px',
+  color: '#991b1b',
+  marginBottom: '24px'
 })

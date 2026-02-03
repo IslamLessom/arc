@@ -432,6 +432,22 @@ export interface Subscription {
   updatedAt: string
 }
 
+// ===== Финансовые отчеты =====
+
+export interface ProfitAndLossReport {
+  startDate: string
+  endDate: string
+  revenue: number
+  otherIncome: number
+  totalIncome: number
+  costOfGoods: number
+  salary: number
+  rent: number
+  otherExpenses: number
+  totalExpenses: number
+  netProfit: number
+}
+
 // ===== Сервисы =====
 
 export * from './services'

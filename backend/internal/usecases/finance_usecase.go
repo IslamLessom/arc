@@ -313,3 +313,117 @@ func (uc *FinanceUseCase) GetShifts(ctx context.Context, establishmentID *uuid.U
 
 	return shifts, nil
 }
+
+// PNLReport represents a Profit and Loss report
+type PNLReport struct {
+	StartDate     string  `json:"start_date"`
+	EndDate       string  `json:"end_date"`
+	Revenue       float64 `json:"revenue"`
+	OtherIncome   float64 `json:"other_income"`
+	TotalIncome   float64 `json:"total_income"`
+	CostOfGoods   float64 `json:"cost_of_goods"`
+	Salary        float64 `json:"salary"`
+	Rent          float64 `json:"rent"`
+	OtherExpenses float64 `json:"other_expenses"`
+	TotalExpenses float64 `json:"total_expenses"`
+	NetProfit     float64 `json:"net_profit"`
+}
+
+// GetPNL generates a Profit and Loss report for the given period
+func (uc *FinanceUseCase) GetPNL(ctx context.Context, establishmentID uuid.UUID, startDate, endDate time.Time) (*PNLReport, error) {
+	report := &PNLReport{
+		StartDate: startDate.Format("2006-01-02"),
+		EndDate:   endDate.Format("2006-01-02"),
+	}
+
+	// Get orders for revenue calculation - include paid and ready orders
+	// Try multiple statuses that indicate completed orders
+	statuses := []string{"paid", "ready"}
+
+	var allOrders []*models.Order
+	for _, status := range statuses {
+		orders, err := uc.orderRepo.List(ctx, establishmentID, startDate, endDate, status)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get orders with status %s: %w", status, err)
+		}
+		allOrders = append(allOrders, orders...)
+	}
+
+	// Also get cancelled orders separately (they should be subtracted or handled differently)
+	cancelledOrders, err := uc.orderRepo.List(ctx, establishmentID, startDate, endDate, "cancelled")
+	if err == nil {
+		// For cancelled orders, we typically don't count them as revenue
+		// but you might want to track them separately
+		_ = cancelledOrders
+	}
+
+	var revenue float64
+	var costOfGoods float64
+	for _, order := range allOrders {
+		revenue += order.TotalAmount
+		// Calculate cost of goods from order items
+		for _, item := range order.Items {
+			var costPrice float64
+			if item.Product != nil {
+				costPrice = item.Product.CostPrice
+			} else if item.TechCard != nil {
+				costPrice = item.TechCard.CostPrice
+			}
+			costOfGoods += costPrice * float64(item.Quantity)
+		}
+	}
+	report.Revenue = revenue
+	report.CostOfGoods = costOfGoods
+
+	// Get income transactions (excluding sales which are tracked via orders)
+	incomeTransactions, err := uc.transactionRepo.List(ctx, &repositories.TransactionFilter{
+		EstablishmentID: &establishmentID,
+		Type:            stringPtr("income"),
+		StartDate:       &startDate,
+		EndDate:         &endDate,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to get income transactions: %w", err)
+	}
+
+	var otherIncome float64
+	for _, tx := range incomeTransactions {
+		// Exclude order-related income from "other income"
+		if tx.OrderID == nil {
+			otherIncome += tx.Amount
+		}
+	}
+	report.OtherIncome = otherIncome
+	report.TotalIncome = report.Revenue + report.OtherIncome
+
+	// Get expense transactions by category
+	expenseTransactions, err := uc.transactionRepo.List(ctx, &repositories.TransactionFilter{
+		EstablishmentID: &establishmentID,
+		Type:            stringPtr("expense"),
+		StartDate:       &startDate,
+		EndDate:         &endDate,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to get expense transactions: %w", err)
+	}
+
+	for _, tx := range expenseTransactions {
+		switch tx.Category {
+		case "Зарплата":
+			report.Salary += tx.Amount
+		case "Аренда":
+			report.Rent += tx.Amount
+		default:
+			report.OtherExpenses += tx.Amount
+		}
+	}
+
+	report.TotalExpenses = report.CostOfGoods + report.Salary + report.Rent + report.OtherExpenses
+	report.NetProfit = report.TotalIncome - report.TotalExpenses
+
+	return report, nil
+}
+
+func stringPtr(s string) *string {
+	return &s
+}
