@@ -55,10 +55,18 @@ export default defineConfig({
   ],
   resolve: {
     alias: {
-      '@': path.resolve(__dirname, './src')
+      '@': path.resolve(__dirname, './src'),
+      '@restaurant-pos/ui': path.resolve(__dirname, '../../packages/ui/src'),
+      '@restaurant-pos/pwa-core': path.resolve(__dirname, '../../packages/pwa-core/src'),
+      '@restaurant-pos/api-client': path.resolve(__dirname, '../../packages/api-client/src'),
+      '@restaurant-pos/types': path.resolve(__dirname, '../../packages/types/src'),
+      '@restaurant-pos/real-time': path.resolve(__dirname, '../../packages/real-time/src'),
+      '@restaurant-pos/print-service': path.resolve(__dirname, '../../packages/print-service/src'),
+      '@restaurant-pos/assets': path.resolve(__dirname, '../../packages/assets/src')
     }
   },
   server: {
+    host: '0.0.0.0',
     port: 3002
   },
   build: {

@@ -342,6 +342,40 @@ func (uc *WarehouseUseCase) GetMovements(ctx context.Context, establishmentID uu
 			"created_at":   writeOff.CreatedAt,
 		})
 	}
-	
+
 	return movements, nil
+}
+
+// ——— WriteOffReason CRUD ———
+
+func (uc *WarehouseUseCase) ListWriteOffReasons(ctx context.Context, establishmentID uuid.UUID) ([]*models.WriteOffReason, error) {
+	return uc.repo.ListWriteOffReasons(ctx, establishmentID)
+}
+
+func (uc *WarehouseUseCase) GetWriteOffReason(ctx context.Context, id uuid.UUID, establishmentID uuid.UUID) (*models.WriteOffReason, error) {
+	return uc.repo.GetWriteOffReasonByID(ctx, id, establishmentID)
+}
+
+func (uc *WarehouseUseCase) CreateWriteOffReason(ctx context.Context, reason *models.WriteOffReason, establishmentID uuid.UUID) error {
+	reason.EstablishmentID = establishmentID
+	return uc.repo.CreateWriteOffReason(ctx, reason)
+}
+
+func (uc *WarehouseUseCase) UpdateWriteOffReason(ctx context.Context, reason *models.WriteOffReason, establishmentID uuid.UUID) error {
+	// Проверяем существование и принадлежность к заведению
+	existing, err := uc.repo.GetWriteOffReasonByID(ctx, reason.ID, establishmentID)
+	if err != nil || existing == nil {
+		return errors.New("write-off reason not found or access denied")
+	}
+	reason.EstablishmentID = establishmentID
+	return uc.repo.UpdateWriteOffReason(ctx, reason)
+}
+
+func (uc *WarehouseUseCase) DeleteWriteOffReason(ctx context.Context, id uuid.UUID, establishmentID uuid.UUID) error {
+	// Проверяем существование и принадлежность к заведению
+	existing, err := uc.repo.GetWriteOffReasonByID(ctx, id, establishmentID)
+	if err != nil || existing == nil {
+		return errors.New("write-off reason not found or access denied")
+	}
+	return uc.repo.DeleteWriteOffReason(ctx, id)
 }

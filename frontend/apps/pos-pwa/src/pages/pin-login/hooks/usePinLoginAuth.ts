@@ -1,5 +1,6 @@
 import { useCallback, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
 import { usePinLogin as usePinLoginMutation, useCurrentUser } from '@restaurant-pos/api-client';
 
 export interface UsePinLoginAuthOptions {
@@ -9,6 +10,7 @@ export interface UsePinLoginAuthOptions {
 export function usePinLoginAuth(options?: UsePinLoginAuthOptions) {
   const { onNoActiveShift } = options || {};
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const mutation = usePinLoginMutation();
   const { data: currentUser, isLoading: isUserLoading, error: userError } = useCurrentUser();
   const [error, setError] = useState<string | null>(null);
@@ -30,6 +32,16 @@ export function usePinLoginAuth(options?: UsePinLoginAuthOptions) {
           pin,
           establishment_id: establishmentId,
         });
+
+        // Удаляем флаг блокировки после успешного входа
+        localStorage.removeItem('is_locked');
+
+        // После успешного входа сбрасываем кеш, чтобы загрузить актуальные данные
+        queryClient.invalidateQueries({ queryKey: ['orders'] });
+        queryClient.invalidateQueries({ queryKey: ['shifts'] });
+        queryClient.invalidateQueries({ queryKey: ['products'] });
+        queryClient.invalidateQueries({ queryKey: ['categories'] });
+        queryClient.invalidateQueries({ queryKey: ['tables'] });
 
         // После успешного входа по PIN проверяем активную смену
         // Небольшая задержка, чтобы токен успел сохраниться
@@ -81,7 +93,7 @@ export function usePinLoginAuth(options?: UsePinLoginAuthOptions) {
         throw err;
       }
     },
-    [mutation, navigate, currentUser, onNoActiveShift]
+    [mutation, navigate, currentUser, onNoActiveShift, queryClient]
   );
 
   return {

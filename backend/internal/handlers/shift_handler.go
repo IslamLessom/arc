@@ -60,7 +60,19 @@ func (h *ShiftHandler) StartShift(c *gin.Context) {
 		return
 	}
 
-	shift, err := h.usecase.StartShift(c.Request.Context(), estID, req.InitialCash)
+	userIDStr, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Пользователь не авторизован"})
+		return
+	}
+
+	userID, err := uuid.Parse(userIDStr.(string))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid user_id"})
+		return
+	}
+
+	shift, err := h.usecase.StartShift(c.Request.Context(), userID, estID, req.InitialCash)
 	if err != nil {
 		h.logger.Error("Failed to start shift", zap.Error(err))
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Не удалось начать смену"})

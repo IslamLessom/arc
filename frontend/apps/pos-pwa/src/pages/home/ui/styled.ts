@@ -47,6 +47,13 @@ export const GreenDot = styled.div`
   border-radius: 50%;
 `;
 
+export const LockWrapper = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+`;
+
 export const MainContent = styled.div`
   flex-grow: 1;
   padding: 20px;

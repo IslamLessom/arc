@@ -1,4 +1,5 @@
 import { useAddWriteOff } from '../hooks/useAddWriteOff'
+import { useGetWriteOffReasons } from '@restaurant-pos/api-client'
 import { ItemSelect } from './components/ItemSelect'
 import * as Styled from './styled'
 
@@ -17,7 +18,10 @@ export const AddWriteOff = () => {
     updateItem,
     handleSubmit,
     handleBack,
+    handleManageReasons,
   } = useAddWriteOff()
+
+  const { data: reasons, isLoading: isLoadingReasons } = useGetWriteOffReasons()
 
   return (
     <Styled.PageContainer>
@@ -98,10 +102,19 @@ export const AddWriteOff = () => {
               <Styled.Select
                 value={formData.reason}
                 onChange={(e) => handleFieldChange('reason', e.target.value)}
+                disabled={isLoadingReasons}
               >
-                <option value="Без причины">Без причины</option>
+                <option value="">Выберите причину</option>
+                {reasons?.filter(r => r.active).map(reason => (
+                  <option key={reason.id} value={reason.id}>
+                    {reason.name}
+                  </option>
+                ))}
               </Styled.Select>
-              <Styled.Link href="#" style={{ marginTop: '4px' }}>
+              <Styled.Link
+                onClick={handleManageReasons}
+                style={{ marginTop: '4px' }}
+              >
                 Управление причинами списаний
               </Styled.Link>
             </Styled.FormField>

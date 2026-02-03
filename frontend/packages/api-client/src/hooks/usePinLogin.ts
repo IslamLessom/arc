@@ -43,6 +43,19 @@ export function usePinLogin() {
 
       // Сохраняем токен и тип пользователя в localStorage
       if (typeof window !== 'undefined' && response.data.access_token) {
+        // Если текущий пользователь - owner, сохраняем его токен для восстановления после выхода сотрудника
+        const currentUserType = localStorage.getItem('user_type')
+        if (currentUserType === 'owner') {
+          const currentToken = localStorage.getItem('auth_token')
+          const currentRefreshToken = localStorage.getItem('refresh_token')
+          if (currentToken) {
+            localStorage.setItem('owner_token_backup', currentToken)
+          }
+          if (currentRefreshToken) {
+            localStorage.setItem('owner_refresh_token_backup', currentRefreshToken)
+          }
+        }
+
         localStorage.setItem('auth_token', response.data.access_token)
         localStorage.setItem('user_type', 'employee')
         if (response.data.refresh_token) {

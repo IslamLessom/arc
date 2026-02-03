@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { useStartShift } from '@restaurant-pos/api-client';
 import * as Styled from './styled';
 
@@ -11,6 +12,7 @@ export interface ShiftStartModalProps {
 export function ShiftStartModal({ isOpen, onClose, onSuccess }: ShiftStartModalProps) {
   const [initialCash, setInitialCash] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const queryClient = useQueryClient();
   const startShift = useStartShift();
 
   // Форматирование времени открытия
@@ -58,6 +60,9 @@ export function ShiftStartModal({ isOpen, onClose, onSuccess }: ShiftStartModalP
 
     try {
       await startShift.mutateAsync({ initial_cash: cashValue });
+      // Сбрасываем кеш после успешного открытия смены
+      queryClient.invalidateQueries({ queryKey: ['orders'] });
+      queryClient.invalidateQueries({ queryKey: ['shifts'] });
       onSuccess();
     } catch (err: unknown) {
       let errorMessage = 'Не удалось открыть смену. Попробуйте снова.';

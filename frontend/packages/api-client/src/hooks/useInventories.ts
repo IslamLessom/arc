@@ -154,9 +154,10 @@ export function useUpdateInventoryStatus() {
       )
       return response.data.data
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      // Update cache with response data instead of invalidating
+      queryClient.setQueryData(['inventory', data.id], data)
       queryClient.invalidateQueries({ queryKey: ['inventories'] })
-      queryClient.invalidateQueries({ queryKey: ['inventory'] })
     },
   })
 }
@@ -178,9 +179,10 @@ export function useUpdateInventory() {
       )
       return response.data.data
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      // Update cache with response data instead of invalidating
+      queryClient.setQueryData(['inventory', data.id], data)
       queryClient.invalidateQueries({ queryKey: ['inventories'] })
-      queryClient.invalidateQueries({ queryKey: ['inventory'] })
     },
   })
 }

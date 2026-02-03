@@ -94,9 +94,9 @@ export const useInventoryDetail = (): UseInventoryDetailResult => {
   const updateInventoryMutation = useUpdateInventory()
   const updateStatusMutation = useUpdateInventoryStatus()
 
-  // Load inventory data
+  // Load inventory data (only on initial load or when inventory actually changes)
   useEffect(() => {
-    if (inventory) {
+    if (inventory && !formData.inventory_id) {
       const warehouse = warehouses.find((w) => w.id === inventory.warehouse_id)
 
       console.log('Loading inventory:', {

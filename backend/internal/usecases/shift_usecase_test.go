@@ -150,7 +150,7 @@ func TestShiftUseCase_EndShift(t *testing.T) {
 
 	// Helper to create a basic shift
 	createTestShift := func(endTime *time.Time) *models.Shift {
-		return &models.Shift{ID: shiftID, EstablishmentID: establishmentID, StartTime: startTime, EndTime: endTime, InitialCash: initialCash}
+		return &models.Shift{ID: shiftID, UserID: uuid.New(), EstablishmentID: establishmentID, StartTime: startTime, EndTime: endTime, InitialCash: initialCash}
 	}
 
 	// Test case 1: Successfully end shift with cash movement

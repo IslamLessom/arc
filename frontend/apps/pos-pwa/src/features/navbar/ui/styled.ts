@@ -3,6 +3,13 @@ import styled from 'styled-components';
 export const NavbarContainer = styled.nav`
   display: flex;
   gap: 10px;
+  align-items: center;
+`;
+
+export const EmployeeName = styled.span`
+  color: white;
+  font-weight: bold;
+  margin-right: 10px;
 `;
 
 export const TabButton = styled.button`

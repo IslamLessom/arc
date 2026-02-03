@@ -43,7 +43,14 @@
       "Bash(pkill:*)",
       "Bash(docker restart:*)",
       "Bash(docker compose exec:*)",
-      "Bash(pnpm --filter pos-pwa build:*)"
+      "Bash(pnpm --filter pos-pwa build:*)",
+      "Bash(docker-compose logs:*)",
+      "Bash(npm run dev:*)",
+      "Bash(npm run typecheck:*)",
+      "Bash(docker-compose restart:*)",
+      "Bash(docker-compose ps:*)",
+      "Bash(docker-compose exec:*)",
+      "Bash(pnpm --filter @restaurant-pos/pos-pwa type-check:*)"
     ]
   }
 }

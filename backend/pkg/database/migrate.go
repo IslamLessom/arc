@@ -183,6 +183,9 @@ func RunMigrations(db *gorm.DB, logger *zap.Logger) error {
 	if err := migrateDB.AutoMigrate(&models.WriteOffItem{}); err != nil {
 		return fmt.Errorf("failed to migrate WriteOffItem: %w", err)
 	}
+	if err := migrateDB.AutoMigrate(&models.WriteOffReason{}); err != nil {
+		return fmt.Errorf("failed to migrate WriteOffReason: %w", err)
+	}
 	if err := migrateDB.AutoMigrate(&models.Inventory{}); err != nil {
 		return fmt.Errorf("failed to migrate Inventory: %w", err)
 	}

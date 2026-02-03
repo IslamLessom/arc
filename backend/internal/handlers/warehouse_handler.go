@@ -1155,3 +1155,205 @@ func (h *WarehouseHandler) DeleteSupplier(c *gin.Context) {
 	}
 	c.JSON(http.StatusOK, gin.H{"message": "supplier deleted"})
 }
+
+// ——— WriteOffReason CRUD ———
+
+// CreateWriteOffReasonRequest представляет запрос на создание причины списания
+type CreateWriteOffReasonRequest struct {
+	Name     string `json:"name" binding:"required"`
+	PnlBlock string `json:"pnl_block" binding:"required,oneof=cost expenses"`
+}
+
+// UpdateWriteOffReasonRequest представляет запрос на обновление причины списания
+type UpdateWriteOffReasonRequest struct {
+	Name     *string `json:"name,omitempty"`
+	PnlBlock *string `json:"pnl_block,omitempty"`
+	Active   *bool   `json:"active,omitempty"`
+}
+
+// ListWriteOffReasons возвращает список причин списаний
+// @Summary Получить список причин списаний
+// @Description Возвращает список причин списаний заведения
+// @Tags warehouse
+// @Produce json
+// @Security Bearer
+// @Success 200 {object} map[string]interface{}
+// @Failure 403 {object} map[string]string
+// @Failure 500 {object} map[string]string
+// @Router /warehouse/write-off-reasons [get]
+func (h *WarehouseHandler) ListWriteOffReasons(c *gin.Context) {
+	estID, err := getEstablishmentID(c)
+	if err != nil {
+		c.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
+		return
+	}
+
+	list, err := h.usecase.ListWriteOffReasons(c.Request.Context(), estID)
+	if err != nil {
+		h.logger.Error("Failed to list write-off reasons", zap.Error(err))
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to list write-off reasons"})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"data": list})
+}
+
+// GetWriteOffReason возвращает причину списания по ID
+// @Summary Получить причину списания по ID
+// @Description Возвращает причину списания по ID
+// @Tags warehouse
+// @Produce json
+// @Security Bearer
+// @Param id path string true "ID причины списания"
+// @Success 200 {object} map[string]interface{}
+// @Failure 400 {object} map[string]string
+// @Failure 403 {object} map[string]string
+// @Failure 404 {object} map[string]string
+// @Router /warehouse/write-off-reasons/{id} [get]
+func (h *WarehouseHandler) GetWriteOffReason(c *gin.Context) {
+	estID, err := getEstablishmentID(c)
+	if err != nil {
+		c.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
+		return
+	}
+	id, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id"})
+		return
+	}
+	reason, err := h.usecase.GetWriteOffReason(c.Request.Context(), id, estID)
+	if err != nil {
+		h.logger.Error("Failed to get write-off reason", zap.Error(err))
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to get write-off reason"})
+		return
+	}
+	if reason == nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "write-off reason not found"})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"data": reason})
+}
+
+// CreateWriteOffReason создает новую причину списания
+// @Summary Создать причину списания
+// @Description Создает новую причину списания
+// @Tags warehouse
+// @Accept json
+// @Produce json
+// @Security Bearer
+// @Param request body CreateWriteOffReasonRequest true "Данные причины списания"
+// @Success 201 {object} map[string]interface{}
+// @Failure 400 {object} map[string]string
+// @Failure 403 {object} map[string]string
+// @Failure 500 {object} map[string]string
+// @Router /warehouse/write-off-reasons [post]
+func (h *WarehouseHandler) CreateWriteOffReason(c *gin.Context) {
+	estID, err := getEstablishmentID(c)
+	if err != nil {
+		c.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
+		return
+	}
+	var req CreateWriteOffReasonRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	reason := &models.WriteOffReason{
+		Name:     req.Name,
+		PnlBlock: req.PnlBlock,
+		Active:   true,
+	}
+	if err := h.usecase.CreateWriteOffReason(c.Request.Context(), reason, estID); err != nil {
+		h.logger.Error("Failed to create write-off reason", zap.Error(err))
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to create write-off reason"})
+		return
+	}
+	c.JSON(http.StatusCreated, gin.H{"data": reason})
+}
+
+// UpdateWriteOffReason обновляет причину списания
+// @Summary Обновить причину списания
+// @Description Обновляет данные причины списания
+// @Tags warehouse
+// @Accept json
+// @Produce json
+// @Security Bearer
+// @Param id path string true "ID причины списания"
+// @Param request body UpdateWriteOffReasonRequest true "Данные для обновления"
+// @Success 200 {object} map[string]interface{}
+// @Failure 400 {object} map[string]string
+// @Failure 403 {object} map[string]string
+// @Failure 404 {object} map[string]string
+// @Failure 500 {object} map[string]string
+// @Router /warehouse/write-off-reasons/{id} [put]
+func (h *WarehouseHandler) UpdateWriteOffReason(c *gin.Context) {
+	estID, err := getEstablishmentID(c)
+	if err != nil {
+		c.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
+		return
+	}
+	id, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id"})
+		return
+	}
+	reason, err := h.usecase.GetWriteOffReason(c.Request.Context(), id, estID)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "write-off reason not found"})
+		return
+	}
+	if reason == nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "write-off reason not found"})
+		return
+	}
+	var req UpdateWriteOffReasonRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	if req.Name != nil {
+		reason.Name = *req.Name
+	}
+	if req.PnlBlock != nil {
+		reason.PnlBlock = *req.PnlBlock
+	}
+	if req.Active != nil {
+		reason.Active = *req.Active
+	}
+	if err := h.usecase.UpdateWriteOffReason(c.Request.Context(), reason, estID); err != nil {
+		h.logger.Error("Failed to update write-off reason", zap.Error(err))
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to update write-off reason"})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"data": reason})
+}
+
+// DeleteWriteOffReason удаляет причину списания
+// @Summary Удалить причину списания
+// @Description Удаляет причину списания по ID
+// @Tags warehouse
+// @Produce json
+// @Security Bearer
+// @Param id path string true "ID причины списания"
+// @Success 200 {object} map[string]string
+// @Failure 400 {object} map[string]string
+// @Failure 403 {object} map[string]string
+// @Failure 500 {object} map[string]string
+// @Router /warehouse/write-off-reasons/{id} [delete]
+func (h *WarehouseHandler) DeleteWriteOffReason(c *gin.Context) {
+	estID, err := getEstablishmentID(c)
+	if err != nil {
+		c.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
+		return
+	}
+	id, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id"})
+		return
+	}
+	if err := h.usecase.DeleteWriteOffReason(c.Request.Context(), id, estID); err != nil {
+		h.logger.Error("Failed to delete write-off reason", zap.Error(err))
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to delete write-off reason"})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"message": "write-off reason deleted"})
+}

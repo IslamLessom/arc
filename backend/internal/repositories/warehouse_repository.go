@@ -51,6 +51,13 @@ type WarehouseRepository interface {
 	CreateWriteOff(ctx context.Context, writeOff *models.WriteOff) error
 	GetWriteOffsByWarehouse(ctx context.Context, establishmentID uuid.UUID, warehouseID *uuid.UUID) ([]*models.WriteOff, error)
 	GetWriteOffByID(ctx context.Context, id uuid.UUID, establishmentID *uuid.UUID) (*models.WriteOff, error)
+
+	// WriteOffReason CRUD
+	CreateWriteOffReason(ctx context.Context, reason *models.WriteOffReason) error
+	ListWriteOffReasons(ctx context.Context, establishmentID uuid.UUID) ([]*models.WriteOffReason, error)
+	GetWriteOffReasonByID(ctx context.Context, id uuid.UUID, establishmentID uuid.UUID) (*models.WriteOffReason, error)
+	UpdateWriteOffReason(ctx context.Context, reason *models.WriteOffReason) error
+	DeleteWriteOffReason(ctx context.Context, id uuid.UUID) error
 }
 
 type warehouseRepository struct {
@@ -427,4 +434,38 @@ func (r *warehouseRepository) GetWriteOffByID(ctx context.Context, id uuid.UUID,
 		return nil, nil
 	}
 	return &writeOff, err
+}
+
+// ——— WriteOffReason CRUD ———
+
+func (r *warehouseRepository) CreateWriteOffReason(ctx context.Context, reason *models.WriteOffReason) error {
+	return r.db.WithContext(ctx).Create(reason).Error
+}
+
+func (r *warehouseRepository) ListWriteOffReasons(ctx context.Context, establishmentID uuid.UUID) ([]*models.WriteOffReason, error) {
+	var reasons []*models.WriteOffReason
+	err := r.db.WithContext(ctx).
+		Where("establishment_id = ?", establishmentID).
+		Order("name ASC").
+		Find(&reasons).Error
+	return reasons, err
+}
+
+func (r *warehouseRepository) GetWriteOffReasonByID(ctx context.Context, id uuid.UUID, establishmentID uuid.UUID) (*models.WriteOffReason, error) {
+	var reason models.WriteOffReason
+	err := r.db.WithContext(ctx).
+		Where("id = ? AND establishment_id = ?", id, establishmentID).
+		First(&reason).Error
+	if err == gorm.ErrRecordNotFound {
+		return nil, nil
+	}
+	return &reason, err
+}
+
+func (r *warehouseRepository) UpdateWriteOffReason(ctx context.Context, reason *models.WriteOffReason) error {
+	return r.db.WithContext(ctx).Save(reason).Error
+}
+
+func (r *warehouseRepository) DeleteWriteOffReason(ctx context.Context, id uuid.UUID) error {
+	return r.db.WithContext(ctx).Delete(&models.WriteOffReason{}, "id = ?", id).Error
 }

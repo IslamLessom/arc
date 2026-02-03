@@ -11,6 +11,8 @@ import (
 // Одна смена может иметь несколько сессий сотрудников
 type Shift struct {
 	ID              uuid.UUID      `json:"id" gorm:"type:uuid;primaryKey;default:gen_random_uuid()"`
+	UserID          uuid.UUID      `json:"user_id" gorm:"type:uuid;not null;index"`
+	User            *User          `json:"user,omitempty" gorm:"foreignKey:UserID"`
 	EstablishmentID uuid.UUID      `json:"establishment_id" gorm:"type:uuid;not null;index"`
 	Establishment   *Establishment `json:"establishment,omitempty" gorm:"foreignKey:EstablishmentID"`
 	StartTime       time.Time      `json:"start_time" gorm:"not null"`

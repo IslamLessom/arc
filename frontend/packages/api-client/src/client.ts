@@ -46,7 +46,6 @@ apiClient.interceptors.response.use(
       localStorage.removeItem('auth_token')
       localStorage.removeItem('refresh_token')
       localStorage.removeItem('user_type')
-      window.location.href = '/auth'
     }
     return Promise.reject(error)
   }

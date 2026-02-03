@@ -50,13 +50,14 @@ func (uc *ShiftUseCase) GetActiveShiftByEstablishment(ctx context.Context, estab
 }
 
 // StartShift создает новую смену для заведения
-func (uc *ShiftUseCase) StartShift(ctx context.Context, establishmentID uuid.UUID, initialCash float64) (*models.Shift, error) {
+func (uc *ShiftUseCase) StartShift(ctx context.Context, userID uuid.UUID, establishmentID uuid.UUID, initialCash float64) (*models.Shift, error) {
 	// Проверяем, нет ли уже активной смены в заведении
 	if existingShift, _ := uc.shiftRepo.GetActiveShiftByEstablishmentID(ctx, establishmentID); existingShift != nil {
 		return nil, errors.New("establishment already has an active shift")
 	}
 
 	shift := &models.Shift{
+		UserID:          userID,
 		EstablishmentID: establishmentID,
 		StartTime:       time.Now(),
 		InitialCash:     initialCash,
@@ -81,7 +82,7 @@ func (uc *ShiftUseCase) StartUserSession(ctx context.Context, userID uuid.UUID, 
 	shift, err := uc.shiftRepo.GetActiveShiftByEstablishmentID(ctx, establishmentID)
 	if err != nil {
 		// Смены нет - создаем новую
-		shift, err = uc.StartShift(ctx, establishmentID, initialCash)
+		shift, err = uc.StartShift(ctx, userID, establishmentID, initialCash)
 		if err != nil {
 			return nil, fmt.Errorf("failed to start shift: %w", err)
 		}

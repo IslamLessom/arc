@@ -123,3 +123,42 @@ export function useDeleteEstablishment() {
   })
 }
 
+/**
+ * Получает текущее заведение авторизованного пользователя
+ * Использует /establishments endpoint, который возвращает заведения пользователя
+ */
+export function useCurrentEstablishment() {
+  return useQuery({
+    queryKey: ['currentEstablishment'],
+    queryFn: async (): Promise<Establishment | null> => {
+      if (typeof window === 'undefined') {
+        return null
+      }
+
+      const token = localStorage.getItem('auth_token')
+      if (!token) {
+        return null
+      }
+
+      try {
+        const response = await apiClient.get<EstablishmentsResponse>('/establishments')
+        const establishments = response.data.data
+        return establishments.length > 0 ? establishments[0] : null
+      } catch (error) {
+        if (error && typeof error === 'object' && 'response' in error) {
+          const axiosError = error as { response?: { status?: number } }
+          if (axiosError.response?.status === 401) {
+            localStorage.removeItem('auth_token')
+            localStorage.removeItem('refresh_token')
+            localStorage.removeItem('user_type')
+          }
+        }
+        throw error
+      }
+    },
+    retry: false,
+    refetchOnWindowFocus: false,
+    enabled: typeof window !== 'undefined' && !!localStorage.getItem('auth_token'),
+  })
+}
+

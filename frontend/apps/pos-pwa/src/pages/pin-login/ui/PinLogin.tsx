@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { usePinLogin } from '../hooks/usePinLogin';
 import { usePinLoginAuth } from '../hooks/usePinLoginAuth';
 import { useLogoutWithShiftEnd } from '../hooks/useLogoutWithShiftEnd';
+import { useCurrentEstablishment } from '@restaurant-pos/api-client';
 import { PinLength } from '../model/enums';
 import { ShiftStartModal } from '../../../features/shift-start-modal';
 import * as Styled from './styled';
@@ -11,6 +12,8 @@ import * as Styled from './styled';
 export const PinLogin = () => {
   const navigate = useNavigate();
   const [isShiftModalOpen, setIsShiftModalOpen] = useState(false);
+
+  const { data: establishment } = useCurrentEstablishment();
 
   const { mutate: pinLoginMutation, isLoading, error } = usePinLoginAuth({
     onNoActiveShift: () => {
@@ -81,9 +84,11 @@ export const PinLogin = () => {
       <Styled.Keypad>{renderKeypad()}</Styled.Keypad>
 
       <Styled.Footer>
-        <Styled.CompanyName>Ebari</Styled.CompanyName>
-        <Styled.EstablishmentInfo>Касса в «Ebari»</Styled.EstablishmentInfo>
-        <Styled.ClientNumber>Клиентский номер: 590518</Styled.ClientNumber>
+        <Styled.CompanyName>{establishment?.name || 'Ebari'}</Styled.CompanyName>
+        <Styled.EstablishmentInfo>
+          Касса в «{establishment?.name || 'Ebari'}»
+        </Styled.EstablishmentInfo>
+        <Styled.ClientNumber>Клиентский номер: {establishment?.id?.slice(0, 8) || '590518'}</Styled.ClientNumber>
       </Styled.Footer>
 
       <Styled.LogoutButton onClick={handleLogout} title="Выход" disabled={isEndingShift}>

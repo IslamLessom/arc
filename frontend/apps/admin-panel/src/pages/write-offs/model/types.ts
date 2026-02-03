@@ -36,3 +36,35 @@ export interface UseWriteOffsResult {
   sort: WriteOffsSort
 }
 
+// Типы для причин списаний
+export enum WriteOffReasonPnlBlock {
+  COST = 'cost', // Себестоимость
+  EXPENSES = 'expenses', // Расходы
+}
+
+export interface WriteOffReason {
+  id: string
+  name: string
+  pnlBlock: WriteOffReasonPnlBlock
+  writeOffCount: number
+  totalCost: number
+}
+
+export interface WriteOffReasonFormData {
+  name: string
+  pnlBlock: WriteOffReasonPnlBlock
+}
+
+export interface UseWriteOffReasonsResult {
+  reasons: WriteOffReason[]
+  isLoading: boolean
+  error: Error | null
+  searchQuery: string
+  handleSearchChange: (query: string) => void
+  handleAdd: (data: WriteOffReasonFormData) => void
+  handleEdit: (id: string, data: WriteOffReasonFormData) => void
+  handleDelete: (id: string) => void
+  handleExport: () => void
+  handlePrint: () => void
+  handleColumns: () => void
+}

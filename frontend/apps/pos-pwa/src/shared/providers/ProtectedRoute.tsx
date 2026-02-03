@@ -25,6 +25,11 @@ function getAuthState(): AuthState {
   return user_type === 'employee' ? 'employee' : 'owner'
 }
 
+function isLocked(): boolean {
+  if (typeof window === 'undefined') return false
+  return localStorage.getItem('is_locked') === 'true'
+}
+
 export function ProtectedRoute({ children }: ProtectedRouteProps) {
   const location = useLocation()
   const { data: currentUser, isLoading } = useCurrentUser()
@@ -78,12 +83,14 @@ export function AuthRoute() {
 
 export function PinLoginRoute() {
   const authState = getAuthState()
+  const locked = isLocked()
 
   if (authState === 'none') {
     return <Navigate to="/auth" replace />
   }
 
-  if (authState === 'employee') {
+  // Если приложение заблокировано - показываем pin-login
+  if (authState === 'employee' && !locked) {
     return <Navigate to="/" replace />
   }
 
@@ -96,12 +103,14 @@ export function PinLoginRoute() {
 
 export function HomeRoute() {
   const authState = getAuthState()
+  const locked = isLocked()
 
   if (authState === 'none') {
     return <Navigate to="/auth" replace />
   }
 
-  if (authState === 'owner') {
+  // Если приложение заблокировано или владелец - перенаправляем на pin-login
+  if (authState === 'owner' || locked) {
     return <Navigate to="/pin-login" replace />
   }
 
@@ -114,12 +123,14 @@ export function HomeRoute() {
 
 export function TableSelectionRoute() {
   const authState = getAuthState()
+  const locked = isLocked()
 
   if (authState === 'none') {
     return <Navigate to="/auth" replace />
   }
 
-  if (authState === 'owner') {
+  // Если приложение заблокировано или владелец - перенаправляем на pin-login
+  if (authState === 'owner' || locked) {
     return <Navigate to="/pin-login" replace />
   }
 
@@ -132,12 +143,14 @@ export function TableSelectionRoute() {
 
 export function OrderRoute() {
   const authState = getAuthState()
+  const locked = isLocked()
 
   if (authState === 'none') {
     return <Navigate to="/auth" replace />
   }
 
-  if (authState === 'owner') {
+  // Если приложение заблокировано или владелец - перенаправляем на pin-login
+  if (authState === 'owner' || locked) {
     return <Navigate to="/pin-login" replace />
   }
 

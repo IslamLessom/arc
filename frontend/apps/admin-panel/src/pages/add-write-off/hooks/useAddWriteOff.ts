@@ -134,6 +134,10 @@ export const useAddWriteOff = () => {
     navigate('/warehouse/write-offs')
   }, [navigate])
 
+  const handleManageReasons = useCallback(() => {
+    navigate('/warehouse/write-offs?tab=reasons')
+  }, [navigate])
+
   // Получаем список доступных товаров/ингредиентов
   const availableItems = useMemo(() => {
     const allIngredients = ingredients.map(ing => ({
@@ -165,6 +169,7 @@ export const useAddWriteOff = () => {
     updateItem,
     handleSubmit,
     handleBack,
+    handleManageReasons,
   }
 }
 

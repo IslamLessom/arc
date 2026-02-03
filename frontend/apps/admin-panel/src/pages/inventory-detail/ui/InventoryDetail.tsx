@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import { Alert } from 'antd'
 import { useInventoryDetail } from '../hooks/useInventoryDetail'
 import { formatNumber, formatCurrency, getDifferenceColor } from '../lib/utils'
@@ -32,18 +32,21 @@ export const InventoryDetail = () => {
     handleCommentChange,
   } = useInventoryDetail()
 
+  const handleSaveRef = useRef(handleSave)
+  handleSaveRef.current = handleSave
+
   // Auto-save on changes with debounce
   useEffect(() => {
     const timer = setTimeout(() => {
       if (formData.inventory_id && !isReadOnly && !isLoading && formData.items && formData.items.length > 0) {
-        handleSave().catch((err) => {
+        handleSaveRef.current().catch((err) => {
           console.error('Auto-save failed:', err)
         })
       }
     }, 2000)
 
     return () => clearTimeout(timer)
-  }, [formData.items, formData.comment, isReadOnly, isLoading, formData.inventory_id, handleSave])
+  }, [formData.items, formData.comment, isReadOnly, isLoading, formData.inventory_id])
 
   if (isLoading) {
     return (

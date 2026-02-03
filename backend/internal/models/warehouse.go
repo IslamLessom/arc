@@ -176,3 +176,24 @@ func (s *Supplier) BeforeCreate(tx *gorm.DB) error {
 	}
 	return nil
 }
+
+// WriteOffReason представляет причину списания
+type WriteOffReason struct {
+	ID              uuid.UUID      `json:"id" gorm:"type:uuid;primaryKey;default:gen_random_uuid()"`
+	EstablishmentID uuid.UUID      `json:"establishment_id" gorm:"type:uuid;not null;index"`
+	Establishment   *Establishment `json:"establishment,omitempty" gorm:"foreignKey:EstablishmentID"`
+	Name            string         `json:"name" gorm:"not null"`         // Название причины
+	PnlBlock        string         `json:"pnl_block" gorm:"not null"`    // cost или expenses
+	Active          bool           `json:"active" gorm:"default:true"`   // Активность
+	CreatedAt       time.Time      `json:"created_at"`
+	UpdatedAt       time.Time      `json:"updated_at"`
+	DeletedAt       gorm.DeletedAt `json:"-" gorm:"index"`
+}
+
+// BeforeCreate hook для автоматической генерации UUID
+func (wor *WriteOffReason) BeforeCreate(tx *gorm.DB) error {
+	if wor.ID == uuid.Nil {
+		wor.ID = uuid.New()
+	}
+	return nil
+}
