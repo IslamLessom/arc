@@ -65,8 +65,13 @@ export function useTableSelection(): UseTableSelectionResult {
         guestsCount: count
       })
 
-      // Переходим к оформлению заказа
-      navigate(`/order/${order.id}`)
+      // Переходим к оформлению заказа и передаем количество гостей
+      navigate(`/order/${order.id}`, {
+        state: {
+          guestsCount: count,
+          tableNumber: selectedTable.number,
+        },
+      })
     } catch (error) {
       console.error('Failed to create order:', error)
     }
@@ -112,4 +117,3 @@ export function useTableSelection(): UseTableSelectionResult {
     getDropdownPosition,
   }
 }
-

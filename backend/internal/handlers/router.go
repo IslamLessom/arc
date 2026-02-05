@@ -345,6 +345,7 @@ func NewRouter(usecases *usecases.UseCases, cfg *config.Config, logger *zap.Logg
 			// Orders
 			orderHandler := NewOrderHandler(usecases.Order, logger)
 			orders := protected.Group("/orders")
+			orders.Use(middleware.RequireEstablishment(usecases.Auth))
 			{
 				orders.GET("", orderHandler.List)
 				orders.GET("/active", orderHandler.ListActiveOrdersByEstablishment)

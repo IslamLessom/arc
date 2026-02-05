@@ -333,7 +333,7 @@ func (h *OrderHandler) UpdateOrderItemQuantity(c *gin.Context) {
 // @Failure 500 {object} map[string]string
 // @Router /orders/{id}/pay [post]
 func (h *OrderHandler) ProcessOrderPayment(c *gin.Context) {
-	orderIDStr := c.Param("id")
+	orderIDStr := c.Param("order_id")
 	orderID, err := uuid.Parse(orderIDStr)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Неверный ID заказа"})

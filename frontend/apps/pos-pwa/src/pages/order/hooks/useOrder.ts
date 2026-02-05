@@ -1,8 +1,9 @@
 import { useState, useCallback, useMemo } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useNavigate, useParams, useLocation } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { useGetCategories, useGetProducts } from '@restaurant-pos/api-client'
 import { useCurrentUser } from '@restaurant-pos/api-client'
+import { apiClient } from '@restaurant-pos/api-client'
 import type { UseOrderResult, OrderData, GuestOrder, OrderItem, ProductCategory } from '../model/types'
 import { OrderTab } from '../model/enums'
 import type { Product } from '@restaurant-pos/api-client'
@@ -11,6 +12,7 @@ const ORDER_STORAGE_KEY = 'order_data_'
 
 export function useOrder(): UseOrderResult {
   const navigate = useNavigate()
+  const location = useLocation()
   const { orderId } = useParams<{ orderId: string }>()
   const { data: currentUser } = useCurrentUser()
   const establishmentId = currentUser?.establishment_id || ''
@@ -18,6 +20,7 @@ export function useOrder(): UseOrderResult {
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null)
   const [selectedTab, setSelectedTab] = useState<OrderTab>(OrderTab.Check)
   const [orderData, setOrderData] = useState<OrderData | null>(null)
+  const [isProcessingPayment, setIsProcessingPayment] = useState(false)
 
   // Fetch categories
   const { data: categories = [], isLoading: isLoadingCategories } = useGetCategories({
@@ -29,6 +32,8 @@ export function useOrder(): UseOrderResult {
     selectedCategoryId ? { category_id: selectedCategoryId, active: true } : { active: true }
   )
 
+  const locationState = location.state as { guestsCount?: number; tableNumber?: number } | null
+
   // Initialize order data from localStorage or create new
   useMemo(() => {
     if (orderId && !orderData) {
@@ -36,18 +41,21 @@ export function useOrder(): UseOrderResult {
       if (stored) {
         setOrderData(JSON.parse(stored))
       } else {
+        const guestsCountFromState = Math.max(1, Number(locationState?.guestsCount || 1))
+        const tableNumberFromState = locationState?.tableNumber
+
+        const guests: GuestOrder[] = Array.from({ length: guestsCountFromState }, (_, index) => ({
+          guestNumber: index + 1,
+          items: [],
+          totalAmount: 0,
+        }))
+
         // Create initial order data
         const initialData: OrderData = {
           orderId,
-          tableNumber: undefined,
-          guestsCount: 1,
-          guests: [
-            {
-              guestNumber: 1,
-              items: [],
-              totalAmount: 0,
-            },
-          ],
+          tableNumber: tableNumberFromState,
+          guestsCount: guestsCountFromState,
+          guests,
           selectedGuestNumber: 1,
           totalAmount: 0,
         }
@@ -55,7 +63,7 @@ export function useOrder(): UseOrderResult {
         localStorage.setItem(`${ORDER_STORAGE_KEY}${orderId}`, JSON.stringify(initialData))
       }
     }
-  }, [orderId, orderData])
+  }, [orderId, orderData, locationState])
 
   // Save order data to localStorage whenever it changes
   useMemo(() => {
@@ -243,10 +251,51 @@ export function useOrder(): UseOrderResult {
   }, [orderData])
 
   // Process payment
-  const handlePayment = useCallback(() => {
-    console.log('Processing payment:', orderData)
-    // TODO: Implement payment
-  }, [orderData])
+  const handlePayment = useCallback(async () => {
+    if (!orderData || orderData.totalAmount <= 0 || isProcessingPayment) return
+
+    const itemsToSend = orderData.guests.flatMap(guest =>
+      guest.items.map(item => ({
+        product_id: item.productId,
+        quantity: item.quantity,
+        guest_number: guest.guestNumber,
+      }))
+    )
+
+    if (itemsToSend.length === 0) return
+
+    setIsProcessingPayment(true)
+
+    try {
+      const isUuid = (value?: string) =>
+        typeof value === 'string' &&
+        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value)
+
+      let serverOrderId = orderId
+
+      if (!isUuid(orderId)) {
+        const orderResponse = await apiClient.post('/orders', {
+          items: itemsToSend,
+        })
+
+        serverOrderId = orderResponse?.data?.id
+      }
+
+      if (!serverOrderId) {
+        throw new Error('Не удалось создать заказ на сервере')
+      }
+
+      await apiClient.post(`/orders/${serverOrderId}/pay`, {
+        cash_amount: orderData.totalAmount,
+        card_amount: 0,
+        client_cash: orderData.totalAmount,
+      })
+    } catch (error) {
+      console.error('Failed to process payment:', error)
+    } finally {
+      setIsProcessingPayment(false)
+    }
+  }, [orderData, orderId, isProcessingPayment])
 
   return {
     // Data

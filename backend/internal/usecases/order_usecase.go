@@ -182,20 +182,49 @@ func (uc *OrderUseCase) ProcessOrderPayment(ctx context.Context, orderID uuid.UU
 
 	// Create transaction for cash/card payment
 	if order.CashAmount > 0 {
+		if uc.accountUseCase == nil {
+			return nil, errors.New("account usecase is not configured")
+		}
+
+		cashAccountType, err := uc.accountUseCase.accountTypeRepo.GetByName(ctx, "наличные")
+		if err != nil || cashAccountType == nil {
+			return nil, errors.New("cash account type not found")
+		}
+
+		cashAccounts, err := uc.accountUseCase.repo.List(ctx, &repositories.AccountFilter{
+			EstablishmentID: &order.EstablishmentID,
+			TypeID:          &cashAccountType.ID,
+			Active:          repositories.BoolPtr(true),
+		})
+		if err != nil {
+			return nil, fmt.Errorf("failed to get cash account: %w", err)
+		}
+		if len(cashAccounts) == 0 {
+			return nil, errors.New("no active cash account found for the establishment")
+		}
+
+		cashAccountID := cashAccounts[0].ID
+
 		transaction := &models.Transaction{
 			TransactionDate: time.Now(),
-			Category:    "Cash Payment",
-			Description: fmt.Sprintf("Payment for order %s (cash)", order.ID.String()),
-			Amount:      order.CashAmount,
-			AccountID:   uuid.Nil,
+			Type:            "income",
+			Category:        "Cash Payment",
+			Description:     fmt.Sprintf("Payment for order %s (cash)", order.ID.String()),
+			Amount:          order.CashAmount,
+			AccountID:       cashAccountID,
 			EstablishmentID: order.EstablishmentID,
+			OrderID:         &order.ID,
 		}
 		if err := uc.transactionRepo.Create(ctx, transaction); err != nil {
 			return nil, fmt.Errorf("failed to create cash transaction: %w", err)
 		}
 	}
 	if order.CardAmount > 0 {
-		cardAccountType, err := uc.accountUseCase.accountTypeRepo.GetByName(ctx, "Банковские карточки")
+		if uc.accountUseCase == nil {
+			return nil, errors.New("account usecase is not configured")
+		}
+
+		cardAccountType, err := uc.accountUseCase.accountTypeRepo.GetByName(ctx, "банковские карточки")
 		if err != nil || cardAccountType == nil {
 			return nil, errors.New("card account type not found")
 		}
@@ -217,11 +246,13 @@ func (uc *OrderUseCase) ProcessOrderPayment(ctx context.Context, orderID uuid.UU
 
 		transaction := &models.Transaction{
 			TransactionDate: time.Now(),
-			Category:    "Card Payment",
-			Description: fmt.Sprintf("Payment for order %s (card)", order.ID.String()),
-			Amount:      order.CardAmount,
-			AccountID:   cardAccountID,
+			Type:            "income",
+			Category:        "Card Payment",
+			Description:     fmt.Sprintf("Payment for order %s (card)", order.ID.String()),
+			Amount:          order.CardAmount,
+			AccountID:       cardAccountID,
 			EstablishmentID: order.EstablishmentID,
+			OrderID:         &order.ID,
 		}
 		if err := uc.transactionRepo.Create(ctx, transaction); err != nil {
 			return nil, fmt.Errorf("failed to create card transaction: %w", err)
