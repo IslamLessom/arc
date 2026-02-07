@@ -79,7 +79,12 @@ func (r *warehouseRepository) GetProductByID(ctx context.Context, id uuid.UUID) 
 
 func (r *warehouseRepository) GetTechCardByID(ctx context.Context, id uuid.UUID) (*models.TechCard, error) {
 	var techCard models.TechCard
-	err := r.db.WithContext(ctx).First(&techCard, "id = ?", id).Error
+	err := r.db.WithContext(ctx).
+		Preload("Ingredients.Ingredient").
+		Preload("ModifierSets.Options").
+		Preload("Category").
+		Preload("Workshop").
+		First(&techCard, "id = ?", id).Error
 	if err == gorm.ErrRecordNotFound {
 		return nil, nil
 	}

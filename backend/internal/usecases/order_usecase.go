@@ -13,10 +13,10 @@ import (
 )
 
 type OrderUseCase struct {
-	orderRepo         repositories.OrderRepository
-	warehouseRepo     repositories.WarehouseRepository
-	transactionRepo   repositories.TransactionRepository
-	accountUseCase    *AccountUseCase // Добавлен AccountUseCase
+	orderRepo       repositories.OrderRepository
+	warehouseRepo   repositories.WarehouseRepository
+	transactionRepo repositories.TransactionRepository
+	accountUseCase  *AccountUseCase // Добавлен AccountUseCase
 }
 
 func NewOrderUseCase(
@@ -26,10 +26,10 @@ func NewOrderUseCase(
 	accountUseCase *AccountUseCase, // Добавлен AccountUseCase
 ) *OrderUseCase {
 	return &OrderUseCase{
-		orderRepo:         orderRepo,
-		warehouseRepo:     warehouseRepo,
-		transactionRepo:   transactionRepo,
-		accountUseCase:    accountUseCase, // Присвоение AccountUseCase
+		orderRepo:       orderRepo,
+		warehouseRepo:   warehouseRepo,
+		transactionRepo: transactionRepo,
+		accountUseCase:  accountUseCase, // Присвоение AccountUseCase
 	}
 }
 
@@ -90,20 +90,20 @@ func (uc *OrderUseCase) AddOrderItem(ctx context.Context, orderID uuid.UUID, ite
 	// Ensure item price is set
 	if item.ProductID != nil {
 		product, err := uc.warehouseRepo.GetProductByID(ctx, *item.ProductID)
-			if err != nil {
-				return nil, fmt.Errorf("product not found: %w", err)
-			}
-			item.Price = product.Price
-		} else if item.TechCardID != nil {
-			techCard, err := uc.warehouseRepo.GetTechCardByID(ctx, *item.TechCardID)
-			if err != nil {
-				return nil, fmt.Errorf("tech card not found: %w", err)
-			}
-			item.Price = techCard.Price
-		} else {
-			return nil, errors.New("order item must have a product or tech card")
+		if err != nil {
+			return nil, fmt.Errorf("product not found: %w", err)
 		}
-		item.TotalPrice = item.Price * float64(item.Quantity)
+		item.Price = product.Price
+	} else if item.TechCardID != nil {
+		techCard, err := uc.warehouseRepo.GetTechCardByID(ctx, *item.TechCardID)
+		if err != nil {
+			return nil, fmt.Errorf("tech card not found: %w", err)
+		}
+		item.Price = techCard.Price
+	} else {
+		return nil, errors.New("order item must have a product or tech card")
+	}
+	item.TotalPrice = item.Price * float64(item.Quantity)
 
 	// Add item to order
 	order.Items = append(order.Items, item)
@@ -207,11 +207,18 @@ func (uc *OrderUseCase) ProcessOrderPayment(ctx context.Context, orderID uuid.UU
 
 		transaction := &models.Transaction{
 			TransactionDate: time.Now(),
+<<<<<<< HEAD
 			Type:            "income",
 			Category:        "Cash Payment",
 			Description:     fmt.Sprintf("Payment for order %s (cash)", order.ID.String()),
 			Amount:          order.CashAmount,
 			AccountID:       cashAccountID,
+=======
+			Category:        "Cash Payment",
+			Description:     fmt.Sprintf("Payment for order %s (cash)", order.ID.String()),
+			Amount:          order.CashAmount,
+			AccountID:       uuid.Nil,
+>>>>>>> 9618bbd (edit warehouse)
 			EstablishmentID: order.EstablishmentID,
 			OrderID:         &order.ID,
 		}
@@ -246,7 +253,10 @@ func (uc *OrderUseCase) ProcessOrderPayment(ctx context.Context, orderID uuid.UU
 
 		transaction := &models.Transaction{
 			TransactionDate: time.Now(),
+<<<<<<< HEAD
 			Type:            "income",
+=======
+>>>>>>> 9618bbd (edit warehouse)
 			Category:        "Card Payment",
 			Description:     fmt.Sprintf("Payment for order %s (card)", order.ID.String()),
 			Amount:          order.CardAmount,
@@ -257,6 +267,10 @@ func (uc *OrderUseCase) ProcessOrderPayment(ctx context.Context, orderID uuid.UU
 		if err := uc.transactionRepo.Create(ctx, transaction); err != nil {
 			return nil, fmt.Errorf("failed to create card transaction: %w", err)
 		}
+	}
+
+	if err := uc.deductTechCardIngredientsFromStock(ctx, order); err != nil {
+		return nil, fmt.Errorf("failed to deduct stock for order: %w", err)
 	}
 
 	return order, nil
@@ -283,10 +297,10 @@ func (uc *OrderUseCase) CloseOrderWithoutPayment(ctx context.Context, orderID uu
 	// Create a transaction to record the loss/discount
 	transaction := &models.Transaction{
 		TransactionDate: time.Now(),
-		Category:    "Order Cancellation",
-		Description: fmt.Sprintf("Order %s closed without payment: %s", order.ID.String(), reason),
-		Amount:      -order.TotalAmount, // Negative amount for loss
-		AccountID:   order.EstablishmentID, // Assuming loss affects establishment's main account for now
+		Category:        "Order Cancellation",
+		Description:     fmt.Sprintf("Order %s closed without payment: %s", order.ID.String(), reason),
+		Amount:          -order.TotalAmount,    // Negative amount for loss
+		AccountID:       order.EstablishmentID, // Assuming loss affects establishment's main account for now
 		EstablishmentID: order.EstablishmentID,
 	}
 	if err := uc.transactionRepo.Create(ctx, transaction); err != nil {
@@ -327,6 +341,101 @@ func (uc *OrderUseCase) GetOrder(ctx context.Context, orderID uuid.UUID) (*model
 		return nil, fmt.Errorf("order not found: %w", err)
 	}
 	return order, nil
+}
+
+func (uc *OrderUseCase) deductTechCardIngredientsFromStock(ctx context.Context, order *models.Order) error {
+	type ingredientUsage struct {
+		quantity float64
+		unit     string
+	}
+
+	usageByIngredient := make(map[uuid.UUID]ingredientUsage)
+
+	for _, item := range order.Items {
+		if item.TechCardID == nil {
+			continue
+		}
+
+		techCard, err := uc.warehouseRepo.GetTechCardByID(ctx, *item.TechCardID)
+		if err != nil {
+			return fmt.Errorf("tech card not found: %w", err)
+		}
+		if techCard == nil {
+			return errors.New("tech card not found")
+		}
+
+		for _, ing := range techCard.Ingredients {
+			qty := ing.Quantity * float64(item.Quantity)
+			if qty == 0 {
+				continue
+			}
+			current := usageByIngredient[ing.IngredientID]
+			unit := current.unit
+			if unit == "" {
+				unit = ing.Unit
+			}
+			usageByIngredient[ing.IngredientID] = ingredientUsage{
+				quantity: current.quantity + qty,
+				unit:     unit,
+			}
+		}
+	}
+
+	if len(usageByIngredient) == 0 {
+		return nil
+	}
+
+	warehouseID, err := uc.getDefaultWarehouseID(ctx, order.EstablishmentID)
+	if err != nil {
+		return err
+	}
+
+	for ingredientID, usage := range usageByIngredient {
+		stock, err := uc.warehouseRepo.GetStockByIngredientAndWarehouse(ctx, ingredientID, warehouseID)
+		if err != nil {
+			return err
+		}
+		if stock == nil {
+			unit := usage.unit
+			if unit == "" {
+				unit = "шт"
+			}
+			stock = &models.Stock{
+				WarehouseID:  warehouseID,
+				IngredientID: &ingredientID,
+				Quantity:     0,
+				Unit:         unit,
+			}
+			if err := uc.warehouseRepo.CreateStock(ctx, stock); err != nil {
+				return err
+			}
+		}
+
+		stock.Quantity -= usage.quantity
+		if err := uc.warehouseRepo.UpdateStock(ctx, stock); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (uc *OrderUseCase) getDefaultWarehouseID(ctx context.Context, establishmentID uuid.UUID) (uuid.UUID, error) {
+	warehouses, err := uc.warehouseRepo.ListWarehouses(ctx, establishmentID)
+	if err != nil {
+		return uuid.Nil, err
+	}
+	if len(warehouses) == 0 {
+		return uuid.Nil, errors.New("no warehouses available for establishment")
+	}
+
+	for _, w := range warehouses {
+		if w.Active {
+			return w.ID, nil
+		}
+	}
+
+	return warehouses[0].ID, nil
 }
 
 func (uc *OrderUseCase) UpdateOrder(ctx context.Context, orderID uuid.UUID, updatedOrder models.Order) (*models.Order, error) {
