@@ -1,0 +1,56 @@
+FROM node:20-alpine AS builder
+
+WORKDIR /app
+
+# Install pnpm
+RUN npm install -g pnpm
+
+# Copy package files
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY apps/pos-pwa/package.json ./apps/pos-pwa/
+COPY packages/api-client/package.json ./packages/api-client/
+COPY packages/print-service/package.json ./packages/print-service/
+COPY packages/pwa-core/package.json ./packages/pwa-core/
+COPY/packages/real-time/package.json ./packages/real-time/
+COPY packages/types/package.json ./packages/types/
+COPY packages/ui/package.json ./packages/ui/
+
+# Install dependencies
+RUN pnpm install --frozen-lockfile
+
+# Copy source files
+COPY apps/pos-pwa ./apps/pos-pwa
+COPY packages ./packages
+
+# Build the application
+RUN pnpm --filter @restaurant-pos/pos-pwa build
+
+# Production stage
+FROM node:20-alpine
+
+WORKDIR /app
+
+# Install pnpm
+RUN npm install -g pnpm
+
+# Copy package files
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY apps/pos-pwa/package.json ./apps/pos-pwa/
+COPY packages/api-client/package.json ./packages/api-client/
+COPY packages/print-service/package.json ./packages/print-service/
+COPY packages/pwa-core/package.json ./packages/pwa-core/
+COPY/packages/real-time/package.json ./packages/real-time/
+COPY packages/types/package.json ./packages/types/
+COPY packages/ui/package.json ./packages/ui/
+
+# Install production dependencies only
+RUN pnpm install --prod --frozen-lockfile
+
+# Copy built assets from builder
+COPY --from=builder /app/apps/pos-pwa/dist ./apps/pos-pwa/dist
+
+# Expose port
+EXPOSE 3000
+
+# Start the application
+CMD ["pnpm", "--filter", "@restaurant-pos/pos-pwa", "preview", "--host", "0.0.0.0", "--port", "3000"]

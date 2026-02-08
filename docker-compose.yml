@@ -3,88 +3,88 @@ services:
     image: postgres:16-alpine
     container_name: arc_postgres
     environment:
-      POSTGRES_USER: ${POSTGRES_USER:-arc_user}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-arc_password}
-      POSTGRES_DB: ${POSTGRES_DB:-arc_db}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
     ports:
-      - "15432:5432"  # Внешний порт 15432, внутри контейнера 5432
+      - "15432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./backend/migrations:/docker-entrypoint-initdb.d
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U arc_user"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
       interval: 10s
       timeout: 5s
       retries: 5
     networks:
       - arc_network
 
-  prometheus:
-    image: prom/prometheus:latest
-    container_name: arc_prometheus
-    ports:
-      - "9090:9090"
-    volumes:
-      - ./config/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
-      - prometheus_data:/prometheus
-    command:
-      - '--config.file=/etc/prometheus/prometheus.yml'
-      - '--storage.tsdb.path=/prometheus'
-    networks:
-      - arc_network
+  # prometheus:
+  #   image: prom/prometheus:latest
+  #   container_name: arc_prometheus
+  #   ports:
+  #     - "9090:9090"
+  #   volumes:
+  #     - ./config/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+  #     - prometheus_data:/prometheus
+  #   command:
+  #     - '--config.file=/etc/prometheus/prometheus.yml'
+  #     - '--storage.tsdb.path=/prometheus'
+  #   networks:
+  #     - arc_network
 
-  grafana:
-    image: grafana/grafana:latest
-    container_name: arc_grafana
-    ports:
-      - "3000:3000"
-    environment:
-      - GF_SECURITY_ADMIN_USER=admin
-      - GF_SECURITY_ADMIN_PASSWORD=admin
-      - GF_INSTALL_PLUGINS=grafana-piechart-panel
-    volumes:
-      - grafana_data:/var/lib/grafana
-      - ./config/grafana/dashboards:/etc/grafana/provisioning/dashboards
-      - ./config/grafana/datasources:/etc/grafana/provisioning/datasources
-    depends_on:
-      - prometheus
-      - loki
-    networks:
-      - arc_network
+  # grafana:
+  #   image: grafana/grafana:latest
+  #   container_name: arc_grafana
+  #   ports:
+  #     - "3000:3000"
+  #   environment:
+  #     - GF_SECURITY_ADMIN_USER=admin
+  #     - GF_SECURITY_ADMIN_PASSWORD=admin
+  #     - GF_INSTALL_PLUGINS=grafana-piechart-panel
+  #   volumes:
+  #     - grafana_data:/var/lib/grafana
+  #     - ./config/grafana/dashboards:/etc/grafana/provisioning/dashboards
+  #     - ./config/grafana/datasources:/etc/grafana/provisioning/datasources
+  #   depends_on:
+  #     - prometheus
+  #     - loki
+  #   networks:
+  #     - arc_network
 
-  loki:
-    image: grafana/loki:latest
-    container_name: arc_loki
-    ports:
-      - "3100:3100"
-    volumes:
-      - ./config/loki/loki-config.yml:/etc/loki/local-config.yaml
-      - loki_data:/loki
-    command: -config.file=/etc/loki/local-config.yaml
-    networks:
-      - arc_network
+  # loki:
+  #   image: grafana/loki:latest
+  #   container_name: arc_loki
+  #   ports:
+  #     - "3100:3100"
+  #   volumes:
+  #     - ./config/loki/loki-config.yml:/etc/loki/local-config.yaml
+  #     - loki_data:/loki
+  #   command: -config.file=/etc/loki/local-config.yaml
+  #   networks:
+  #     - arc_network
 
-  promtail:
-    image: grafana/promtail:latest
-    container_name: arc_promtail
-    volumes:
-      - ./config/promtail/promtail-config.yml:/etc/promtail/config.yml
-      - ./backend/logs:/var/log/app
-    command: -config.file=/etc/promtail/config.yml
-    depends_on:
-      - loki
-    networks:
-      - arc_network
+  # promtail:
+  #   image: grafana/promtail:latest
+  #   container_name: arc_promtail
+  #   volumes:
+  #     - ./config/promtail/promtail-config.yml:/etc/promtail/config.yml
+  #     - ./backend/logs:/var/log/app
+  #   command: -config.file=/etc/promtail/config.yml
+  #   depends_on:
+  #     - loki
+  #   networks:
+  #     - arc_network
 
   minio:
     image: minio/minio:latest
     container_name: arc_minio
     ports:
-      - "9000:9000"   # API порт
-      - "9001:9001"   # Console порт
+      - "9000:9000"
+      - "9001:9001"
     environment:
-      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
-      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minioadmin}
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
     volumes:
       - minio_data:/data
     command: server /data --console-address ":9001"
@@ -102,38 +102,72 @@ services:
       dockerfile: Dockerfile
     container_name: arc_app
     ports:
-      - "8080:8080"
+      - "${SERVER_PORT:-8080}:8080"
     environment:
-      - DB_HOST=postgres
-      - DB_PORT=5432
-      - DB_USER=${POSTGRES_USER:-arc_user}
-      - DB_PASSWORD=${POSTGRES_PASSWORD:-arc_password}
-      - DB_NAME=${POSTGRES_DB:-arc_db}
-      - JWT_SECRET=${JWT_SECRET:-your-secret-key-change-in-production}
-      - APP_ENV=development
-      - MINIO_ENDPOINT=minio:9000
-      - MINIO_ACCESS_KEY=${MINIO_ROOT_USER:-minioadmin}
-      - MINIO_SECRET_KEY=${MINIO_ROOT_PASSWORD:-minioadmin}
-      - MINIO_USE_SSL=false
-      - MINIO_BUCKET_NAME=arc-images
-      - MINIO_PUBLIC_URL=http://localhost:9000
+      - DB_HOST=${DB_HOST}
+      - DB_PORT=${DB_PORT}
+      - DB_USER=${DB_USER}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - DB_NAME=${DB_NAME}
+      - JWT_SECRET=${JWT_SECRET}
+      - APP_ENV=${APP_ENV}
+      - LOG_LEVEL=${LOG_LEVEL}
+      - MINIO_ENDPOINT=${MINIO_ENDPOINT}
+      - MINIO_ACCESS_KEY=${MINIO_ACCESS_KEY}
+      - MINIO_SECRET_KEY=${MINIO_SECRET_KEY}
+      - MINIO_USE_SSL=${MINIO_USE_SSL}
+      - MINIO_BUCKET_NAME=${MINIO_BUCKET_NAME}
+      - MINIO_PUBLIC_URL=${MINIO_PUBLIC_URL}
     volumes:
       - ./backend/logs:/app/logs
     depends_on:
       postgres:
         condition: service_healthy
-      prometheus:
-        condition: service_started
+      # prometheus:
+      #   condition: service_started
       minio:
         condition: service_healthy
     networks:
       - arc_network
+    restart: unless-stopped
+
+  pos-frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.pos
+    container_name: arc_pos_frontend
+    ports:
+      - "${POS_FRONTEND_PORT:-3001}:3000"
+    environment:
+      - NODE_ENV=${APP_ENV}
+      - VITE_API_URL=${VITE_API_URL}
+    depends_on:
+      - app
+    networks:
+      - arc_network
+    restart: unless-stopped
+
+  admin-frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.admin
+    container_name: arc_admin_frontend
+    ports:
+      - "${ADMIN_FRONTEND_PORT:-3002}:3000"
+    environment:
+      - NODE_ENV=${APP_ENV}
+      - VITE_API_URL=${VITE_API_URL}
+    depends_on:
+      - app
+    networks:
+      - arc_network
+    restart: unless-stopped
 
 volumes:
   postgres_data:
-  prometheus_data:
-  grafana_data:
-  loki_data:
+  # prometheus_data:
+  # grafana_data:
+  # loki_data:
   minio_data:
 
 networks:
