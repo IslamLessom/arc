@@ -95,26 +95,71 @@ func (uc *MenuUseCase) GetProductByID(ctx context.Context, id uuid.UUID, establi
 }
 
 // CreateTechCard создает тех-карту
-func (uc *MenuUseCase) CreateTechCard(ctx context.Context, techCard *models.TechCard, warehouseID, establishmentID uuid.UUID) error {
+// recalculateCost - если true, принудительно пересчитать себестоимость из ингредиентов
+func (uc *MenuUseCase) CreateTechCard(ctx context.Context, techCard *models.TechCard, warehouseID, establishmentID uuid.UUID, recalculateCost bool) error {
 	techCard.EstablishmentID = establishmentID
-	if len(techCard.Ingredients) > 0 {
+
+	// Пересчитываем себестоимость если:
+	// 1. Запрошен принудительный пересчет (recalculateCost = true)
+	// 2. ИЛИ если cost_price не задан вручную (равен 0) и есть ингредиенты
+	shouldRecalculate := recalculateCost || (len(techCard.Ingredients) > 0 && techCard.CostPrice == 0)
+
+	if shouldRecalculate {
 		cost, err := uc.CalculateTechCardCost(ctx, techCard, warehouseID, establishmentID)
 		if err == nil {
 			techCard.CostPrice = cost
 		}
+		// Если warehouseID пустой, пытаемся получить склад по умолчанию
+		if warehouseID == uuid.Nil && len(techCard.Ingredients) > 0 {
+			// Получаем склад по умолчанию для заведения
+			warehouses, err := uc.warehouseRepo.ListWarehouses(ctx, establishmentID)
+			if err == nil && len(warehouses) > 0 {
+				for _, w := range warehouses {
+					if w.Active {
+						warehouseID = w.ID
+						cost, err = uc.CalculateTechCardCost(ctx, techCard, warehouseID, establishmentID)
+						if err == nil {
+							techCard.CostPrice = cost
+						}
+						break
+					}
+				}
+			}
+		}
 	}
+
 	techCard.CalculatePrice()
 	return uc.techCardRepo.Create(ctx, techCard)
 }
 
 // UpdateTechCard обновляет тех-карту (проверка заведения через techCard.EstablishmentID при GetByID перед вызовом)
-func (uc *MenuUseCase) UpdateTechCard(ctx context.Context, techCard *models.TechCard, warehouseID, establishmentID uuid.UUID) error {
-	if len(techCard.Ingredients) > 0 {
+// recalculateCost - если true, принудительно пересчитать себестоимость из ингредиентов
+func (uc *MenuUseCase) UpdateTechCard(ctx context.Context, techCard *models.TechCard, warehouseID, establishmentID uuid.UUID, recalculateCost bool) error {
+	// Пересчитываем себестоимость если:
+	// 1. Запрошен принудительный пересчет (recalculateCost = true)
+	// 2. ИЛИ если cost_price не задан вручную (равен 0) и есть ингредиенты
+	shouldRecalculate := recalculateCost || (len(techCard.Ingredients) > 0 && techCard.CostPrice == 0)
+
+	if shouldRecalculate {
+		// Если warehouseID пустой, пытаемся получить склад по умолчанию
+		if warehouseID == uuid.Nil {
+			warehouses, err := uc.warehouseRepo.ListWarehouses(ctx, establishmentID)
+			if err == nil && len(warehouses) > 0 {
+				for _, w := range warehouses {
+					if w.Active {
+						warehouseID = w.ID
+						break
+					}
+				}
+			}
+		}
+
 		cost, err := uc.CalculateTechCardCost(ctx, techCard, warehouseID, establishmentID)
 		if err == nil {
 			techCard.CostPrice = cost
 		}
 	}
+
 	techCard.CalculatePrice()
 	return uc.techCardRepo.Update(ctx, techCard)
 }
@@ -225,7 +270,8 @@ func (uc *MenuUseCase) CalculateTechCardCost(ctx context.Context, techCard *mode
 	for _, ingredient := range techCard.Ingredients {
 		stock, err := uc.warehouseRepo.GetStockByIngredientAndWarehouse(ctx, ingredient.IngredientID, warehouseID)
 		if err != nil {
-			return 0, err
+			// Если остаток не найден, пропускаем ингредиент (ошибка не критичная)
+			continue
 		}
 		if stock == nil {
 			continue
@@ -234,24 +280,10 @@ func (uc *MenuUseCase) CalculateTechCardCost(ctx context.Context, techCard *mode
 		// Проверяем существование ингредиента
 		_, err = uc.ingredientRepo.GetByID(ctx, ingredient.IngredientID, &establishmentID)
 		if err != nil {
-			return 0, err
+			// Если ингредиент не найден, пропускаем его
+			continue
 		}
 
-		// Рассчитываем стоимость ингредиента
-		// Нужно получить цену за единицу из последней поставки или из остатков
-		// Пока используем упрощенный вариант - берем среднюю цену из остатков
-		// В реальности нужно брать цену из последней поставки
-		
-		// Получаем все остатки ингредиента для расчета средней цены (заготовка для будущей логики)
-		_, err = uc.warehouseRepo.GetStockByIngredientID(ctx, ingredient.IngredientID)
-		if err != nil {
-			return 0, err
-		}
-
-		// Пока используем упрощенный расчет
-		// В реальности нужно получать цену из SupplyItem последней поставки
-		// Для упрощения будем считать, что цена хранится в отдельной таблице или в SupplyItem
-		
 		// Конвертируем количество ингредиента в нужную единицу измерения
 		ingredientQuantity := ingredient.Quantity
 		ingredientUnit := ingredient.Unit
@@ -266,7 +298,7 @@ func (uc *MenuUseCase) CalculateTechCardCost(ctx context.Context, techCard *mode
 
 		// Получаем цену за единицу из остатков (Stock)
 		pricePerUnit := stock.PricePerUnit
-		
+
 		// Рассчитываем стоимость с учетом потерь при приготовлении
 		// Пока не учитываем потери, но можно добавить позже
 		ingredientCost := ingredientQuantity * pricePerUnit

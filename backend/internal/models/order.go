@@ -14,6 +14,7 @@ type Order struct {
 	Establishment   *Establishment `json:"establishment,omitempty" gorm:"foreignKey:EstablishmentID"`
 	TableID         *uuid.UUID     `json:"table_id,omitempty" gorm:"type:uuid;index"`
 	Table           *Table         `json:"table,omitempty" gorm:"foreignKey:TableID"`
+	TableNumber     *int           `json:"table_number,omitempty" gorm:"-"` // Вычисляемое поле для фронтенда
 	Status        string         `json:"status" gorm:"not null;index"` // draft, confirmed, preparing, ready, paid, cancelled
 	PaymentStatus string         `json:"payment_status" gorm:"default:'pending'"` // pending, partial, paid, cancelled
 	CashAmount    float64        `json:"cash_amount" gorm:"default:0"`
@@ -27,10 +28,33 @@ type Order struct {
 	DeletedAt     gorm.DeletedAt `json:"-" gorm:"index"`
 }
 
-// BeforeCreate hook для автоматической генерации UUID
+// BeforeCreate hook для автоматической генерации UUID и округления значений
 func (o *Order) BeforeCreate(tx *gorm.DB) error {
 	if o.ID == uuid.Nil {
 		o.ID = uuid.New()
+	}
+	// Округляем значения до 2 знаков после запятой
+	o.CashAmount = RoundTo2(o.CashAmount)
+	o.CardAmount = RoundTo2(o.CardAmount)
+	o.ChangeAmount = RoundTo2(o.ChangeAmount)
+	o.TotalAmount = RoundTo2(o.TotalAmount)
+	return nil
+}
+
+// BeforeUpdate hook для округления значений перед обновлением
+func (o *Order) BeforeUpdate(tx *gorm.DB) error {
+	// Округляем значения до 2 знаков после запятой
+	o.CashAmount = RoundTo2(o.CashAmount)
+	o.CardAmount = RoundTo2(o.CardAmount)
+	o.ChangeAmount = RoundTo2(o.ChangeAmount)
+	o.TotalAmount = RoundTo2(o.TotalAmount)
+	return nil
+}
+
+// AfterFind hook для заполнения вычисляемых полей
+func (o *Order) AfterFind(tx *gorm.DB) error {
+	if o.Table != nil {
+		o.TableNumber = &o.Table.Number
 	}
 	return nil
 }
@@ -50,10 +74,21 @@ type OrderItem struct {
 	CreatedAt   time.Time  `json:"created_at"`
 }
 
-// BeforeCreate hook для автоматической генерации UUID
+// BeforeCreate hook для автоматической генерации UUID и округления значений
 func (oi *OrderItem) BeforeCreate(tx *gorm.DB) error {
 	if oi.ID == uuid.Nil {
 		oi.ID = uuid.New()
 	}
+	// Округляем значения до 2 знаков после запятой
+	oi.Price = RoundTo2(oi.Price)
+	oi.TotalPrice = RoundTo2(oi.TotalPrice)
+	return nil
+}
+
+// BeforeUpdate hook для округления значений перед обновлением
+func (oi *OrderItem) BeforeUpdate(tx *gorm.DB) error {
+	// Округляем значения до 2 знаков после запятой
+	oi.Price = RoundTo2(oi.Price)
+	oi.TotalPrice = RoundTo2(oi.TotalPrice)
 	return nil
 }

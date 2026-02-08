@@ -156,9 +156,22 @@ func (uc *AuthUseCase) LoginEmployee(ctx context.Context, pin string, initialCas
 		return nil, "", "", repositories.ErrUserNotFound
 	}
 
-	// Check if user has an establishment
-	if user.EstablishmentID == nil || *user.EstablishmentID != establishmentID {
+	// Если у пользователя не установлен EstablishmentID, устанавливаем его
+	updated := false
+	if user.EstablishmentID == nil {
+		user.EstablishmentID = &establishmentID
+		updated = true
+	} else if *user.EstablishmentID != establishmentID {
+		// Проверяем, что пользователь принадлежит к указанному заведению
 		return nil, "", "", errors.New("employee not found in this establishment")
+	}
+
+	// Если обновили EstablishmentID, сохраняем в базу
+	if updated {
+		err = uc.userRepo.Update(ctx, user)
+		if err != nil {
+			return nil, "", "", fmt.Errorf("failed to update user establishment: %w", err)
+		}
 	}
 
 	// Проверяем, есть ли уже активная сессия у пользователя

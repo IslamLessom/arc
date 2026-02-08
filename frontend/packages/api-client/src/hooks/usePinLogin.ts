@@ -58,6 +58,7 @@ export function usePinLogin() {
 
         localStorage.setItem('auth_token', response.data.access_token)
         localStorage.setItem('user_type', 'employee')
+        localStorage.setItem('establishment_id', request.establishment_id)
         if (response.data.refresh_token) {
           localStorage.setItem('refresh_token', response.data.refresh_token)
         }

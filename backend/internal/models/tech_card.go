@@ -39,11 +39,24 @@ type TechCard struct {
 	DeletedAt     gorm.DeletedAt     `json:"-" gorm:"index"`
 }
 
-// BeforeCreate hook для автоматической генерации UUID
+// BeforeCreate hook для автоматической генерации UUID и округления значений
 func (tc *TechCard) BeforeCreate(tx *gorm.DB) error {
 	if tc.ID == uuid.Nil {
 		tc.ID = uuid.New()
 	}
+	// Округляем значения до 2 знаков после запятой
+	tc.CostPrice = RoundTo2(tc.CostPrice)
+	tc.Markup = RoundTo2(tc.Markup)
+	tc.Price = RoundTo2(tc.Price)
+	return nil
+}
+
+// BeforeUpdate hook для округления значений перед обновлением
+func (tc *TechCard) BeforeUpdate(tx *gorm.DB) error {
+	// Округляем значения до 2 знаков после запятой
+	tc.CostPrice = RoundTo2(tc.CostPrice)
+	tc.Markup = RoundTo2(tc.Markup)
+	tc.Price = RoundTo2(tc.Price)
 	return nil
 }
 
@@ -59,22 +72,31 @@ type TechCardIngredient struct {
 	UpdatedAt    time.Time `json:"updated_at"`
 }
 
-// BeforeCreate hook для автоматической генерации UUID
+// BeforeCreate hook для автоматической генерации UUID и округления значений
 func (tci *TechCardIngredient) BeforeCreate(tx *gorm.DB) error {
 	if tci.ID == uuid.Nil {
 		tci.ID = uuid.New()
 	}
+	// Округляем значения до 2 знаков после запятой
+	tci.Quantity = RoundTo2(tci.Quantity)
+	return nil
+}
+
+// BeforeUpdate hook для округления значений перед обновлением
+func (tci *TechCardIngredient) BeforeUpdate(tx *gorm.DB) error {
+	// Округляем значения до 2 знаков после запятой
+	tci.Quantity = RoundTo2(tci.Quantity)
 	return nil
 }
 
 // CalculatePrice вычисляет цену на основе себестоимости и наценки
 func (tc *TechCard) CalculatePrice() {
 	if tc.Markup > 0 {
-		tc.Price = tc.CostPrice * (1 + tc.Markup/100)
+		tc.Price = RoundTo2(tc.CostPrice * (1 + tc.Markup/100))
 	} else {
 		// Если наценка не задана, цена = себестоимость (или может быть задана вручную)
 		if tc.Price == 0 {
-			tc.Price = tc.CostPrice
+			tc.Price = RoundTo2(tc.CostPrice)
 		}
 	}
 }

@@ -126,7 +126,7 @@ export const Balances = () => {
                 <Styled.TableCell>{getItemType(item)}</Styled.TableCell>
                 <Styled.TableCell>{getCategoryName(item)}</Styled.TableCell>
                 <Styled.TableCell>{item.warehouse.name}</Styled.TableCell>
-                <Styled.TableCell>{item.quantity}</Styled.TableCell>
+                <Styled.TableCell>{item.quantity.toFixed(2)}</Styled.TableCell>
                 <Styled.TableCell>{translateUnit(item.unit)}</Styled.TableCell>
                 <Styled.TableCell>
                   {item.price_per_unit.toFixed(2)} ₽
@@ -137,7 +137,7 @@ export const Balances = () => {
                     type="number"
                     step="0.01"
                     min="0"
-                    defaultValue={item.limit}
+                    defaultValue={item.limit.toFixed(2)}
                     onBlur={(e) => handleLimitChange(item.id, e)}
                     disabled={isUpdatingLimit}
                   />

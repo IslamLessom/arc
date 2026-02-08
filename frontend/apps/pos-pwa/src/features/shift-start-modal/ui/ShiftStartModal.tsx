@@ -29,13 +29,21 @@ export function ShiftStartModal({ isOpen, onClose, onSuccess }: ShiftStartModalP
     return now.toLocaleString('ru-RU', options);
   }, []);
 
-  // Сброс состояния при открытии
+  // Сброс состояния при открытии и загрузка сохраненной суммы
   useEffect(() => {
     if (isOpen) {
-      setInitialCash('');
-      setError(null);
+      // Проверяем есть ли сохраненная сумма от предыдущей смены
+      const nextShiftCash = localStorage.getItem('next_shift_initial_cash')
+      if (nextShiftCash) {
+        setInitialCash(nextShiftCash)
+        // Удаляем после использования
+        localStorage.removeItem('next_shift_initial_cash')
+      } else {
+        setInitialCash('')
+      }
+      setError(null)
     }
-  }, [isOpen]);
+  }, [isOpen])
 
   const handleClose = () => {
     setInitialCash('');

@@ -39,7 +39,33 @@ func NewTransactionRepository(db *gorm.DB) TransactionRepository {
 }
 
 func (r *transactionRepository) Create(ctx context.Context, transaction *models.Transaction) error {
-	return r.db.WithContext(ctx).Create(transaction).Error
+	// Используем транзакцию для атомарного обновления
+	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		// Создаем транзакцию
+		if err := tx.Create(transaction).Error; err != nil {
+			return err
+		}
+
+		// Обновляем баланс счета
+		var account models.Account
+		if err := tx.First(&account, "id = ?", transaction.AccountID).Error; err != nil {
+			return err
+		}
+
+		// В зависимости от типа транзакции изменяем баланс
+		switch transaction.Type {
+		case "income":
+			account.Balance += transaction.Amount
+		case "expense":
+			account.Balance -= transaction.Amount
+		case "transfer":
+			// Для transfer логика более сложная - может быть как доход так и расход
+			// Пока оставляем как есть
+		}
+
+		// Сохраняем обновленный баланс
+		return tx.Save(&account).Error
+	})
 }
 
 func (r *transactionRepository) GetByID(ctx context.Context, id uuid.UUID, establishmentID *uuid.UUID) (*models.Transaction, error) {

@@ -1,12 +1,13 @@
-import { useState, useCallback, useMemo } from 'react'
+import { useState, useCallback, useMemo, useEffect } from 'react'
 import { useNavigate, useParams, useLocation } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { useGetCategories, useGetProducts } from '@restaurant-pos/api-client'
+import { useGetCategories, useGetProducts, useGetTechnicalCards, useOrder as useApiOrder } from '@restaurant-pos/api-client'
 import { useCurrentUser } from '@restaurant-pos/api-client'
 import { apiClient } from '@restaurant-pos/api-client'
-import type { UseOrderResult, OrderData, GuestOrder, OrderItem, ProductCategory } from '../model/types'
+import type { UseOrderResult, OrderData, GuestOrder, OrderItem, ProductCategory, MenuItem } from '../model/types'
 import { OrderTab } from '../model/enums'
 import type { Product } from '@restaurant-pos/api-client'
+import type { TechnicalCard } from '@restaurant-pos/api-client'
 
 const ORDER_STORAGE_KEY = 'order_data_'
 
@@ -22,48 +23,151 @@ export function useOrder(): UseOrderResult {
   const [orderData, setOrderData] = useState<OrderData | null>(null)
   const [isProcessingPayment, setIsProcessingPayment] = useState(false)
 
-  // Fetch categories
+  // Fetch categories all types (product, tech_card, semi_finished)
   const { data: categories = [], isLoading: isLoadingCategories } = useGetCategories({
-    type: 'product',
+    // type не указываем - получаем все типы категорий
   })
 
-  // Fetch products for selected category
+  // Получаем выбранную категорию для определения её типа
+  const selectedCategory = useMemo(() => {
+    if (!selectedCategoryId) return null
+    return categories.find(c => c.id === selectedCategoryId) || null
+  }, [categories, selectedCategoryId])
+
+  // Fetch products:
+  // - Если категория не выбрана - загружаем все активные товары
+  // - Если категория типа product - загружаем товары из этой категории
   const { data: products = [], isLoading: isLoadingProducts } = useGetProducts(
-    selectedCategoryId ? { category_id: selectedCategoryId, active: true } : { active: true }
+    !selectedCategoryId
+      ? { active: true }
+      : selectedCategory?.type === 'product'
+        ? { category_id: selectedCategoryId, active: true }
+        : undefined
+  )
+
+  // Fetch technical cards:
+  // - Если категория не выбрана - загружаем все активные тех-карты
+  // - Если категория типа tech_card - загружаем тех-карты из этой категории
+  const { data: technicalCards = [], isLoading: isLoadingTechnicalCards } = useGetTechnicalCards(
+    !selectedCategoryId
+      ? { active: true }
+      : selectedCategory?.type === 'tech_card'
+        ? { category_id: selectedCategoryId, active: true }
+        : undefined
   )
 
   const locationState = location.state as { guestsCount?: number; tableNumber?: number } | null
 
-  // Initialize order data from localStorage or create new
+  // Проверяем, является ли orderId UUID (заказ с сервера)
+  const isUuidOrderId = useMemo(() => {
+    if (!orderId) return false
+    return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(orderId)
+  }, [orderId])
+
+  // Загружаем заказ с сервера если это UUID
+  const { data: serverOrder } = useApiOrder(orderId || '')
+
+  // Преобразуем заказ с сервера в формат OrderData
+  const convertServerOrderToOrderData = useCallback((serverOrderData: any): OrderData => {
+    // Группируем items по guest_number
+    const guestsMap = new Map<number, OrderItem[]>()
+
+    serverOrderData.items?.forEach((item: any) => {
+      const guestNumber = item.guest_number || 1
+
+      if (!guestsMap.has(guestNumber)) {
+        guestsMap.set(guestNumber, [])
+      }
+
+      guestsMap.get(guestNumber)?.push({
+        id: item.id,
+        productId: item.product_id,
+        techCardId: item.tech_card_id,
+        itemType: item.product_id ? 'product' : 'tech_card',
+        product: item.product,
+        techCard: item.tech_card,
+        quantity: item.quantity,
+        price: item.price || item.product?.price || item.tech_card?.price || 0,
+        totalPrice: (item.price || item.product?.price || item.tech_card?.price || 0) * item.quantity,
+      })
+    })
+
+    // Определяем количество гостей
+    const maxGuestNumber = serverOrderData.items?.length > 0
+      ? Math.max(...serverOrderData.items.map((i: any) => i.guest_number || 1))
+      : serverOrderData.guests_count || 1
+
+    // Создаём гостей
+    const guests: GuestOrder[] = Array.from({ length: maxGuestNumber }, (_, index) => {
+      const guestNumber = index + 1
+      const guestItems = guestsMap.get(guestNumber) || []
+      const totalAmount = guestItems.reduce((sum, item) => sum + item.totalPrice, 0)
+
+      return {
+        guestNumber,
+        items: guestItems,
+        totalAmount,
+      }
+    })
+
+    return {
+      orderId: serverOrderData.id,
+      tableNumber: serverOrderData.table_number,
+      guestsCount: maxGuestNumber,
+      guests,
+      selectedGuestNumber: 1,
+      totalAmount: serverOrderData.total_amount || 0,
+    }
+  }, [])
+
+  // Initialize order data from localStorage, server or create new
+  // При первом заходе проверяем localStorage
   useMemo(() => {
     if (orderId && !orderData) {
       const stored = localStorage.getItem(`${ORDER_STORAGE_KEY}${orderId}`)
       if (stored) {
+        // Есть данные в localStorage - используем их
         setOrderData(JSON.parse(stored))
-      } else {
-        const guestsCountFromState = Math.max(1, Number(locationState?.guestsCount || 1))
-        const tableNumberFromState = locationState?.tableNumber
-
-        const guests: GuestOrder[] = Array.from({ length: guestsCountFromState }, (_, index) => ({
-          guestNumber: index + 1,
-          items: [],
-          totalAmount: 0,
-        }))
-
-        // Create initial order data
-        const initialData: OrderData = {
-          orderId,
-          tableNumber: tableNumberFromState,
-          guestsCount: guestsCountFromState,
-          guests,
-          selectedGuestNumber: 1,
-          totalAmount: 0,
-        }
-        setOrderData(initialData)
-        localStorage.setItem(`${ORDER_STORAGE_KEY}${orderId}`, JSON.stringify(initialData))
       }
     }
-  }, [orderId, orderData, locationState])
+  }, [orderId, orderData])
+
+  // Загружаем данные с сервера когда они приходят
+  useEffect(() => {
+    if (orderId && !orderData && isUuidOrderId && serverOrder) {
+      // Это UUID, localStorage пустой и заказ загружен с сервера
+      const orderDataFromServer = convertServerOrderToOrderData(serverOrder)
+      setOrderData(orderDataFromServer)
+      localStorage.setItem(`${ORDER_STORAGE_KEY}${orderId}`, JSON.stringify(orderDataFromServer))
+    }
+  }, [orderId, orderData, isUuidOrderId, serverOrder, convertServerOrderToOrderData])
+
+  // Создаём новый заказ если нет данных вообще
+  useEffect(() => {
+    if (orderId && !orderData && !isUuidOrderId && !serverOrder) {
+      // Новый заказ (не UUID) - создаём пустой
+      const guestsCountFromState = Math.max(1, Number(locationState?.guestsCount || 1))
+      const tableNumberFromState = locationState?.tableNumber
+
+      const guests: GuestOrder[] = Array.from({ length: guestsCountFromState }, (_, index) => ({
+        guestNumber: index + 1,
+        items: [],
+        totalAmount: 0,
+      }))
+
+      // Create initial order data
+      const initialData: OrderData = {
+        orderId,
+        tableNumber: tableNumberFromState,
+        guestsCount: guestsCountFromState,
+        guests,
+        selectedGuestNumber: 1,
+        totalAmount: 0,
+      }
+      setOrderData(initialData)
+      localStorage.setItem(`${ORDER_STORAGE_KEY}${orderId}`, JSON.stringify(initialData))
+    }
+  }, [orderId, orderData, isUuidOrderId, serverOrder, locationState])
 
   // Save order data to localStorage whenever it changes
   useMemo(() => {
@@ -78,60 +182,148 @@ export function useOrder(): UseOrderResult {
     return orderData.guests.find(g => g.guestNumber === orderData.selectedGuestNumber) || null
   }, [orderData])
 
-  // Get products for selected category
+  // Get products for selected category (для обратной совместимости)
   const selectedCategoryProducts = useMemo(() => {
     if (!selectedCategoryId) return products
     return products.filter(p => p.category_id === selectedCategoryId)
   }, [products, selectedCategoryId])
 
-  // Navigate back
-  const handleBack = useCallback(() => {
+  // Объединенный список товаров и тех-карт для выбранной категории
+  const selectedCategoryItems = useMemo(() => {
+    const productItems = products.map(p => ({ ...p, itemType: 'product' as const }))
+    const techCardItems = technicalCards.map(tc => ({ ...tc, itemType: 'tech_card' as const }))
+    const items = [...productItems, ...techCardItems] as MenuItem[]
+
+    // Отладочный вывод
+    console.log('useOrder debug:', {
+      selectedCategoryId,
+      selectedCategoryType: selectedCategory?.type,
+      productsCount: products.length,
+      techCardsCount: technicalCards.length,
+      totalItems: items.length,
+      categories: categories.map(c => ({ id: c.id, name: c.name, type: c.type })),
+    })
+
+    return items
+  }, [products, technicalCards, selectedCategoryId, selectedCategory, categories])
+
+  // Navigate back - сохраняет черновик заказа если есть товары
+  const handleBack = useCallback(async () => {
+    if (!orderData || orderData.totalAmount === 0) {
+      // Если заказ пустой, просто выходим
+      navigate('/table-selection')
+      return
+    }
+
+    // Проверяем, есть ли товары в заказе
+    const hasItems = orderData.guests.some(g => g.items.length > 0)
+    if (!hasItems) {
+      navigate('/table-selection')
+      return
+    }
+
+    // Сохраняем/обновляем черновик заказа на сервере
+    try {
+      const isUuid = (value: string) =>
+        typeof value === 'string' &&
+        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value)
+
+      const itemsToSend = orderData.guests.flatMap(guest =>
+        guest.items.map(item => {
+          const result: any = {
+            quantity: item.quantity,
+            guest_number: guest.guestNumber,
+          }
+          if (item.itemType === 'product' && item.productId) {
+            result.product_id = item.productId
+          } else if (item.itemType === 'tech_card' && item.techCardId) {
+            result.tech_card_id = item.techCardId
+          }
+          return result
+        })
+      )
+
+      if (isUuidOrderId) {
+        // Заказ уже существует на сервере - просто выходим, данные сохранены
+        console.log('Order already exists on server, keeping localStorage:', orderId)
+      } else {
+        // Создаём новый заказ
+        const orderResponse = await apiClient.post('/orders', { items: itemsToSend })
+        const serverOrderId = orderResponse?.data?.id
+
+        if (serverOrderId) {
+          console.log('Draft order saved:', serverOrderId)
+          // Обновляем localStorage с новым UUID и удаляем старый ключ
+          localStorage.removeItem(`${ORDER_STORAGE_KEY}${orderId}`)
+          const updatedOrderData = { ...orderData, orderId: serverOrderId }
+          localStorage.setItem(`${ORDER_STORAGE_KEY}${serverOrderId}`, JSON.stringify(updatedOrderData))
+        } else {
+          console.error('Failed to create order - no ID returned')
+        }
+        // Удаляем localStorage только для новых заказов (не UUID)
+        localStorage.removeItem(`${ORDER_STORAGE_KEY}${orderId}`)
+      }
+    } catch (error) {
+      console.error('Failed to save draft order:', error)
+    }
+
     navigate('/table-selection')
-  }, [navigate])
+  }, [orderData, orderId, navigate, isUuidOrderId])
 
   // Select category
   const handleCategorySelect = useCallback((categoryId: string) => {
     setSelectedCategoryId(categoryId)
   }, [])
 
-  // Add product to selected guest
-  const handleProductClick = useCallback((product: Product) => {
+  // Добавление товара или тех-карты в заказ
+  const handleAddItem = useCallback((item: MenuItem, itemType: 'product' | 'tech_card') => {
     if (!orderData) return
 
     const guestIndex = orderData.guests.findIndex(g => g.guestNumber === orderData.selectedGuestNumber)
     if (guestIndex === -1) return
 
     const guest = orderData.guests[guestIndex]
-    const existingItemIndex = guest.items.findIndex(item => item.productId === product.id)
+
+    // Ищем существующий item по productId или techCardId
+    const existingItemIndex = guest.items.findIndex(existingItem => {
+      if (itemType === 'product') {
+        return existingItem.productId === item.id && existingItem.itemType === 'product'
+      } else {
+        return existingItem.techCardId === item.id && existingItem.itemType === 'tech_card'
+      }
+    })
 
     let newItems: OrderItem[]
     if (existingItemIndex >= 0) {
       // Update quantity
-      newItems = guest.items.map((item, index) => {
+      newItems = guest.items.map((orderItem, index) => {
         if (index === existingItemIndex) {
-          const newQuantity = item.quantity + 1
+          const newQuantity = orderItem.quantity + 1
           return {
-            ...item,
+            ...orderItem,
             quantity: newQuantity,
-            totalPrice: newQuantity * item.price,
+            totalPrice: newQuantity * orderItem.price,
           }
         }
-        return item
+        return orderItem
       })
     } else {
       // Add new item
       const newItem: OrderItem = {
-        id: `${product.id}_${Date.now()}`,
-        productId: product.id,
-        product,
+        id: `${itemType}_${item.id}_${Date.now()}`,
+        productId: itemType === 'product' ? item.id : '',
+        techCardId: itemType === 'tech_card' ? item.id : undefined,
+        itemType,
+        product: itemType === 'product' ? item : undefined,
+        techCard: itemType === 'tech_card' ? item : undefined,
         quantity: 1,
-        price: product.price,
-        totalPrice: product.price,
+        price: item.price,
+        totalPrice: item.price,
       }
       newItems = [...guest.items, newItem]
     }
 
-    const newGuestTotal = newItems.reduce((sum, item) => sum + item.totalPrice, 0)
+    const newGuestTotal = newItems.reduce((sum, orderItem) => sum + orderItem.totalPrice, 0)
     const newGuests = [...orderData.guests]
     newGuests[guestIndex] = {
       ...guest,
@@ -147,6 +339,16 @@ export function useOrder(): UseOrderResult {
       totalAmount: newTotalAmount,
     })
   }, [orderData])
+
+  // Add product to selected guest (для обратной совместимости)
+  const handleProductClick = useCallback((product: Product) => {
+    handleAddItem(product as MenuItem, 'product')
+  }, [handleAddItem])
+
+  // Add tech card to selected guest
+  const handleTechCardClick = useCallback((techCard: TechnicalCard) => {
+    handleAddItem(techCard as MenuItem, 'tech_card')
+  }, [handleAddItem])
 
   // Select guest
   const handleGuestSelect = useCallback((guestNumber: number) => {
@@ -250,63 +452,24 @@ export function useOrder(): UseOrderResult {
     // TODO: Implement order submission
   }, [orderData])
 
-  // Process payment
-  const handlePayment = useCallback(async () => {
-    if (!orderData || orderData.totalAmount <= 0 || isProcessingPayment) return
-
-    const itemsToSend = orderData.guests.flatMap(guest =>
-      guest.items.map(item => ({
-        product_id: item.productId,
-        quantity: item.quantity,
-        guest_number: guest.guestNumber,
-      }))
-    )
-
-    if (itemsToSend.length === 0) return
-
-    setIsProcessingPayment(true)
-
-    try {
-      const isUuid = (value?: string) =>
-        typeof value === 'string' &&
-        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value)
-
-      let serverOrderId = orderId
-
-      if (!isUuid(orderId)) {
-        const orderResponse = await apiClient.post('/orders', {
-          items: itemsToSend,
-        })
-
-        serverOrderId = orderResponse?.data?.id
-      }
-
-      if (!serverOrderId) {
-        throw new Error('Не удалось создать заказ на сервере')
-      }
-
-      await apiClient.post(`/orders/${serverOrderId}/pay`, {
-        cash_amount: orderData.totalAmount,
-        card_amount: 0,
-        client_cash: orderData.totalAmount,
-      })
-    } catch (error) {
-      console.error('Failed to process payment:', error)
-    } finally {
-      setIsProcessingPayment(false)
-    }
-  }, [orderData, orderId, isProcessingPayment])
+  // Process payment - перенаправляет на страницу оплаты
+  const handlePayment = useCallback(() => {
+    if (!orderData || orderData.totalAmount <= 0) return
+    // Перенаправляем на страницу выбора способа оплаты
+    navigate(`/payment/${orderId}`)
+  }, [orderData, orderId, navigate])
 
   return {
     // Data
     orderData,
     categories,
     products,
+    technicalCards,
     selectedCategoryId,
     selectedTab,
 
     // Loading states
-    isLoading: isLoadingCategories || isLoadingProducts,
+    isLoading: isLoadingCategories || isLoadingProducts || isLoadingTechnicalCards,
     isLoadingCategories,
     isLoadingProducts,
     isCreatingOrder: false,
@@ -316,6 +479,7 @@ export function useOrder(): UseOrderResult {
     handleBack,
     handleCategorySelect,
     handleProductClick,
+    handleTechCardClick,
     handleGuestSelect,
     handleAddGuest,
     handleQuantityChange,
@@ -327,5 +491,6 @@ export function useOrder(): UseOrderResult {
     // Computed
     selectedGuest,
     selectedCategoryProducts,
+    selectedCategoryItems,
   }
 }

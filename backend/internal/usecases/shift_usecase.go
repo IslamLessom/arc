@@ -16,6 +16,9 @@ type ShiftUseCase struct {
 	shiftSessionRepo   repositories.ShiftSessionRepository
 	userRepo           repositories.UserRepository
 	transactionRepo    repositories.TransactionRepository
+	accountRepo        repositories.AccountRepository
+	accountTypeRepo    repositories.AccountTypeRepository
+	orderRepo          repositories.OrderRepository
 }
 
 func NewShiftUseCase(
@@ -23,12 +26,18 @@ func NewShiftUseCase(
 	shiftSessionRepo repositories.ShiftSessionRepository,
 	userRepo repositories.UserRepository,
 	transactionRepo repositories.TransactionRepository,
+	accountRepo repositories.AccountRepository,
+	accountTypeRepo repositories.AccountTypeRepository,
+	orderRepo repositories.OrderRepository,
 ) *ShiftUseCase {
 	return &ShiftUseCase{
 		shiftRepo:          shiftRepo,
 		shiftSessionRepo:   shiftSessionRepo,
 		userRepo:           userRepo,
 		transactionRepo:    transactionRepo,
+		accountRepo:        accountRepo,
+		accountTypeRepo:    accountTypeRepo,
+		orderRepo:          orderRepo,
 	}
 }
 
@@ -121,27 +130,79 @@ func (uc *ShiftUseCase) EndShift(ctx context.Context, shiftID uuid.UUID, finalCa
 		return nil, errors.New("shift already ended")
 	}
 
+	// Получаем сумму всех оплат за смену (заказы со статусом paid)
+	cashSalesTotal := 0.0
+	cardSalesTotal := 0.0
+	if uc.orderRepo != nil {
+		// Получаем все заказы за период смены
+		orders, err := uc.orderRepo.List(ctx, shift.EstablishmentID, shift.StartTime, time.Now(), "paid")
+		if err == nil {
+			fmt.Printf("DEBUG Shift End: Found %d paid orders\n", len(orders))
+			for _, order := range orders {
+				fmt.Printf("DEBUG Order: ID=%s, CashAmount=%.2f, CardAmount=%.2f, CreatedAt=%v, PaidAt=%v, StartTime=%v\n",
+					order.ID, order.CashAmount, order.CardAmount, order.CreatedAt, order.UpdatedAt, shift.StartTime)
+				// Суммируем оплаты, сделанные после начала смены
+				if order.UpdatedAt.After(shift.StartTime) {
+					if order.CashAmount > 0 {
+						cashSalesTotal += order.CashAmount
+						fmt.Printf("DEBUG: Added CashAmount=%.2f, CashTotal=%.2f\n", order.CashAmount, cashSalesTotal)
+					}
+					if order.CardAmount > 0 {
+						cardSalesTotal += order.CardAmount
+						fmt.Printf("DEBUG: Added CardAmount=%.2f, CardTotal=%.2f\n", order.CardAmount, cardSalesTotal)
+					}
+				}
+			}
+			fmt.Printf("DEBUG Shift End: cashSalesTotal=%.2f, cardSalesTotal=%.2f\n", cashSalesTotal, cardSalesTotal)
+		} else {
+			fmt.Printf("DEBUG Shift End: Error getting orders: %v\n", err)
+		}
+	}
+
+	// Рассчитываем ожидаемую сумму в кассе
+	expectedCash := shift.InitialCash + cashSalesTotal
+	fmt.Printf("DEBUG Shift End: initialCash=%.2f, cashSalesTotal=%.2f, expectedCash=%.2f, finalCash=%.2f\n",
+		shift.InitialCash, cashSalesTotal, expectedCash, finalCash)
+
+	// Рассчитываем недостачу (если finalCash меньше expected)
+	var shortage *float64
+	if finalCash < expectedCash - 0.01 {
+		shortageValue := expectedCash - finalCash
+		shortage = &shortageValue
+	}
+
 	now := time.Now()
 	shift.EndTime = &now
 	shift.FinalCash = &finalCash
+	shift.CashAmount = cashSalesTotal
+	shift.CardAmount = cardSalesTotal
+	shift.Shortage = shortage
 	shift.Comment = comment
 
 	if err := uc.shiftRepo.Update(ctx, shift); err != nil {
 		return nil, fmt.Errorf("failed to update shift: %w", err)
 	}
 
-	// Create a transaction for cash movement (incassation)
-	if shift.InitialCash != finalCash {
-		transaction := &models.Transaction{
-			TransactionDate: time.Now(),
-			Category:    "Incassation",
-			Description: fmt.Sprintf("Incassation for shift %s. Initial cash: %.2f, Final cash: %.2f", shift.ID.String(), shift.InitialCash, finalCash),
-			Amount:      shift.InitialCash - finalCash,
-			AccountID:   cashAccountID,
-			EstablishmentID: shift.EstablishmentID,
-		}
-		if err := uc.transactionRepo.Create(ctx, transaction); err != nil {
-			return nil, fmt.Errorf("failed to create incassation transaction: %w", err)
+	// Инкассация - отправляем все наличные продажи в сейф
+	// cashSalesTotal - это сумма всех наличных оплат за смену
+	if cashSalesTotal > 0.01 {
+		// Используем переданный cashAccountID (выбранный денежный ящик)
+		cashAccount, err := uc.accountRepo.GetByID(ctx, cashAccountID, &shift.EstablishmentID)
+		if err == nil && cashAccount != nil {
+			// Создаем расходную транзакцию для денежного ящика (инкассация в сейф)
+			transaction := &models.Transaction{
+				TransactionDate: time.Now(),
+				Type:            "expense",
+				Category:        "Инкассация",
+				Description:     fmt.Sprintf("Инкассация в сейф, смена №%s. Наличные продажи: %.2f ₽", shift.ID.String()[:8], cashSalesTotal),
+				Amount:          cashSalesTotal,
+				AccountID:       cashAccount.ID,
+				EstablishmentID: shift.EstablishmentID,
+				ShiftID:         &shift.ID,
+			}
+			if err := uc.transactionRepo.Create(ctx, transaction); err != nil {
+				return nil, fmt.Errorf("failed to create incassation transaction: %w", err)
+			}
 		}
 	}
 

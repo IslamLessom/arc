@@ -32,6 +32,12 @@ export const MenuIcon = styled(MdMenu)`
   font-size: 24px;
 `;
 
+export const MenuWrapper = styled.div`
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+`;
+
 export const MakiText = styled.span`
   font-weight: bold;
 `;

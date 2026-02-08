@@ -34,6 +34,9 @@ export interface ApiShift {
   end_time: string | null
   initial_cash: number
   final_cash: number | null
+  cash_amount: number // Сумма наличных оплат за смену
+  card_amount: number // Сумма оплат картой за смену
+  shortage: number | null // Недостача при закрытии смены
   comment: string | null
   sessions: ShiftSession[]
   created_at: string
@@ -55,6 +58,7 @@ export interface EndShiftRequest {
 
 export interface StartShiftRequest {
   initial_cash: number
+  establishment_id?: string
 }
 
 export interface StartShiftResponse extends ApiShift {}
@@ -112,7 +116,20 @@ export function useStartShift() {
 
   return useMutation({
     mutationFn: async (request: StartShiftRequest): Promise<StartShiftResponse> => {
-      const response = await apiClient.post<StartShiftResponse>('/shifts/start', request)
+      // Получаем establishment_id из localStorage если не передан
+      let establishmentId = request.establishment_id
+      if (!establishmentId && typeof window !== 'undefined') {
+        establishmentId = localStorage.getItem('establishment_id') || undefined
+      }
+
+      if (!establishmentId) {
+        throw new Error('establishment_id is required')
+      }
+
+      const response = await apiClient.post<StartShiftResponse>('/shifts/start', {
+        initial_cash: request.initial_cash,
+        establishment_id: establishmentId,
+      })
       return response.data
     },
     onSuccess: () => {
@@ -209,6 +226,10 @@ export function transformApiShiftToShift(apiShift: ApiShift) {
     closedAt: apiShift.end_time,
     openingBalance: apiShift.initial_cash,
     closingBalance: apiShift.final_cash,
+    cashAmount: apiShift.cash_amount,
+    cardAmount: apiShift.card_amount,
+    shortage: apiShift.shortage ?? undefined,
+    comment: apiShift.comment ?? undefined,
     status: apiShift.end_time ? 'closed' : 'open' as const,
     createdAt: apiShift.created_at,
     updatedAt: apiShift.updated_at,

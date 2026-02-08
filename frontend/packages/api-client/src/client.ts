@@ -33,6 +33,12 @@ apiClient.interceptors.request.use((config) => {
     if (token) {
       config.headers.Authorization = `Bearer ${token}`
     }
+
+    // Добавляем establishment_id в заголовок если он есть в localStorage
+    const establishmentId = localStorage.getItem('establishment_id')
+    if (establishmentId && config.headers) {
+      config.headers['X-Establishment-ID'] = establishmentId
+    }
   }
   return config
 })

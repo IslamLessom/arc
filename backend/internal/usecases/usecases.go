@@ -43,7 +43,7 @@ func NewUseCases(repos *repositories.Repositories, cfg *config.Config, logger *z
 	accountUseCase := NewAccountUseCase(repos.Account, repos.AccountType)
 	userUseCase := NewUserUseCase(repos.User, repos.Role)
 	roleUseCase := NewRoleUseCase(repos.Role)
-	shiftUseCase := NewShiftUseCase(repos.Shift, repos.ShiftSession, repos.User, repos.Transaction)
+	shiftUseCase := NewShiftUseCase(repos.Shift, repos.ShiftSession, repos.User, repos.Transaction, repos.Account, repos.AccountType, repos.Order)
 	inventoryUseCase := NewInventoryUseCase(repos.Inventory, repos.Warehouse)
 
 	financeUseCase := NewFinanceUseCase(repos.Transaction, repos.Account, repos.Shift, repos.Order)

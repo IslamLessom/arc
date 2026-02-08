@@ -35,6 +35,21 @@ export function useAuth() {
         if (response.data.refresh_token) {
           localStorage.setItem('refresh_token', response.data.refresh_token)
         }
+
+        // Получаем establishment_id из user data или из /establishments
+        if (response.data.user.establishment_id) {
+          localStorage.setItem('establishment_id', response.data.user.establishment_id)
+        } else {
+          // Если establishment_id нет в ответе, получаем его из /establishments
+          try {
+            const estResponse = await apiClient.get('/establishments')
+            if (estResponse.data.data && estResponse.data.data.length > 0) {
+              localStorage.setItem('establishment_id', estResponse.data.data[0].id)
+            }
+          } catch (e) {
+            console.error('Failed to get establishment_id:', e)
+          }
+        }
       }
 
       return response.data

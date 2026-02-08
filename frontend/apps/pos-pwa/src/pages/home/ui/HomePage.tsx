@@ -1,13 +1,29 @@
+import { useState, useEffect } from 'react';
 import * as Styled from './styled';
 import { useHomePage } from '../hooks/useHomePage';
 import { Navbar } from '@/features/navbar';
+import { ShiftMenuModal } from '@/features/shift-menu-modal';
+import { ShiftStartModal } from '@/features/shift-start-modal';
 import { useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
+import { useGetActiveShift } from '@restaurant-pos/api-client';
 
 export function HomePage() {
   const { handleNewOrderClick, activeOrders } = useHomePage();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const [isShiftMenuOpen, setIsShiftMenuOpen] = useState(false);
+  const [isShiftStartModalOpen, setIsShiftStartModalOpen] = useState(false);
+
+  // Проверяем активную смену
+  const { data: activeShift, isLoading: isShiftLoading } = useGetActiveShift();
+
+  useEffect(() => {
+    // Если нет активной смены и загрузка завершена, показываем модалку открытия смены
+    if (!isShiftLoading && !activeShift) {
+      setIsShiftStartModalOpen(true);
+    }
+  }, [activeShift, isShiftLoading]);
 
   const handleLockClick = () => {
     // Удаляем только бэкапы токенов владельца
@@ -110,7 +126,9 @@ export function HomePage() {
         <Navbar />
         <Styled.HeaderRight>
           <Styled.PosterText>ARCE</Styled.PosterText>
-          <Styled.MenuIcon />
+          <Styled.MenuWrapper onClick={() => setIsShiftMenuOpen(true)}>
+            <Styled.MenuIcon />
+          </Styled.MenuWrapper>
           <Styled.LockWrapper onClick={handleLockClick}>
             <Styled.LockIcon />
             <Styled.GreenDot />
@@ -153,6 +171,17 @@ export function HomePage() {
           </>
         )}
       </Styled.MainContent>
+
+      <ShiftMenuModal
+        isOpen={isShiftMenuOpen}
+        onClose={() => setIsShiftMenuOpen(false)}
+      />
+
+      <ShiftStartModal
+        isOpen={isShiftStartModalOpen}
+        onClose={() => setIsShiftStartModalOpen(false)}
+        onSuccess={() => setIsShiftStartModalOpen(false)}
+      />
     </Styled.Container>
   );
 }

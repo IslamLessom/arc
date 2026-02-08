@@ -79,6 +79,7 @@ func NewRouter(usecases *usecases.UseCases, cfg *config.Config, logger *zap.Logg
 
 			// Shift routes
 			shifts := protected.Group("/shifts")
+			shifts.Use(middleware.RequireEstablishment(usecases.Auth))
 			{
 				shifts.GET("/me/active", shiftHandler.GetCurrentActiveShift)
 				shifts.POST("/start", shiftHandler.StartShift)

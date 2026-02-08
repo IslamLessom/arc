@@ -128,16 +128,28 @@ func (h *OrderHandler) ListActiveOrdersByEstablishment(c *gin.Context) {
 // @Failure 404 {object} map[string]string
 // @Router /orders/{id} [get]
 func (h *OrderHandler) Get(c *gin.Context) {
-	id, err := uuid.Parse(c.Param("id"))
+	id, err := uuid.Parse(c.Param("order_id"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Неверный ID заказа"})
 		return
 	}
 
-	order, err := h.usecase.GetOrder(c.Request.Context(), id)
+	estID, err := getEstablishmentID(c)
 	if err != nil {
-		h.logger.Error("Failed to get order", zap.Error(err))
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Не удалось получить заказ"})
+		h.logger.Error("Failed to get establishment from context", zap.Error(err))
+		c.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
+		return
+	}
+
+	h.logger.Debug("Getting order", zap.String("order_id", id.String()), zap.String("establishment_id", estID.String()))
+
+	order, err := h.usecase.GetOrder(c.Request.Context(), id, estID)
+	if err != nil {
+		h.logger.Error("Failed to get order",
+			zap.String("order_id", id.String()),
+			zap.String("establishment_id", estID.String()),
+			zap.Error(err))
+		c.JSON(http.StatusNotFound, gin.H{"error": "Заказ не найден"})
 		return
 	}
 
@@ -204,7 +216,7 @@ func (h *OrderHandler) Create(c *gin.Context) {
 // @Failure 500 {object} map[string]string
 // @Router /orders/{id} [put]
 func (h *OrderHandler) Update(c *gin.Context) {
-	orderIDStr := c.Param("id")
+	orderIDStr := c.Param("order_id")
 	orderID, err := uuid.Parse(orderIDStr)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Неверный ID заказа"})
@@ -242,7 +254,7 @@ func (h *OrderHandler) Update(c *gin.Context) {
 // @Failure 500 {object} map[string]string
 // @Router /orders/{id}/items [post]
 func (h *OrderHandler) AddOrderItem(c *gin.Context) {
-	orderIDStr := c.Param("id")
+	orderIDStr := c.Param("order_id")
 	orderID, err := uuid.Parse(orderIDStr)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Неверный ID заказа"})
@@ -371,7 +383,7 @@ func (h *OrderHandler) ProcessOrderPayment(c *gin.Context) {
 // @Failure 500 {object} map[string]string
 // @Router /orders/{id}/close-without-payment [post]
 func (h *OrderHandler) CloseOrderWithoutPayment(c *gin.Context) {
-	orderIDStr := c.Param("id")
+	orderIDStr := c.Param("order_id")
 	orderID, err := uuid.Parse(orderIDStr)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Неверный ID заказа"})

@@ -159,8 +159,15 @@ func (uc *OrderUseCase) ProcessOrderPayment(ctx context.Context, orderID uuid.UU
 
 	// Calculate total payment received
 	totalPaid := cashAmount + cardAmount
-	if totalPaid < order.TotalAmount {
-		return nil, errors.New("total payment is less than total order amount")
+
+	// Логирование для отладки
+	fmt.Printf("DEBUG Payment: orderID=%s, order.TotalAmount=%.2f, cashAmount=%.2f, cardAmount=%.2f, totalPaid=%.2f\n",
+		orderID, order.TotalAmount, cashAmount, cardAmount, totalPaid)
+
+	// Сравнение с допуском для float (epsilon = 0.01 - одна копейка)
+	const epsilon = 0.01
+	if totalPaid < order.TotalAmount - epsilon {
+		return nil, fmt.Errorf("total payment (%.2f) is less than total order amount (%.2f)", totalPaid, order.TotalAmount)
 	}
 
 	order.CashAmount = cashAmount
@@ -182,90 +189,109 @@ func (uc *OrderUseCase) ProcessOrderPayment(ctx context.Context, orderID uuid.UU
 
 	// Create transaction for cash/card payment
 	if order.CashAmount > 0 {
-		if uc.accountUseCase == nil {
-			return nil, errors.New("account usecase is not configured")
-		}
+		// Пробуем создать транзакцию для наличных, автоматически создаем счет если его нет
+		if uc.accountUseCase != nil {
+			cashAccountType, err := uc.accountUseCase.accountTypeRepo.GetByName(ctx, "наличные")
+			if err == nil && cashAccountType != nil {
+				// Ищем конкретно "Денежный ящик"
+				cashAccounts, err := uc.accountUseCase.repo.List(ctx, &repositories.AccountFilter{
+					EstablishmentID: &order.EstablishmentID,
+					TypeID:          &cashAccountType.ID,
+					Active:          repositories.BoolPtr(true),
+				})
+				if err != nil {
+					return nil, fmt.Errorf("failed to get cash accounts: %w", err)
+				}
 
-		cashAccountType, err := uc.accountUseCase.accountTypeRepo.GetByName(ctx, "наличные")
-		if err != nil || cashAccountType == nil {
-			return nil, errors.New("cash account type not found")
-		}
+				// Ищем счет с названием "Денежный ящик"
+				var cashDrawerAccount *models.Account
+				for _, acc := range cashAccounts {
+					if acc.Name == "Денежный ящик" {
+						cashDrawerAccount = acc
+						break
+					}
+				}
 
-		cashAccounts, err := uc.accountUseCase.repo.List(ctx, &repositories.AccountFilter{
-			EstablishmentID: &order.EstablishmentID,
-			TypeID:          &cashAccountType.ID,
-			Active:          repositories.BoolPtr(true),
-		})
-		if err != nil {
-			return nil, fmt.Errorf("failed to get cash account: %w", err)
-		}
-		if len(cashAccounts) == 0 {
-			return nil, errors.New("no active cash account found for the establishment")
-		}
+				var cashAccountID uuid.UUID
+				if cashDrawerAccount == nil {
+					// Если "Денежный ящик" не найден, создаем его
+					newAccount := &models.Account{
+						Name:            "Денежный ящик",
+						EstablishmentID: order.EstablishmentID,
+						TypeID:          cashAccountType.ID,
+						Active:          true,
+						Balance:         0,
+					}
+					if err := uc.accountUseCase.repo.Create(ctx, newAccount); err != nil {
+						return nil, fmt.Errorf("failed to create cash drawer account: %w", err)
+					}
+					cashAccountID = newAccount.ID
+				} else {
+					cashAccountID = cashDrawerAccount.ID
+				}
 
-		cashAccountID := cashAccounts[0].ID
-
-		transaction := &models.Transaction{
-			TransactionDate: time.Now(),
-<<<<<<< HEAD
-			Type:            "income",
-			Category:        "Cash Payment",
-			Description:     fmt.Sprintf("Payment for order %s (cash)", order.ID.String()),
-			Amount:          order.CashAmount,
-			AccountID:       cashAccountID,
-=======
-			Category:        "Cash Payment",
-			Description:     fmt.Sprintf("Payment for order %s (cash)", order.ID.String()),
-			Amount:          order.CashAmount,
-			AccountID:       uuid.Nil,
->>>>>>> 9618bbd (edit warehouse)
-			EstablishmentID: order.EstablishmentID,
-			OrderID:         &order.ID,
-		}
-		if err := uc.transactionRepo.Create(ctx, transaction); err != nil {
-			return nil, fmt.Errorf("failed to create cash transaction: %w", err)
+				transaction := &models.Transaction{
+					TransactionDate: time.Now(),
+					Type:            "income",
+					Category:        "Оплата заказа",
+					Description:     fmt.Sprintf("Оплата наличными, заказ №%s", order.ID.String()[:8]),
+					Amount:          order.CashAmount,
+					AccountID:       cashAccountID,
+					EstablishmentID: order.EstablishmentID,
+					OrderID:         &order.ID,
+				}
+				if err := uc.transactionRepo.Create(ctx, transaction); err != nil {
+					return nil, fmt.Errorf("failed to create cash transaction: %w", err)
+				}
+			}
 		}
 	}
 	if order.CardAmount > 0 {
-		if uc.accountUseCase == nil {
-			return nil, errors.New("account usecase is not configured")
-		}
+		// Пробуем создать транзакцию для карты, автоматически создаем счет если его нет
+		if uc.accountUseCase != nil {
+			cardAccountType, err := uc.accountUseCase.accountTypeRepo.GetByName(ctx, "банковские карточки")
+			if err == nil && cardAccountType != nil {
+				cardAccounts, err := uc.accountUseCase.repo.List(ctx, &repositories.AccountFilter{
+					EstablishmentID: &order.EstablishmentID,
+					TypeID:          &cardAccountType.ID,
+					Active:          repositories.BoolPtr(true),
+				})
+				if err != nil {
+					return nil, fmt.Errorf("failed to get card account: %w", err)
+				}
 
-		cardAccountType, err := uc.accountUseCase.accountTypeRepo.GetByName(ctx, "банковские карточки")
-		if err != nil || cardAccountType == nil {
-			return nil, errors.New("card account type not found")
-		}
+				var cardAccountID uuid.UUID
+				if len(cardAccounts) == 0 {
+					// Автоматически создаем счет для карт
+					newAccount := &models.Account{
+						Name:            "Банковские карточки",
+						EstablishmentID: order.EstablishmentID,
+						TypeID:          cardAccountType.ID,
+						Active:          true,
+						Balance:         0,
+					}
+					if err := uc.accountUseCase.repo.Create(ctx, newAccount); err != nil {
+						return nil, fmt.Errorf("failed to create card account: %w", err)
+					}
+					cardAccountID = newAccount.ID
+				} else {
+					cardAccountID = cardAccounts[0].ID
+				}
 
-		cardAccounts, err := uc.accountUseCase.repo.List(ctx, &repositories.AccountFilter{
-			EstablishmentID: &order.EstablishmentID,
-			TypeID:          &cardAccountType.ID,
-			Active:          repositories.BoolPtr(true),
-		})
-		if err != nil {
-			return nil, fmt.Errorf("failed to get card account: %w", err)
-		}
-		if len(cardAccounts) == 0 {
-			return nil, errors.New("no active card account found for the establishment")
-		}
-
-		// Предполагаем, что для заведения есть только один активный счет типа "Банковские карточки"
-		cardAccountID := cardAccounts[0].ID
-
-		transaction := &models.Transaction{
-			TransactionDate: time.Now(),
-<<<<<<< HEAD
-			Type:            "income",
-=======
->>>>>>> 9618bbd (edit warehouse)
-			Category:        "Card Payment",
-			Description:     fmt.Sprintf("Payment for order %s (card)", order.ID.String()),
-			Amount:          order.CardAmount,
-			AccountID:       cardAccountID,
-			EstablishmentID: order.EstablishmentID,
-			OrderID:         &order.ID,
-		}
-		if err := uc.transactionRepo.Create(ctx, transaction); err != nil {
-			return nil, fmt.Errorf("failed to create card transaction: %w", err)
+				transaction := &models.Transaction{
+					TransactionDate: time.Now(),
+					Type:            "income",
+					Category:        "Оплата заказа",
+					Description:     fmt.Sprintf("Оплата картой, заказ №%s", order.ID.String()[:8]),
+					Amount:          order.CardAmount,
+					AccountID:       cardAccountID,
+					EstablishmentID: order.EstablishmentID,
+					OrderID:         &order.ID,
+				}
+				if err := uc.transactionRepo.Create(ctx, transaction); err != nil {
+					return nil, fmt.Errorf("failed to create card transaction: %w", err)
+				}
+			}
 		}
 	}
 
@@ -335,10 +361,15 @@ func (uc *OrderUseCase) ListOrders(ctx context.Context, establishmentID uuid.UUI
 	return orders, nil
 }
 
-func (uc *OrderUseCase) GetOrder(ctx context.Context, orderID uuid.UUID) (*models.Order, error) {
+func (uc *OrderUseCase) GetOrder(ctx context.Context, orderID uuid.UUID, establishmentID uuid.UUID) (*models.Order, error) {
 	order, err := uc.orderRepo.GetByID(ctx, orderID)
 	if err != nil {
 		return nil, fmt.Errorf("order not found: %w", err)
+	}
+	// Проверяем, что заказ принадлежит указанному заведению
+	if order.EstablishmentID != establishmentID {
+		return nil, fmt.Errorf("order not found in establishment: order belongs to %s, requested %s",
+			order.EstablishmentID.String(), establishmentID.String())
 	}
 	return order, nil
 }

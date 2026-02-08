@@ -2,6 +2,7 @@ import * as Styled from './styled'
 import { useOrder } from '../hooks/useOrder'
 import { OrderTab } from '../model/enums'
 import { useCurrentUser } from '@restaurant-pos/api-client'
+import type { MenuItem } from '../model/types'
 
 const CATEGORY_ICONS: Record<string, string> = {
   coffee: '☕',
@@ -35,15 +36,17 @@ export function Order() {
     orderData,
     categories,
     products,
+    technicalCards,
     selectedCategoryId,
     selectedTab,
     isLoading,
     isLoadingCategories,
     selectedGuest,
-    selectedCategoryProducts,
+    selectedCategoryItems,
     handleBack,
     handleCategorySelect,
     handleProductClick,
+    handleTechCardClick,
     handleGuestSelect,
     handleAddGuest,
     handleQuantityChange,
@@ -53,6 +56,20 @@ export function Order() {
   } = useOrder()
 
   const userName = currentUser?.name || 'Maki'
+
+  // Обработчик клика на товар или тех-карту
+  const handleItemClick = (item: MenuItem) => {
+    if ('itemType' in item) {
+      if (item.itemType === 'tech_card') {
+        handleTechCardClick(item as any)
+      } else {
+        handleProductClick(item as any)
+      }
+    } else {
+      // Fallback - пытаемся определить по наличию специфических полей
+      handleProductClick(item as any)
+    }
+  }
 
   if (isLoading || isLoadingCategories) {
     return (
@@ -150,7 +167,7 @@ export function Order() {
                 selectedGuest?.items.map(item => (
                   <Styled.OrderItemCard key={item.id}>
                     <Styled.ItemInfo>
-                      <Styled.ItemName>{item.product.name}</Styled.ItemName>
+                      <Styled.ItemName>{item.product?.name || item.techCard?.name || 'Товар'}</Styled.ItemName>
                       <Styled.ItemPrice>{formatPrice(item.price)} / шт</Styled.ItemPrice>
                     </Styled.ItemInfo>
                     <Styled.ItemQuantity>
@@ -240,31 +257,31 @@ export function Order() {
             </Styled.CategoriesGrid>
           ) : (
             <Styled.ProductsGrid>
-              {selectedCategoryProducts.length === 0 ? (
+              {selectedCategoryItems.length === 0 ? (
                 <Styled.EmptyItems>
                   <Styled.EmptyItemsText>
                     В этой категории нет товаров
                   </Styled.EmptyItemsText>
                 </Styled.EmptyItems>
               ) : (
-                selectedCategoryProducts.map(product => (
+                selectedCategoryItems.map(item => (
                   <Styled.ProductCard
-                    key={product.id}
-                    onClick={() => handleProductClick(product)}
+                    key={item.id}
+                    onClick={() => handleItemClick(item)}
                   >
                     <Styled.ProductImage>
-                      {product.cover_image ? (
+                      {item.cover_image ? (
                         <img
-                          src={product.cover_image}
-                          alt={product.name}
+                          src={item.cover_image}
+                          alt={item.name}
                           style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '8px' }}
                         />
                       ) : (
                         <span>🍽️</span>
                       )}
                     </Styled.ProductImage>
-                    <Styled.ProductName>{product.name}</Styled.ProductName>
-                    <Styled.ProductPrice>{formatPrice(product.price)}</Styled.ProductPrice>
+                    <Styled.ProductName>{item.name}</Styled.ProductName>
+                    <Styled.ProductPrice>{formatPrice(item.price)}</Styled.ProductPrice>
                   </Styled.ProductCard>
                 ))
               )}

@@ -61,7 +61,7 @@ export {
   useUpdateTechnicalCard,
   useDeleteTechnicalCard,
 } from './useTechnicalCards'
-export type { CreateTechnicalCardRequest, UpdateTechnicalCardRequest } from './useTechnicalCards'
+export type { CreateTechnicalCardRequest, UpdateTechnicalCardRequest, TechnicalCard } from './useTechnicalCards'
 export {
   useGetSupplies,
   useGetSupply,

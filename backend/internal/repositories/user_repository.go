@@ -75,12 +75,25 @@ func (r *userRepository) GetAllByEstablishmentID(ctx context.Context, establishm
 
 func (r *userRepository) GetByPIN(ctx context.Context, pin string, establishmentID uuid.UUID) (*models.User, error) {
 	var user models.User
+	// Сначала ищем пользователя с указанным establishment_id
 	err := r.db.WithContext(ctx).
 		Where("establishment_id = ? AND pin = ?", establishmentID, pin).
 		First(&user).Error
+
 	if err != nil {
+		// Если не нашли, пробуем найти по PIN без проверки establishment_id
+		// Это позволит автоматически привязать сотрудника к заведению при первом логине
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, ErrUserNotFound
+			err = r.db.WithContext(ctx).
+				Where("pin = ? AND (establishment_id IS NULL OR establishment_id = ?)", pin, establishmentID).
+				First(&user).Error
+			if err != nil {
+				if errors.Is(err, gorm.ErrRecordNotFound) {
+					return nil, ErrUserNotFound
+				}
+				return nil, err
+			}
+			return &user, nil
 		}
 		return nil, err
 	}

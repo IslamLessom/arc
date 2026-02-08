@@ -399,6 +399,7 @@ type CreateTechCardRequest struct {
 	Markup            float64                       `json:"markup"`
 	Price             float64                       `json:"price,omitempty"`
 	WarehouseID       *string                       `json:"warehouse_id,omitempty" binding:"omitempty,uuid"` // Для расчета себестоимости
+	RecalculateCost   bool                          `json:"recalculate_cost"` // Если true - пересчитать cost_price из ингредиентов
 	Ingredients       []TechCardIngredientRequest   `json:"ingredients,omitempty"`
 	ModifierSets      []ModifierSetRequest          `json:"modifier_sets,omitempty"`
 }
@@ -435,6 +436,7 @@ type UpdateTechCardRequest struct {
 	Price             float64                       `json:"price,omitempty"`
 	Active            *bool                         `json:"active,omitempty"`
 	WarehouseID       *string                       `json:"warehouse_id,omitempty" binding:"omitempty,uuid"` // Для расчета себестоимости
+	RecalculateCost   bool                          `json:"recalculate_cost"` // Если true - пересчитать cost_price из ингредиентов
 	Ingredients       []TechCardIngredientRequest   `json:"ingredients,omitempty"`
 	ModifierSets      []ModifierSetRequest          `json:"modifier_sets,omitempty"`
 }
@@ -660,7 +662,7 @@ func (h *MenuHandler) CreateTechCard(c *gin.Context) {
 		warehouseID = parsed
 	}
 
-	if err := h.usecase.CreateTechCard(c.Request.Context(), techCard, warehouseID, estID); err != nil {
+	if err := h.usecase.CreateTechCard(c.Request.Context(), techCard, warehouseID, estID, req.RecalculateCost); err != nil {
 		h.logger.Error("Failed to create tech card", zap.Error(err))
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to create tech card"})
 		return
@@ -792,7 +794,7 @@ func (h *MenuHandler) UpdateTechCard(c *gin.Context) {
 		warehouseID = parsed
 	}
 
-	if err := h.usecase.UpdateTechCard(c.Request.Context(), techCard, warehouseID, estID); err != nil {
+	if err := h.usecase.UpdateTechCard(c.Request.Context(), techCard, warehouseID, estID, req.RecalculateCost); err != nil {
 		h.logger.Error("Failed to update tech card", zap.Error(err))
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to update tech card"})
 		return

@@ -19,6 +19,9 @@ type Shift struct {
 	EndTime         *time.Time     `json:"end_time,omitempty"`
 	InitialCash     float64        `json:"initial_cash" gorm:"not null"`
 	FinalCash       *float64       `json:"final_cash,omitempty"`
+	CashAmount      float64        `json:"cash_amount" gorm:"default:0"` // Сумма наличных оплат за смену
+	CardAmount      float64        `json:"card_amount" gorm:"default:0"` // Сумма оплат картой за смену
+	Shortage        *float64       `json:"shortage,omitempty"`          // Недостача при закрытии смены
 	Comment         *string        `json:"comment,omitempty"`
 	Sessions        []ShiftSession `json:"sessions,omitempty" gorm:"foreignKey:ShiftID"`
 	CreatedAt       time.Time      `json:"created_at"`

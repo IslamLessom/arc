@@ -93,9 +93,12 @@ export const CashRegisterShifts = () => {
                 <Styled.TableHeadCell>Статус</Styled.TableHeadCell>
                 <Styled.TableHeadCell>Начало смены</Styled.TableHeadCell>
                 <Styled.TableHeadCell>Смена закрыта</Styled.TableHeadCell>
+                <Styled.TableHeadCell $align="right">Наличные</Styled.TableHeadCell>
+                <Styled.TableHeadCell $align="right">Карты</Styled.TableHeadCell>
                 <Styled.TableHeadCell $align="right">Инкассация</Styled.TableHeadCell>
                 <Styled.TableHeadCell $align="right">В кассе</Styled.TableHeadCell>
                 <Styled.TableHeadCell $align="right">Разница</Styled.TableHeadCell>
+                <Styled.TableHeadCell $align="right">Недостача</Styled.TableHeadCell>
                 <Styled.TableHeadCell $width={80} $align="center">Действия</Styled.TableHeadCell>
               </tr>
             </Styled.TableHeader>
@@ -115,6 +118,12 @@ export const CashRegisterShifts = () => {
                       {shift.closedAt ? formatDateTime(shift.closedAt) : '-'}
                     </Styled.TableCell>
                     <Styled.TableCell $align="right">
+                      {shift.cashAmount > 0 ? formatCurrency(shift.cashAmount) : '-'}
+                    </Styled.TableCell>
+                    <Styled.TableCell $align="right">
+                      {shift.cardAmount > 0 ? formatCurrency(shift.cardAmount) : '-'}
+                    </Styled.TableCell>
+                    <Styled.TableCell $align="right">
                       {encashment > 0 ? formatCurrency(encashment) : '-'}
                     </Styled.TableCell>
                     <Styled.TableCell $align="right">
@@ -122,6 +131,11 @@ export const CashRegisterShifts = () => {
                     </Styled.TableCell>
                     <Styled.TableCell $align="right">
                       {formatDifference(shift.difference, shift.isOpen ? 'open' : 'closed')}
+                    </Styled.TableCell>
+                    <Styled.TableCell $align="right">
+                      {shift.shortage !== undefined && shift.shortage > 0
+                        ? formatCurrency(shift.shortage)
+                        : '-'}
                     </Styled.TableCell>
                     <Styled.TableCell $align="center">
                       <Styled.ActionCell>

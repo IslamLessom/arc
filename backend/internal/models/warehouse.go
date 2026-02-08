@@ -1,11 +1,17 @@
 package models
 
 import (
+	"math"
 	"time"
 
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
+
+// RoundTo2 округляет float64 до 2 знаков после запятой
+func RoundTo2(value float64) float64 {
+	return math.Round(value*100) / 100
+}
 
 // Warehouse представляет склад
 type Warehouse struct {
@@ -44,11 +50,24 @@ type Stock struct {
 	UpdatedAt    time.Time   `json:"updated_at"`
 }
 
-// BeforeCreate hook для автоматической генерации UUID
+// BeforeCreate hook для автоматической генерации UUID и округления значений
 func (s *Stock) BeforeCreate(tx *gorm.DB) error {
 	if s.ID == uuid.Nil {
 		s.ID = uuid.New()
 	}
+	// Округляем значения до 2 знаков после запятой
+	s.Quantity = RoundTo2(s.Quantity)
+	s.PricePerUnit = RoundTo2(s.PricePerUnit)
+	s.Limit = RoundTo2(s.Limit)
+	return nil
+}
+
+// BeforeUpdate hook для округления значений перед обновлением
+func (s *Stock) BeforeUpdate(tx *gorm.DB) error {
+	// Округляем значения до 2 знаков после запятой
+	s.Quantity = RoundTo2(s.Quantity)
+	s.PricePerUnit = RoundTo2(s.PricePerUnit)
+	s.Limit = RoundTo2(s.Limit)
 	return nil
 }
 
@@ -99,11 +118,24 @@ type SupplyItem struct {
 	CreatedAt    time.Time `json:"created_at"`
 }
 
-// BeforeCreate hook для автоматической генерации UUID
+// BeforeCreate hook для автоматической генерации UUID и округления значений
 func (si *SupplyItem) BeforeCreate(tx *gorm.DB) error {
 	if si.ID == uuid.Nil {
 		si.ID = uuid.New()
 	}
+	// Округляем значения до 2 знаков после запятой
+	si.Quantity = RoundTo2(si.Quantity)
+	si.PricePerUnit = RoundTo2(si.PricePerUnit)
+	si.TotalAmount = RoundTo2(si.TotalAmount)
+	return nil
+}
+
+// BeforeUpdate hook для округления значений перед обновлением
+func (si *SupplyItem) BeforeUpdate(tx *gorm.DB) error {
+	// Округляем значения до 2 знаков после запятой
+	si.Quantity = RoundTo2(si.Quantity)
+	si.PricePerUnit = RoundTo2(si.PricePerUnit)
+	si.TotalAmount = RoundTo2(si.TotalAmount)
 	return nil
 }
 
@@ -143,11 +175,20 @@ type WriteOffItem struct {
 	CreatedAt    time.Time   `json:"created_at"`
 }
 
-// BeforeCreate hook для автоматической генерации UUID
+// BeforeCreate hook для автоматической генерации UUID и округления значений
 func (woi *WriteOffItem) BeforeCreate(tx *gorm.DB) error {
 	if woi.ID == uuid.Nil {
 		woi.ID = uuid.New()
 	}
+	// Округляем значения до 2 знаков после запятой
+	woi.Quantity = RoundTo2(woi.Quantity)
+	return nil
+}
+
+// BeforeUpdate hook для округления значений перед обновлением
+func (woi *WriteOffItem) BeforeUpdate(tx *gorm.DB) error {
+	// Округляем значения до 2 знаков после запятой
+	woi.Quantity = RoundTo2(woi.Quantity)
 	return nil
 }
 

@@ -373,6 +373,10 @@ export interface Shift {
   closedAt?: string
   openingBalance: number
   closingBalance?: number
+  cashAmount: number // Сумма наличных оплат за смену
+  cardAmount: number // Сумма оплат картой за смену
+  shortage?: number // Недостача при закрытии смены
+  comment?: string
   status: 'open' | 'closed'
   transactions?: Transaction[]
   createdAt: string

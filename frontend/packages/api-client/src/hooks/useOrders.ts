@@ -24,8 +24,29 @@ export interface ApiOrder {
     created_at: string
     updated_at: string
   }
+  table_id?: string
+  table?: {
+    id: string
+    room_id: string
+    number: number
+    name?: string
+    capacity: number
+    position_x?: number
+    position_y?: number
+    rotation?: number
+    width?: number
+    height?: number
+    shape?: string
+    status: string
+    active: boolean
+    created_at: string
+    updated_at: string
+  }
   table_number?: number
   status: string
+  payment_status?: string
+  cash_amount?: number
+  card_amount?: number
   total_amount: number
   guests_count?: number
   items?: ApiOrderItem[]
@@ -63,6 +84,7 @@ export interface ApiOrderItem {
     updated_at: string
   }
   quantity: number
+  guest_number?: number
   price: number
   total_price: number
   created_at: string

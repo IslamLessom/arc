@@ -1,4 +1,5 @@
 import type { Product } from '@restaurant-pos/api-client'
+import type { TechnicalCard } from '@restaurant-pos/api-client'
 import { OrderTab } from './enums'
 
 export interface ProductCategory {
@@ -15,10 +16,16 @@ export interface OrderProps {
   orderId: string
 }
 
+// Объединенный тип для товаров и тех-карт
+export type MenuItem = Product & TechnicalCard
+
 export interface OrderItem {
   id: string
-  productId: string
-  product: Product
+  productId?: string
+  techCardId?: string
+  product?: Product
+  techCard?: TechnicalCard
+  itemType: 'product' | 'tech_card'
   quantity: number
   price: number
   totalPrice: number
@@ -44,6 +51,7 @@ export interface UseOrderResult {
   orderData: OrderData | null
   categories: ProductCategory[]
   products: Product[]
+  technicalCards: TechnicalCard[]
   selectedCategoryId: string | null
   selectedTab: OrderTab
 
@@ -57,7 +65,8 @@ export interface UseOrderResult {
   // Actions
   handleBack: () => void
   handleCategorySelect: (categoryId: string) => void
-  handleProductClick: (product: Product) => void
+  handleProductClick: (item: MenuItem) => void
+  handleTechCardClick: (item: MenuItem) => void
   handleGuestSelect: (guestNumber: number) => void
   handleAddGuest: () => void
   handleQuantityChange: (itemId: string, delta: number) => void
@@ -69,4 +78,5 @@ export interface UseOrderResult {
   // Computed
   selectedGuest: GuestOrder | null
   selectedCategoryProducts: Product[]
+  selectedCategoryItems: MenuItem[]
 }

@@ -41,22 +41,35 @@ type Product struct {
 	DeletedAt   gorm.DeletedAt `json:"-" gorm:"index"`
 }
 
-// BeforeCreate hook для автоматической генерации UUID
+// BeforeCreate hook для автоматической генерации UUID и округления значений
 func (p *Product) BeforeCreate(tx *gorm.DB) error {
 	if p.ID == uuid.Nil {
 		p.ID = uuid.New()
 	}
+	// Округляем значения до 2 знаков после запятой
+	p.CostPrice = RoundTo2(p.CostPrice)
+	p.Markup = RoundTo2(p.Markup)
+	p.Price = RoundTo2(p.Price)
+	return nil
+}
+
+// BeforeUpdate hook для округления значений перед обновлением
+func (p *Product) BeforeUpdate(tx *gorm.DB) error {
+	// Округляем значения до 2 знаков после запятой
+	p.CostPrice = RoundTo2(p.CostPrice)
+	p.Markup = RoundTo2(p.Markup)
+	p.Price = RoundTo2(p.Price)
 	return nil
 }
 
 // CalculatePrice вычисляет цену на основе себестоимости и наценки
 func (p *Product) CalculatePrice() {
 	if p.Markup > 0 {
-		p.Price = p.CostPrice * (1 + p.Markup/100)
+		p.Price = RoundTo2(p.CostPrice * (1 + p.Markup/100))
 	} else {
 		// Если наценка не задана, цена = себестоимость (или может быть задана вручную)
 		if p.Price == 0 {
-			p.Price = p.CostPrice
+			p.Price = RoundTo2(p.CostPrice)
 		}
 	}
 }

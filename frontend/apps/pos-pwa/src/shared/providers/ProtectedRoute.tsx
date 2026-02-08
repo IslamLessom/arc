@@ -7,6 +7,9 @@ const LazyPinLogin = lazy(() => import('@/pages/pin-login').then(m => ({ default
 const LazyHomePage = lazy(() => import('@/pages/home').then(m => ({ default: m.HomePage })))
 const LazyTableSelection = lazy(() => import('@/pages/table-selection').then(m => ({ default: m.TableSelection })))
 const LazyOrder = lazy(() => import('@/pages/order').then(m => ({ default: m.Order })))
+const LazyPayment = lazy(() => import('@/pages/payment').then(m => ({ default: m.Payment })))
+const LazyOrdersArchive = lazy(() => import('@/pages/orders-archive').then(m => ({ default: m.OrdersArchive })))
+const LazyReceiptsArchive = lazy(() => import('@/pages/receipts-archive').then(m => ({ default: m.ReceiptsArchive })))
 
 interface ProtectedRouteProps {
   children: React.ReactNode
@@ -157,6 +160,66 @@ export function OrderRoute() {
   return (
     <Suspense fallback={<div className="flex items-center justify-center min-h-screen">Загрузка...</div>}>
       <LazyOrder />
+    </Suspense>
+  )
+}
+
+export function PaymentRoute() {
+  const authState = getAuthState()
+  const locked = isLocked()
+
+  if (authState === 'none') {
+    return <Navigate to="/auth" replace />
+  }
+
+  // Если приложение заблокировано или владелец - перенаправляем на pin-login
+  if (authState === 'owner' || locked) {
+    return <Navigate to="/pin-login" replace />
+  }
+
+  return (
+    <Suspense fallback={<div className="flex items-center justify-center min-h-screen">Загрузка...</div>}>
+      <LazyPayment />
+    </Suspense>
+  )
+}
+
+export function OrdersArchiveRoute() {
+  const authState = getAuthState()
+  const locked = isLocked()
+
+  if (authState === 'none') {
+    return <Navigate to="/auth" replace />
+  }
+
+  // Если приложение заблокировано или владелец - перенаправляем на pin-login
+  if (authState === 'owner' || locked) {
+    return <Navigate to="/pin-login" replace />
+  }
+
+  return (
+    <Suspense fallback={<div className="flex items-center justify-center min-h-screen">Загрузка...</div>}>
+      <LazyOrdersArchive />
+    </Suspense>
+  )
+}
+
+export function ReceiptsArchiveRoute() {
+  const authState = getAuthState()
+  const locked = isLocked()
+
+  if (authState === 'none') {
+    return <Navigate to="/auth" replace />
+  }
+
+  // Если приложение заблокировано или владелец - перенаправляем на pin-login
+  if (authState === 'owner' || locked) {
+    return <Navigate to="/pin-login" replace />
+  }
+
+  return (
+    <Suspense fallback={<div className="flex items-center justify-center min-h-screen">Загрузка...</div>}>
+      <LazyReceiptsArchive />
     </Suspense>
   )
 }
