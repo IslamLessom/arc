@@ -166,7 +166,7 @@ func (uc *OrderUseCase) ProcessOrderPayment(ctx context.Context, orderID uuid.UU
 
 	// Сравнение с допуском для float (epsilon = 0.01 - одна копейка)
 	const epsilon = 0.01
-	if totalPaid < order.TotalAmount - epsilon {
+	if totalPaid < order.TotalAmount-epsilon {
 		return nil, fmt.Errorf("total payment (%.2f) is less than total order amount (%.2f)", totalPaid, order.TotalAmount)
 	}
 
@@ -293,6 +293,10 @@ func (uc *OrderUseCase) ProcessOrderPayment(ctx context.Context, orderID uuid.UU
 				}
 			}
 		}
+	}
+
+	if err := uc.deductTechCardIngredientsFromStock(ctx, order); err != nil {
+		return nil, fmt.Errorf("failed to deduct stock for order: %w", err)
 	}
 
 	if err := uc.deductTechCardIngredientsFromStock(ctx, order); err != nil {
