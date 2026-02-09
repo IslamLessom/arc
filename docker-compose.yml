@@ -1,15 +1,15 @@
 services:
   postgres:
     image: postgres:16-alpine
-    container_name: arc_postgres
+    container_name: arc_postgres_new
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: ${POSTGRES_DB}
     ports:
-      - "15432:5432"
+      - "15433:5432"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - arc_postgres_data_new:/var/lib/postgresql/data
       - ./backend/migrations:/docker-entrypoint-initdb.d
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
@@ -78,7 +78,7 @@ services:
 
   minio:
     image: minio/minio:latest
-    container_name: arc_minio
+    container_name: arc_minio_new
     ports:
       - "9002:9000"
       - "9003:9001"
@@ -86,7 +86,7 @@ services:
       MINIO_ROOT_USER: ${MINIO_ROOT_USER}
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
     volumes:
-      - minio_data:/data
+      - arc_minio_data_new:/data
     command: server /data --console-address ":9001"
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
@@ -100,9 +100,9 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: arc_app
+    container_name: arc_app_new
     ports:
-      - "${SERVER_PORT:-8080}:8080"
+      - "${SERVER_PORT:-8081}:8080"
     environment:
       - DB_HOST=${DB_HOST}
       - DB_PORT=${DB_PORT}
@@ -135,9 +135,9 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile.pos
-    container_name: arc_pos_frontend
+    container_name: arc_pos_frontend_new
     ports:
-      - "${POS_FRONTEND_PORT:-3003}:3000"
+      - "${POS_FRONTEND_PORT:-3004}:3000"
     environment:
       - NODE_ENV=${APP_ENV}
       - VITE_API_URL=${VITE_API_URL}
@@ -151,9 +151,9 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile.admin
-    container_name: arc_admin_frontend
+    container_name: arc_admin_frontend_new
     ports:
-      - "${ADMIN_FRONTEND_PORT:-3002}:3000"
+      - "${ADMIN_FRONTEND_PORT:-3005}:3000"
     environment:
       - NODE_ENV=${APP_ENV}
       - VITE_API_URL=${VITE_API_URL}
@@ -164,11 +164,8 @@ services:
     restart: unless-stopped
 
 volumes:
-  postgres_data:
-  # prometheus_data:
-  # grafana_data:
-  # loki_data:
-  minio_data:
+  arc_postgres_data_new:
+  arc_minio_data_new:
 
 networks:
   arc_network:
