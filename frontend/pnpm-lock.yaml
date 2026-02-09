@@ -237,6 +237,9 @@ importers:
 
   packages/api-client:
     dependencies:
+      '@restaurant-pos/pwa-core':
+        specifier: workspace:*
+        version: link:../pwa-core
       '@restaurant-pos/types':
         specifier: workspace:*
         version: link:../types

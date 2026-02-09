@@ -1,7 +1,15 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { apiClient } from '../client'
-import { db } from '@restaurant-pos/pwa-core'
 import type { Order } from '@restaurant-pos/types'
+
+// Динамический импорт для опциональной зависимости pwa-core
+let db: any = undefined
+try {
+  const pwaCore = require('@restaurant-pos/pwa-core')
+  db = pwaCore.db
+} catch {
+  // pwa-core не установлен, работаем без офлайн-режима
+}
 
 // API Response types (snake_case - как возвращает backend)
 export interface ApiOrder {
@@ -174,16 +182,20 @@ export function useCreateOrder() {
       totalAmount: number
       guestsCount?: number
     }) => {
-      // Сначала сохраняем локально
-      const localId = await db.orders.add({
-        establishmentId: order.establishmentId,
-        tableNumber: order.tableNumber,
-        items: order.items,
-        totalAmount: order.totalAmount,
-        guestsCount: order.guestsCount,
-        status: 'pending',
-        createdAt: new Date()
-      })
+      let localId: number | undefined
+
+      // Сначала сохраняем локально (если доступен pwa-core)
+      if (db) {
+        localId = await db.orders.add({
+          establishmentId: order.establishmentId,
+          tableNumber: order.tableNumber,
+          items: order.items,
+          totalAmount: order.totalAmount,
+          guestsCount: order.guestsCount,
+          status: 'pending',
+          createdAt: new Date()
+        })
+      }
 
       try {
         // Пытаемся отправить на сервер
@@ -196,18 +208,23 @@ export function useCreateOrder() {
           items: order.items
         })
 
-        // Обновляем статус
-        await db.orders.update(localId, {
-          serverId: response.data.id,
-          status: 'synced',
-          syncedAt: new Date()
-        })
+        // Обновляем статус (если был сохранён локально)
+        if (db && localId !== undefined) {
+          await db.orders.update(localId, {
+            serverId: response.data.id,
+            status: 'synced',
+            syncedAt: new Date()
+          })
+        }
 
         return response.data
       } catch (error) {
         // Если офлайн - оставляем pending для фоновой синхронизации
-        console.log('Offline: order saved locally')
-        return { id: localId.toString(), ...order } as unknown as ApiOrder
+        if (db && localId !== undefined) {
+          console.log('Offline: order saved locally')
+          return { id: localId.toString(), ...order } as unknown as ApiOrder
+        }
+        throw error
       }
     },
     onSuccess: () => {

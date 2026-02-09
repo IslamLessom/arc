@@ -28,7 +28,13 @@
     "typescript": "^5.4.0"
   },
   "peerDependencies": {
+    "@restaurant-pos/pwa-core": "workspace:*",
     "@restaurant-pos/types": "workspace:*",
     "react": "^18.0.0"
+  },
+  "peerDependenciesMeta": {
+    "@restaurant-pos/pwa-core": {
+      "optional": true
+    }
   }
 }
