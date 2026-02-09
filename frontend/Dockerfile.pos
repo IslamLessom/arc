@@ -7,11 +7,12 @@ RUN npm install -g pnpm
 
 # Copy package files
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY tsconfig.json ./
 COPY apps/pos-pwa/package.json ./apps/pos-pwa/
 COPY packages/api-client/package.json ./packages/api-client/
 COPY packages/print-service/package.json ./packages/print-service/
 COPY packages/pwa-core/package.json ./packages/pwa-core/
-COPY/packages/real-time/package.json ./packages/real-time/
+COPY packages/real-time/package.json ./packages/real-time/
 COPY packages/types/package.json ./packages/types/
 COPY packages/ui/package.json ./packages/ui/
 
@@ -35,11 +36,12 @@ RUN npm install -g pnpm
 
 # Copy package files
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY tsconfig.json ./
 COPY apps/pos-pwa/package.json ./apps/pos-pwa/
 COPY packages/api-client/package.json ./packages/api-client/
 COPY packages/print-service/package.json ./packages/print-service/
 COPY packages/pwa-core/package.json ./packages/pwa-core/
-COPY/packages/real-time/package.json ./packages/real-time/
+COPY packages/real-time/package.json ./packages/real-time/
 COPY packages/types/package.json ./packages/types/
 COPY packages/ui/package.json ./packages/ui/
 
