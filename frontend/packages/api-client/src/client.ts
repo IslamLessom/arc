@@ -19,7 +19,7 @@ const getEnvVar = (key: string, defaultValue: string): string => {
 }
 
 export const apiClient = axios.create({
-  baseURL: getEnvVar('NEXT_PUBLIC_API_URL', 'http://localhost:8080/api/v1'),
+  baseURL: getEnvVar('NEXT_PUBLIC_API_URL', 'http://62.109.18.208:8081/api/v1'),
   timeout: 10000,
   headers: {
     'Content-Type': 'application/json'
