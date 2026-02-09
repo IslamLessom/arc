@@ -14,6 +14,8 @@
     "@restaurant-pos/types": "workspace:*",
     "@restaurant-pos/ui": "workspace:*",
     "@tanstack/react-query": "^5.0.0",
+    "@ant-design/cssinjs": "^1.21.0",
+    "antd": "^5.21.0",
     "react": "^18.3.0",
     "react-dom": "^18.3.0",
     "react-router-dom": "^7.12.0",
