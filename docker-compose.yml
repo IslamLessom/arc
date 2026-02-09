@@ -134,6 +134,8 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile.pos
+      args:
+        - VITE_API_URL=${VITE_API_URL}
     container_name: arc_pos_frontend_new
     ports:
       - "${POS_FRONTEND_PORT:-3004}:3000"
@@ -150,6 +152,8 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile.admin
+      args:
+        - VITE_API_URL=${VITE_API_URL}
     container_name: arc_admin_frontend_new
     ports:
       - "${ADMIN_FRONTEND_PORT:-3005}:3000"
