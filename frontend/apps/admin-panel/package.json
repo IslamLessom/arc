@@ -9,12 +9,13 @@
     "type-check": "tsc --noEmit"
   },
   "dependencies": {
+    "@ant-design/cssinjs": "^1.21.0",
+    "@ant-design/icons": "^5.6.1",
     "@restaurant-pos/api-client": "workspace:*",
     "@restaurant-pos/assets": "workspace:*",
     "@restaurant-pos/types": "workspace:*",
     "@restaurant-pos/ui": "workspace:*",
     "@tanstack/react-query": "^5.0.0",
-    "@ant-design/cssinjs": "^1.21.0",
     "antd": "^5.21.0",
     "react": "^18.3.0",
     "react-dom": "^18.3.0",
