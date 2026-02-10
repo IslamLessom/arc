@@ -207,12 +207,72 @@ export function useOrder(): UseOrderResult {
     return items
   }, [products, technicalCards, selectedCategoryId, selectedCategory, categories])
 
-  // Navigate back - выходит к выбору столов
-  const handleBack = useCallback(() => {
-    // Заказ остается в localStorage, данные не теряются
-    // Заказ будет создан на сервере только при оплате
+  // Navigate back - сохраняет черновик заказа если есть товары
+  const handleBack = useCallback(async () => {
+    // Если заказа нет или он пустой - просто выходим
+    if (!orderData || orderData.totalAmount === 0) {
+      if (orderId) {
+        localStorage.removeItem(`${ORDER_STORAGE_KEY}${orderId}`)
+      }
+      navigate('/table-selection')
+      return
+    }
+
+    // Проверяем, есть ли товары в заказе
+    const hasItems = orderData.guests.some(g => g.items.length > 0)
+    if (!hasItems) {
+      if (orderId) {
+        localStorage.removeItem(`${ORDER_STORAGE_KEY}${orderId}`)
+      }
+      navigate('/table-selection')
+      return
+    }
+
+    // Если есть товары - сохраняем черновик на сервере
+    try {
+      const isUuid = (value: string) =>
+        typeof value === 'string' &&
+        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value)
+
+      const itemsToSend = orderData.guests.flatMap(guest =>
+        guest.items.map(item => {
+          const result: any = {
+            quantity: item.quantity,
+            guest_number: guest.guestNumber,
+          }
+          if (item.itemType === 'product' && item.productId) {
+            result.product_id = item.productId
+          } else if (item.itemType === 'tech_card' && item.techCardId) {
+            result.tech_card_id = item.techCardId
+          }
+          return result
+        })
+      ).filter((item: any) => item.product_id || item.tech_card_id) // Убираем пустые items
+
+      if (isUuidOrderId) {
+        // Заказ уже существует на сервере - просто выходим, данные сохранены
+        console.log('Order already exists on server, keeping localStorage:', orderId)
+      } else if (itemsToSend.length > 0) {
+        // Создаём черновик заказа на сервере
+        const orderResponse = await apiClient.post('/orders', { items: itemsToSend })
+        const serverOrderId = orderResponse?.data?.id
+
+        if (serverOrderId) {
+          console.log('Draft order saved:', serverOrderId)
+          // Обновляем localStorage с новым UUID и удаляем старый ключ
+          localStorage.removeItem(`${ORDER_STORAGE_KEY}${orderId}`)
+          const updatedOrderData = { ...orderData, orderId: serverOrderId }
+          localStorage.setItem(`${ORDER_STORAGE_KEY}${serverOrderId}`, JSON.stringify(updatedOrderData))
+        } else {
+          console.error('Failed to create order - no ID returned')
+        }
+      }
+    } catch (error) {
+      console.error('Failed to save draft order:', error)
+    }
+
     navigate('/table-selection')
-  }, [navigate])
+  }, [orderData, orderId, navigate, isUuidOrderId])
 
   // Select category
   const handleCategorySelect = useCallback((categoryId: string) => {

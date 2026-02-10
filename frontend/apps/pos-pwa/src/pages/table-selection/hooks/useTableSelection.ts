@@ -1,6 +1,6 @@
 import { useState, useCallback, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useGetRooms, useCurrentUser, useCreateOrder,    useGetTables } from '@restaurant-pos/api-client'
+import { useGetRooms, useCurrentUser, useGetTables } from '@restaurant-pos/api-client'
 import type { Table, Room } from '@restaurant-pos/api-client'
 import type { UseTableSelectionResult } from '../model/types'
 
@@ -20,7 +20,6 @@ export function useTableSelection(): UseTableSelectionResult {
   const [showGuestsDropdown, setShowGuestsDropdown] = useState(false)
   const [selectedGuestsCount, setSelectedGuestsCount] = useState(1)
   const [dropdownPosition, setDropdownPosition] = useState<DropdownPosition>({ x: 0, y: 0 })
-  const createOrder = useCreateOrder()
 
   // Получаем столы для выбранного зала
   const { data: tables = [], isLoading: isLoadingTables } = useGetTables(selectedRoomId || '')
@@ -53,29 +52,20 @@ export function useTableSelection(): UseTableSelectionResult {
     setSelectedGuestsCount(count)
     setShowGuestsDropdown(false)
 
-    if (!establishmentId || !selectedTable) return
+    if (!selectedTable) return
 
-    // Создаем заказ с выбранным количеством гостей
-    try {
-      const order = await createOrder.mutateAsync({
-        establishmentId,
+    // Генерируем временный ID для заказа (будет заменен на UUID при оплате)
+    const tempOrderId = `table_${selectedTable.id}_${Date.now()}`
+
+    // Переходим к оформлению заказа и передаем количество гостей
+    // Заказ на сервере будет создан только при добавлении товаров или оплате
+    navigate(`/order/${tempOrderId}`, {
+      state: {
+        guestsCount: count,
         tableNumber: selectedTable.number,
-        items: [],
-        totalAmount: 0,
-        guestsCount: count
-      })
-
-      // Переходим к оформлению заказа и передаем количество гостей
-      navigate(`/order/${order.id}`, {
-        state: {
-          guestsCount: count,
-          tableNumber: selectedTable.number,
-        },
-      })
-    } catch (error) {
-      console.error('Failed to create order:', error)
-    }
-  }, [establishmentId, selectedTable, createOrder, navigate])
+      },
+    })
+  }, [selectedTable, navigate])
 
   const handleGuestsDropdownClose = useCallback(() => {
     setShowGuestsDropdown(false)
@@ -109,7 +99,6 @@ export function useTableSelection(): UseTableSelectionResult {
     handleTableClick,
     handleCancel,
     handleRoomChange,
-    isCreatingOrder: createOrder.isPending,
     showGuestsDropdown,
     selectedGuestsCount,
     handleGuestsSelect,
