@@ -13,6 +13,7 @@ export function useRegisterForm(props: RegisterFormProps): UseRegisterFormResult
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleEmailChange = useCallback((value: string) => {
     setEmail(value);
@@ -34,6 +35,11 @@ export function useRegisterForm(props: RegisterFormProps): UseRegisterFormResult
       e.preventDefault();
       setError(null);
 
+      // Предотвращаем повторную отправку формы
+      if (isSubmitting || registerMutation.isPending) {
+        return;
+      }
+
       if (!email.trim() || !password.trim() || !name.trim()) {
         setError('Заполните все поля');
         return;
@@ -43,6 +49,8 @@ export function useRegisterForm(props: RegisterFormProps): UseRegisterFormResult
         setError('Пароль должен содержать минимум 6 символов');
         return;
       }
+
+      setIsSubmitting(true);
 
       try {
         const response = await registerMutation.mutateAsync({
@@ -74,6 +82,7 @@ export function useRegisterForm(props: RegisterFormProps): UseRegisterFormResult
         // Перенаправление на страницу входа по PIN-коду
         navigate('/pin-login');
       } catch (err: unknown) {
+        setIsSubmitting(false);
         let errorMessage = 'Ошибка при регистрации';
 
         if (err && typeof err === 'object' && 'response' in err) {
@@ -90,14 +99,14 @@ export function useRegisterForm(props: RegisterFormProps): UseRegisterFormResult
         setError(errorMessage);
       }
     },
-    [email, password, name, registerMutation, onSubmit, navigate]
+    [email, password, name, registerMutation, onSubmit, navigate, isSubmitting]
   );
 
   return {
     email,
     password,
     name,
-    isLoading: registerMutation.isPending,
+    isLoading: registerMutation.isPending || isSubmitting,
     error,
     handleEmailChange,
     handlePasswordChange,

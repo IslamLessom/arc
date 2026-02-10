@@ -6,7 +6,7 @@ import { Button, ButtonVariant } from '@restaurant-pos/ui';
 import * as Styled from './styled';
 
 export const Auth = () => {
-  const { handleLogin, handleRegister } = useAuth();
+  const { handleLogin } = useAuth();
   const [isRegisterMode, setIsRegisterMode] = useState(false);
 
   const handleToggleMode = () => {
@@ -20,7 +20,7 @@ export const Auth = () => {
           <>
             <Styled.Title>Регистрация</Styled.Title>
             <Styled.Subtitle>Создайте новый аккаунт</Styled.Subtitle>
-            <RegisterForm onSubmit={handleRegister} />
+            <RegisterForm />
             <Styled.SwitchModeContainer>
               <Styled.SwitchModeText>Уже есть аккаунт?</Styled.SwitchModeText>
               <Button variant={ButtonVariant.Link} onClick={handleToggleMode}>
