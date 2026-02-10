@@ -6,6 +6,7 @@ import type { UseRegisterFormResult, RegisterFormProps } from '../model/types';
 
 export function useRegisterForm(props: RegisterFormProps): UseRegisterFormResult {
   const { onSubmit } = props;
+  const navigate = useNavigate();
   const registerMutation = useRegister();
 
   const [email, setEmail] = useState('');
@@ -98,7 +99,7 @@ export function useRegisterForm(props: RegisterFormProps): UseRegisterFormResult
         setError(errorMessage);
       }
     },
-    [email, password, name, registerMutation, onSubmit, isSubmitting]
+    [email, password, name, registerMutation, onSubmit, navigate, isSubmitting]
   );
 
   return {
