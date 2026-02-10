@@ -143,7 +143,11 @@ export function Payment() {
               }
               return result
             })
-          )
+          ).filter((item: any) => item.product_id || item.tech_card_id) // Убираем пустые items
+
+          if (itemsToSend.length === 0) {
+            throw new Error('Невозможно создать пустой заказ. Добавьте блюда перед оплатой.')
+          }
 
           console.log('Creating order with items:', itemsToSend)
           const orderResponse = await apiClient.post('/orders', { items: itemsToSend })
