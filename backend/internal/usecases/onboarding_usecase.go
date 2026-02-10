@@ -218,15 +218,33 @@ func (uc *OnboardingUseCase) createEstablishmentFromAnswers(ctx context.Context,
 		}
 
 		// Затем создаем столы, привязанные к залу
+		// Распределяем столы по сетке с отступами
+		const (
+			tableSize      = 100 // размер стола в пикселях
+			spacing        = 40  // отступ между столами
+			margin         = 50  // отступ от краев
+			columnsPerRow  = 4   // количество столов в одном ряду
+		)
+
 		tables := make([]*models.Table, 0, *establishment.TableCount)
 		for i := 1; i <= *establishment.TableCount; i++ {
+			// Вычисляем позицию в сетке
+			row := (i - 1) / columnsPerRow
+			col := (i - 1) % columnsPerRow
+
+			positionX := margin + float64(col)*(tableSize+spacing)
+			positionY := margin + float64(row)*(tableSize+spacing)
+
 			tables = append(tables, &models.Table{
 				RoomID:    defaultRoom.ID,
 				Number:    i,
 				Capacity:  4, // по умолчанию 4 места
-				PositionX: 0,
-				PositionY: 0,
+				PositionX: positionX,
+				PositionY: positionY,
 				Rotation:  0,
+				Width:     80, // размер стола для отображения
+				Height:    80,
+				Shape:     "round",
 				Status:    "available",
 				Active:    true,
 			})

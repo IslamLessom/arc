@@ -38,6 +38,13 @@ export const useHallMap = (): UseHallMapResult => {
   const { data: tables = [], isLoading: isLoadingTables, error: tablesError } = useGetTables(
     selectedRoomId || ''
   )
+
+  // Автоматически выбираем первый зал при загрузке
+  useEffect(() => {
+    if (rooms.length > 0 && !selectedRoomId) {
+      setSelectedRoomId(rooms[0].id)
+    }
+  }, [rooms, selectedRoomId])
   const { data: rooms = [], isLoading: isLoadingRooms } = useGetRooms(
     establishmentId || ''
   )
