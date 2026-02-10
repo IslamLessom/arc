@@ -1,6 +1,6 @@
 import { useState, useCallback, useMemo, useEffect } from 'react'
 import { useNavigate, useParams, useLocation } from 'react-router-dom'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useGetCategories, useGetProducts, useGetTechnicalCards, useOrder as useApiOrder } from '@restaurant-pos/api-client'
 import { useCurrentUser } from '@restaurant-pos/api-client'
 import { apiClient } from '@restaurant-pos/api-client'
@@ -17,6 +17,7 @@ export function useOrder(): UseOrderResult {
   const { orderId } = useParams<{ orderId: string }>()
   const { data: currentUser } = useCurrentUser()
   const establishmentId = currentUser?.establishment_id || ''
+  const queryClient = useQueryClient()
 
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null)
   const [selectedTab, setSelectedTab] = useState<OrderTab>(OrderTab.Check)
@@ -214,6 +215,8 @@ export function useOrder(): UseOrderResult {
       if (orderId) {
         localStorage.removeItem(`${ORDER_STORAGE_KEY}${orderId}`)
       }
+      // Обновляем список заказов при выходе
+      queryClient.invalidateQueries({ queryKey: ['orders'] })
       navigate('/table-selection')
       return
     }
@@ -224,6 +227,8 @@ export function useOrder(): UseOrderResult {
       if (orderId) {
         localStorage.removeItem(`${ORDER_STORAGE_KEY}${orderId}`)
       }
+      // Обновляем список заказов при выходе
+      queryClient.invalidateQueries({ queryKey: ['orders'] })
       navigate('/table-selection')
       return
     }
@@ -271,8 +276,10 @@ export function useOrder(): UseOrderResult {
       console.error('Failed to save draft order:', error)
     }
 
+    // Обновляем список заказов после создания черновика
+    queryClient.invalidateQueries({ queryKey: ['orders'] })
     navigate('/table-selection')
-  }, [orderData, orderId, navigate, isUuidOrderId])
+  }, [orderData, orderId, navigate, isUuidOrderId, queryClient])
 
   // Select category
   const handleCategorySelect = useCallback((categoryId: string) => {

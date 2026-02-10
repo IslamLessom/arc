@@ -375,126 +375,176 @@ func (uc *OrderUseCase) GetOrder(ctx context.Context, orderID uuid.UUID, establi
 }
 
 func (uc *OrderUseCase) deductTechCardIngredientsFromStock(ctx context.Context, order *models.Order) error {
-	type ingredientUsage struct {
+	type itemUsage struct {
 		quantity float64
 		unit     string
 	}
 
-	usageByIngredient := make(map[uuid.UUID]ingredientUsage)
+	// Для ингредиентов из тех-карт
+	usageByIngredient := make(map[uuid.UUID]itemUsage)
+	// Для товаров (Products)
+	usageByProduct := make(map[uuid.UUID]itemUsage)
 
-	// Собираем общее количество каждого ингредиента из всех тех-карт
+	// Собираем данные для списания
 	for _, item := range order.Items {
-		if item.TechCardID == nil {
-			continue
+		// Обработка тех-карт - списываем ингредиенты
+		if item.TechCardID != nil {
+			techCard, err := uc.warehouseRepo.GetTechCardByID(ctx, *item.TechCardID)
+			if err != nil {
+				return fmt.Errorf("tech card not found: %w", err)
+			}
+			if techCard == nil {
+				return errors.New("tech card not found")
+			}
+
+			for _, ing := range techCard.Ingredients {
+				qty := ing.Quantity * float64(item.Quantity)
+				if qty == 0 {
+					continue
+				}
+				current := usageByIngredient[ing.IngredientID]
+				unit := current.unit
+				if unit == "" {
+					unit = ing.Unit
+				}
+				usageByIngredient[ing.IngredientID] = itemUsage{
+					quantity: current.quantity + qty,
+					unit:     unit,
+				}
+			}
 		}
 
-		techCard, err := uc.warehouseRepo.GetTechCardByID(ctx, *item.TechCardID)
-		if err != nil {
-			return fmt.Errorf("tech card not found: %w", err)
-		}
-		if techCard == nil {
-			return errors.New("tech card not found")
-		}
-
-		for _, ing := range techCard.Ingredients {
-			qty := ing.Quantity * float64(item.Quantity)
+		// Обработка товаров - списываем сами товары
+		if item.ProductID != nil {
+			qty := float64(item.Quantity)
 			if qty == 0 {
 				continue
 			}
-			current := usageByIngredient[ing.IngredientID]
+			current := usageByProduct[*item.ProductID]
 			unit := current.unit
 			if unit == "" {
-				unit = ing.Unit
+				unit = "шт" // По умолчанию для товаров
 			}
-			usageByIngredient[ing.IngredientID] = ingredientUsage{
+			usageByProduct[*item.ProductID] = itemUsage{
 				quantity: current.quantity + qty,
 				unit:     unit,
 			}
 		}
 	}
 
-	if len(usageByIngredient) == 0 {
+	// Если нечего списывать - выходим
+	if len(usageByIngredient) == 0 && len(usageByProduct) == 0 {
 		return nil
 	}
 
-	// Умное распределение по складам
+	// Списываем ингредиенты из тех-карт
 	for ingredientID, usage := range usageByIngredient {
-		remainingQty := usage.quantity
+		if err := uc.deductItemFromStock(ctx, order, ingredientID, "ingredient", usage.quantity, usage.unit); err != nil {
+			return err
+		}
+	}
 
-		// Получаем все остатки этого ингредиента по всем складам заведения
-		stocks, err := uc.warehouseRepo.GetStockByIngredientID(ctx, ingredientID)
+	// Списываем товары
+	for productID, usage := range usageByProduct {
+		if err := uc.deductItemFromStock(ctx, order, productID, "product", usage.quantity, usage.unit); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// deductItemFromStock списывает ингредиент или товар со складов
+func (uc *OrderUseCase) deductItemFromStock(ctx context.Context, order *models.Order, itemID uuid.UUID, itemType string, quantity float64, unit string) error {
+	remainingQty := quantity
+
+	var stocks []*models.Stock
+	var err error
+
+	// Получаем остатки по типу элемента
+	if itemType == "ingredient" {
+		stocks, err = uc.warehouseRepo.GetStockByIngredientID(ctx, itemID)
+	} else if itemType == "product" {
+		stocks, err = uc.warehouseRepo.GetStockByProductID(ctx, itemID)
+	} else {
+		return fmt.Errorf("unsupported item type: %s", itemType)
+	}
+
+	if err != nil {
+		return fmt.Errorf("failed to get stocks for %s %s: %w", itemType, itemID, err)
+	}
+
+	// Фильтруем только склады этого заведения и сортируем по количеству
+	var establishmentStocks []*models.Stock
+	for _, stock := range stocks {
+		// Проверяем, что склад принадлежит заведению
+		warehouse, err := uc.warehouseRepo.GetWarehouseByID(ctx, stock.WarehouseID, &order.EstablishmentID)
+		if err == nil && warehouse != nil && stock.Quantity > 0 {
+			establishmentStocks = append(establishmentStocks, stock)
+		}
+	}
+
+	// Сортируем по количеству по убыванию (сначала списываем с того, где больше)
+	sortStocksByQuantityDesc(establishmentStocks)
+
+	// Списываем с нескольких складов если нужно
+	for _, stock := range establishmentStocks {
+		if remainingQty <= 0 {
+			break
+		}
+
+		// Определяем сколько списать с этого склада
+		toDeduct := stock.Quantity
+		if toDeduct > remainingQty {
+			toDeduct = remainingQty
+		}
+
+		stock.Quantity -= toDeduct
+		remainingQty -= toDeduct
+
+		if err := uc.warehouseRepo.UpdateStock(ctx, stock); err != nil {
+			return fmt.Errorf("failed to update stock for %s %s: %w", itemType, itemID, err)
+		}
+	}
+
+	// Если не хватило на всех складах - создаем запись на складе по умолчанию с отрицательным остатком
+	if remainingQty > 0.01 {
+		warehouseID, err := uc.getDefaultWarehouseID(ctx, order.EstablishmentID)
 		if err != nil {
-			return fmt.Errorf("failed to get stocks for ingredient %s: %w", ingredientID, err)
+			return fmt.Errorf("failed to get default warehouse: %w", err)
 		}
 
-		// Фильтруем только склады этого заведения и сортируем по количеству ( FIFO - сначала списываем с того, где больше всего)
-		var establishmentStocks []*models.Stock
-		for _, stock := range stocks {
-			// Проверяем, что склад принадлежит заведению
-			warehouse, err := uc.warehouseRepo.GetWarehouseByID(ctx, stock.WarehouseID, &order.EstablishmentID)
-			if err == nil && warehouse != nil && stock.Quantity > 0 {
-				establishmentStocks = append(establishmentStocks, stock)
-			}
+		var stock *models.Stock
+		if itemType == "ingredient" {
+			stock, err = uc.warehouseRepo.GetStockByIngredientAndWarehouse(ctx, itemID, warehouseID)
+		} else if itemType == "product" {
+			stock, err = uc.warehouseRepo.GetStockByProductAndWarehouse(ctx, itemID, warehouseID)
 		}
 
-		// Сортируем по количеству по убыванию (сначала списываем с того, где больше)
-		sortStocksByQuantityDesc(establishmentStocks)
+		if err != nil {
+			return fmt.Errorf("failed to get stock for %s %s: %w", itemType, itemID, err)
+		}
 
-		// Списываем с нескольких складов если нужно
-		for _, stock := range establishmentStocks {
-			if remainingQty <= 0 {
-				break
+		if stock == nil {
+			// Создаем новую запись с отрицательным остатком
+			stock = &models.Stock{
+				WarehouseID: warehouseID,
+				Quantity:    -remainingQty,
+				Unit:        unit,
 			}
-
-			// Определяем сколько списать с этого склада
-			toDeduct := stock.Quantity
-			if toDeduct > remainingQty {
-				toDeduct = remainingQty
+			if itemType == "ingredient" {
+				stock.IngredientID = &itemID
+			} else if itemType == "product" {
+				stock.ProductID = &itemID
 			}
-
-			stock.Quantity -= toDeduct
-			remainingQty -= toDeduct
-
+			if err := uc.warehouseRepo.CreateStock(ctx, stock); err != nil {
+				return fmt.Errorf("failed to create stock for %s %s: %w", itemType, itemID, err)
+			}
+		} else {
+			// Обновляем существующую запись
+			stock.Quantity -= remainingQty
 			if err := uc.warehouseRepo.UpdateStock(ctx, stock); err != nil {
-				return fmt.Errorf("failed to update stock for ingredient %s: %w", ingredientID, err)
-			}
-		}
-
-		// Если не хватило на всех складах - создаем запись на складе по умолчанию с отрицательным остатком
-		if remainingQty > 0.01 {
-			warehouseID, err := uc.getDefaultWarehouseID(ctx, order.EstablishmentID)
-			if err != nil {
-				return fmt.Errorf("failed to get default warehouse: %w", err)
-			}
-
-			// Проверяем, есть ли уже запись для этого ингредиента на складе по умолчанию
-			stock, err := uc.warehouseRepo.GetStockByIngredientAndWarehouse(ctx, ingredientID, warehouseID)
-			if err != nil {
-				return fmt.Errorf("failed to get stock for ingredient %s: %w", ingredientID, err)
-			}
-
-			unit := usage.unit
-			if unit == "" {
-				unit = "шт"
-			}
-
-			if stock == nil {
-				// Создаем новую запись с отрицательным остатком
-				stock = &models.Stock{
-					WarehouseID:  warehouseID,
-					IngredientID: &ingredientID,
-					Quantity:     -remainingQty,
-					Unit:         unit,
-				}
-				if err := uc.warehouseRepo.CreateStock(ctx, stock); err != nil {
-					return fmt.Errorf("failed to create stock for ingredient %s: %w", ingredientID, err)
-				}
-			} else {
-				// Обновляем существующую запись
-				stock.Quantity -= remainingQty
-				if err := uc.warehouseRepo.UpdateStock(ctx, stock); err != nil {
-					return fmt.Errorf("failed to update stock for ingredient %s: %w", ingredientID, err)
-				}
+				return fmt.Errorf("failed to update stock for %s %s: %w", itemType, itemID, err)
 			}
 		}
 	}

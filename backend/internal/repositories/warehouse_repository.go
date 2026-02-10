@@ -30,6 +30,7 @@ type WarehouseRepository interface {
 	GetStockByWarehouseID(ctx context.Context, warehouseID uuid.UUID) ([]*models.Stock, error)
 	GetStockForEstablishment(ctx context.Context, establishmentID uuid.UUID, filter *StockFilter) ([]*models.Stock, error)
 	GetStockByIngredientID(ctx context.Context, ingredientID uuid.UUID) ([]*models.Stock, error)
+	GetStockByProductID(ctx context.Context, productID uuid.UUID) ([]*models.Stock, error)
 	GetStockByIngredientAndWarehouse(ctx context.Context, ingredientID, warehouseID uuid.UUID) (*models.Stock, error)
 	GetStockByProductAndWarehouse(ctx context.Context, productID, warehouseID uuid.UUID) (*models.Stock, error)
 	GetStockByID(ctx context.Context, id uuid.UUID) (*models.Stock, error)
@@ -177,6 +178,15 @@ func (r *warehouseRepository) GetStockByIngredientID(ctx context.Context, ingred
 	err := r.db.WithContext(ctx).
 		Where("ingredient_id = ?", ingredientID).
 		Preload("Ingredient").Preload("Warehouse").
+		Find(&stock).Error
+	return stock, err
+}
+
+func (r *warehouseRepository) GetStockByProductID(ctx context.Context, productID uuid.UUID) ([]*models.Stock, error) {
+	var stock []*models.Stock
+	err := r.db.WithContext(ctx).
+		Where("product_id = ?", productID).
+		Preload("Product").Preload("Warehouse").
 		Find(&stock).Error
 	return stock, err
 }
