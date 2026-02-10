@@ -34,19 +34,21 @@ export const useHallMap = (): UseHallMapResult => {
   const [isAddRoomModalOpen, setIsAddRoomModalOpen] = useState(false)
   const [isAddTableModalOpen, setIsAddTableModalOpen] = useState(false)
 
+  // Загружаем залы
+  const { data: rooms = [], isLoading: isLoadingRooms } = useGetRooms(
+    establishmentId || ''
+  )
+
+  // Автоматически выбираем первый зал при загрузке (только один раз)
+  useEffect(() => {
+    if (rooms.length > 0 && selectedRoomId === null) {
+      setSelectedRoomId(rooms[0].id)
+    }
+  }, [rooms.length]) // Только отслеживаем количество залов, не сам selectedRoomId
+
   // Pass roomId to useGetTables for filtering
   const { data: tables = [], isLoading: isLoadingTables, error: tablesError } = useGetTables(
     selectedRoomId || ''
-  )
-
-  // Автоматически выбираем первый зал при загрузке
-  useEffect(() => {
-    if (rooms.length > 0 && !selectedRoomId) {
-      setSelectedRoomId(rooms[0].id)
-    }
-  }, [rooms, selectedRoomId])
-  const { data: rooms = [], isLoading: isLoadingRooms } = useGetRooms(
-    establishmentId || ''
   )
   const { data: establishments = [], isLoading: isLoadingEstablishments } = useGetEstablishments()
 
