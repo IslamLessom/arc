@@ -299,10 +299,6 @@ func (uc *OrderUseCase) ProcessOrderPayment(ctx context.Context, orderID uuid.UU
 		return nil, fmt.Errorf("failed to deduct stock for order: %w", err)
 	}
 
-	if err := uc.deductTechCardIngredientsFromStock(ctx, order); err != nil {
-		return nil, fmt.Errorf("failed to deduct stock for order: %w", err)
-	}
-
 	return order, nil
 }
 
@@ -386,6 +382,7 @@ func (uc *OrderUseCase) deductTechCardIngredientsFromStock(ctx context.Context, 
 
 	usageByIngredient := make(map[uuid.UUID]ingredientUsage)
 
+	// Собираем общее количество каждого ингредиента из всех тех-карт
 	for _, item := range order.Items {
 		if item.TechCardID == nil {
 			continue
@@ -420,39 +417,100 @@ func (uc *OrderUseCase) deductTechCardIngredientsFromStock(ctx context.Context, 
 		return nil
 	}
 
-	warehouseID, err := uc.getDefaultWarehouseID(ctx, order.EstablishmentID)
-	if err != nil {
-		return err
-	}
-
+	// Умное распределение по складам
 	for ingredientID, usage := range usageByIngredient {
-		stock, err := uc.warehouseRepo.GetStockByIngredientAndWarehouse(ctx, ingredientID, warehouseID)
+		remainingQty := usage.quantity
+
+		// Получаем все остатки этого ингредиента по всем складам заведения
+		stocks, err := uc.warehouseRepo.GetStockByIngredientID(ctx, ingredientID)
 		if err != nil {
-			return err
+			return fmt.Errorf("failed to get stocks for ingredient %s: %w", ingredientID, err)
 		}
-		if stock == nil {
+
+		// Фильтруем только склады этого заведения и сортируем по количеству ( FIFO - сначала списываем с того, где больше всего)
+		var establishmentStocks []*models.Stock
+		for _, stock := range stocks {
+			// Проверяем, что склад принадлежит заведению
+			warehouse, err := uc.warehouseRepo.GetWarehouseByID(ctx, stock.WarehouseID, &order.EstablishmentID)
+			if err == nil && warehouse != nil && stock.Quantity > 0 {
+				establishmentStocks = append(establishmentStocks, stock)
+			}
+		}
+
+		// Сортируем по количеству по убыванию (сначала списываем с того, где больше)
+		sortStocksByQuantityDesc(establishmentStocks)
+
+		// Списываем с нескольких складов если нужно
+		for _, stock := range establishmentStocks {
+			if remainingQty <= 0 {
+				break
+			}
+
+			// Определяем сколько списать с этого склада
+			toDeduct := stock.Quantity
+			if toDeduct > remainingQty {
+				toDeduct = remainingQty
+			}
+
+			stock.Quantity -= toDeduct
+			remainingQty -= toDeduct
+
+			if err := uc.warehouseRepo.UpdateStock(ctx, stock); err != nil {
+				return fmt.Errorf("failed to update stock for ingredient %s: %w", ingredientID, err)
+			}
+		}
+
+		// Если не хватило на всех складах - создаем запись на складе по умолчанию с отрицательным остатком
+		if remainingQty > 0.01 {
+			warehouseID, err := uc.getDefaultWarehouseID(ctx, order.EstablishmentID)
+			if err != nil {
+				return fmt.Errorf("failed to get default warehouse: %w", err)
+			}
+
+			// Проверяем, есть ли уже запись для этого ингредиента на складе по умолчанию
+			stock, err := uc.warehouseRepo.GetStockByIngredientAndWarehouse(ctx, ingredientID, warehouseID)
+			if err != nil {
+				return fmt.Errorf("failed to get stock for ingredient %s: %w", ingredientID, err)
+			}
+
 			unit := usage.unit
 			if unit == "" {
 				unit = "шт"
 			}
-			stock = &models.Stock{
-				WarehouseID:  warehouseID,
-				IngredientID: &ingredientID,
-				Quantity:     0,
-				Unit:         unit,
-			}
-			if err := uc.warehouseRepo.CreateStock(ctx, stock); err != nil {
-				return err
-			}
-		}
 
-		stock.Quantity -= usage.quantity
-		if err := uc.warehouseRepo.UpdateStock(ctx, stock); err != nil {
-			return err
+			if stock == nil {
+				// Создаем новую запись с отрицательным остатком
+				stock = &models.Stock{
+					WarehouseID:  warehouseID,
+					IngredientID: &ingredientID,
+					Quantity:     -remainingQty,
+					Unit:         unit,
+				}
+				if err := uc.warehouseRepo.CreateStock(ctx, stock); err != nil {
+					return fmt.Errorf("failed to create stock for ingredient %s: %w", ingredientID, err)
+				}
+			} else {
+				// Обновляем существующую запись
+				stock.Quantity -= remainingQty
+				if err := uc.warehouseRepo.UpdateStock(ctx, stock); err != nil {
+					return fmt.Errorf("failed to update stock for ingredient %s: %w", ingredientID, err)
+				}
+			}
 		}
 	}
 
 	return nil
+}
+
+// sortStocksByQuantityDesc сортирует стоки по количеству по убыванию
+func sortStocksByQuantityDesc(stocks []*models.Stock) {
+	for i := 0; i < len(stocks)-1; i++ {
+		for j := i + 1; j < len(stocks); j++ {
+			if stocks[i].Quantity < stocks[j].Quantity {
+				stocks[i], stocks[j] = stocks[j], stocks[i]
+			}
+		}
+	}
 }
 
 func (uc *OrderUseCase) getDefaultWarehouseID(ctx context.Context, establishmentID uuid.UUID) (uuid.UUID, error) {
