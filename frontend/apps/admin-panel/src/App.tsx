@@ -44,7 +44,7 @@ export function App() {
   const location = useLocation()
   const currentPath = location.pathname
   const isAuthPage = currentPath === '/auth'
-  const { needsOnboarding, isLoading } = useOnboardingStatus()
+  const { needsOnboarding, isLoading, userData } = useOnboardingStatus()
   const [showOnboardingModal, setShowOnboardingModal] = useState(false)
 
   useEffect(() => {
@@ -65,7 +65,7 @@ export function App() {
         isOpen={showOnboardingModal}
         onClose={() => setShowOnboardingModal(false)}
       />
-      <Sidebar currentPath={currentPath} userName="Maki" />
+      <Sidebar currentPath={currentPath} userName={userData?.name || 'Гость'} />
       <div style={{ marginLeft: '280px' }}>
         <Routes>
           <Route path="/warehouse/balances" element={<Balances />} />
