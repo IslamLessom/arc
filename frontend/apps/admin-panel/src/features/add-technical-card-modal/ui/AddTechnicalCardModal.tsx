@@ -472,10 +472,10 @@ export const AddTechnicalCardModal = (props: AddTechnicalCardModalProps) => {
                             Отмена
                         </Button>
                         <Button
-                            htmlType="submit"
+                            htmlType="button"
                             size={ButtonSize.Large}
                             variant={ButtonVariant.Default}
-                            onClick={handleSubmit}
+                            onClick={(e) => handleSubmit(e)}
                             disabled={!isFormValid || isSubmitting}
                         >
                             {isSubmitting

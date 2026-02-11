@@ -65,7 +65,7 @@ export const useAddProductModal = (props: AddProductModalProps) => {
         is_weighted: existingProduct.is_weighted || false,
         exclude_from_discounts: existingProduct.exclude_from_discounts || false,
         has_modifications: existingProduct.has_modifications || false,
-        cover_image: existingProduct.cover_image || undefined,
+        cover_image: existingProduct.cover_image ? existingProduct.cover_image : undefined,
       })
     }
   }, [existingProduct, props.productId])

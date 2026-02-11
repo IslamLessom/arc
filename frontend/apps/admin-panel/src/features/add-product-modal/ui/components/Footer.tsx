@@ -12,8 +12,8 @@ export const Footer = ({ isFormValid, isSubmitting, handleSubmit, productId }: F
   <Styled.ModalFooter>
     <Styled.FooterActions>
       <Styled.SaveButton
-        type="submit"
-        onClick={handleSubmit}
+        type="button"
+        onClick={(e) => handleSubmit(e)}
         disabled={!isFormValid || isSubmitting}
         $disabled={!isFormValid || isSubmitting}
       >
