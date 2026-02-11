@@ -16,6 +16,8 @@ type Product struct {
 	Category    *Category      `json:"category,omitempty" gorm:"foreignKey:CategoryID"`
 	WorkshopID  *uuid.UUID     `json:"workshop_id,omitempty" gorm:"type:uuid;index"`      // Цех приготовления (может быть null)
 	Workshop    *Workshop      `json:"workshop,omitempty" gorm:"foreignKey:WorkshopID"`
+	WarehouseID    *uuid.UUID     `json:"warehouse_id,omitempty" gorm:"type:uuid;index"`    // Склад хранения товара
+	Warehouse    *Warehouse     `json:"warehouse,omitempty" gorm:"foreignKey:WarehouseID"`
 	Name        string         `json:"name" gorm:"not null"`
 	Description string         `json:"description"`
 	

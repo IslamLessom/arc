@@ -36,7 +36,7 @@ func NewProductRepository(db *gorm.DB) ProductRepository {
 
 func (r *productRepository) GetByID(ctx context.Context, id uuid.UUID, establishmentID *uuid.UUID) (*models.Product, error) {
 	var product models.Product
-	q := r.db.WithContext(ctx)
+	q := r.db.WithContext(ctx).Preload("Warehouse")
 	if establishmentID != nil {
 		q = q.Where("establishment_id = ?", *establishmentID)
 	}
