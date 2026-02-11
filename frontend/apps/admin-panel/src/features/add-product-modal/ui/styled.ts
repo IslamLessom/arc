@@ -190,6 +190,10 @@ export const ModalFooter = styled.div({
   display: 'flex',
   justifyContent: 'flex-end',
   gap: '12px',
+  position: 'sticky',
+  bottom: 0,
+  zIndex: 10,
+  pointerEvents: 'auto',
 })
 
 export const FooterActions = styled.div({

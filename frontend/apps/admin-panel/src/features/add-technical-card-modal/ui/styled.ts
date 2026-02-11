@@ -454,6 +454,7 @@ export const ModalFooter = styled.div({
   position: 'sticky',
   bottom: 0,
   zIndex: 10,
+  pointerEvents: 'auto',
 })
 
 export const FooterActions = styled.div({
