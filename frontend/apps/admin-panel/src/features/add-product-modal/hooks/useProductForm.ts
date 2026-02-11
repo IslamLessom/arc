@@ -1,9 +1,12 @@
-import { useCallback } from 'react'
+import { useCallback, useState } from 'react'
+import { useUploadImage } from '@restaurant-pos/api-client'
 import type { ProductFormProps, UseProductFormResult } from '../model/types'
 import { handleImageUpload } from '../lib/fileUpload'
 
 export const useProductForm = (props: ProductFormProps): UseProductFormResult => {
   const { handleFieldChange } = props
+  const uploadImage = useUploadImage()
+  const [isUploadingImage, setIsUploadingImage] = useState(false)
 
   const handleNameChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -34,13 +37,23 @@ export const useProductForm = (props: ProductFormProps): UseProductFormResult =>
   )
 
   const handleImageFileChange = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      handleImageUpload(e.target.files?.[0], (file) => {
-        // TODO: Handle image upload to backend
-        console.log('Image selected:', file.name)
+    async (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0]
+      if (!file) return
+
+      handleImageUpload(file, async (file) => {
+        setIsUploadingImage(true)
+        try {
+          const imageUrl = await uploadImage.mutateAsync(file)
+          handleFieldChange('cover_image', imageUrl)
+        } catch (error) {
+          console.error('Failed to upload image:', error)
+        } finally {
+          setIsUploadingImage(false)
+        }
       })
     },
-    []
+    [handleFieldChange, uploadImage]
   )
 
   const handleWeightedChange = useCallback(

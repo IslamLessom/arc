@@ -16,6 +16,7 @@ export interface Product {
     id: string
     name: string
   }
+  warehouse_id: string
   workshop_id?: string
   workshop?: {
     id: string

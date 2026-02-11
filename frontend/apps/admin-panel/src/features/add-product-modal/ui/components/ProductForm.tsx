@@ -106,14 +106,27 @@ export const ProductForm = (props: ProductFormProps) => {
     <Styled.FormRow>
       <Styled.RowLabel>{FORM_LABELS.COVER}</Styled.RowLabel>
       <Styled.RowContent>
-        <Styled.CoverImagePlaceholder>
-          <input
-            type="file"
-            accept="image/*"
-            onChange={handleImageFileChange}
-          />
-          <span>{PLACEHOLDERS.UPLOAD_IMAGE}</span>
-        </Styled.CoverImagePlaceholder>
+        {formData.cover_image ? (
+          <Styled.CoverImagePreview>
+            <img src={formData.cover_image} alt="Product cover" />
+            <Styled.RemoveImageButton
+              type="button"
+              onClick={() => props.handleFieldChange('cover_image', '')}
+            >
+              ×
+            </Styled.RemoveImageButton>
+          </Styled.CoverImagePreview>
+        ) : (
+          <Styled.CoverImagePlaceholder>
+            <input
+              type="file"
+              accept="image/*"
+              onChange={handleImageFileChange}
+              disabled={isSubmitting}
+            />
+            <span>{PLACEHOLDERS.UPLOAD_IMAGE}</span>
+          </Styled.CoverImagePlaceholder>
+        )}
       </Styled.RowContent>
     </Styled.FormRow>
 

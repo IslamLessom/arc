@@ -18,6 +18,7 @@ export interface AddProductFormData {
   is_weighted: boolean
   exclude_from_discounts: boolean
   has_modifications: boolean
+  cover_image?: string
 }
 
 export type FieldErrors = {

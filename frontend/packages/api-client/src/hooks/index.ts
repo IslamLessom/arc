@@ -204,6 +204,7 @@ export { useSalaryReport } from './useSalary'
 export type { SalaryEntry, SalaryReport } from './useSalary'
 export { useProfitAndLossReport } from './useProfitAndLoss'
 export type { ProfitAndLossParams } from './useProfitAndLoss'
+export { useUploadImage } from './useUpload'
 
 // Types
 export * from '../types'

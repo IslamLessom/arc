@@ -290,6 +290,41 @@ export const CoverImagePlaceholder = styled.div({
   },
 })
 
+export const CoverImagePreview = styled.div({
+  width: '200px',
+  height: '200px',
+  borderRadius: '8px',
+  overflow: 'hidden',
+  position: 'relative',
+  '& img': {
+    width: '100%',
+    height: '100%',
+    objectFit: 'cover',
+  },
+})
+
+export const RemoveImageButton = styled.button({
+  position: 'absolute',
+  top: '8px',
+  right: '8px',
+  width: '28px',
+  height: '28px',
+  borderRadius: '50%',
+  backgroundColor: 'rgba(0, 0, 0, 0.6)',
+  color: '#ffffff',
+  border: 'none',
+  cursor: 'pointer',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  fontSize: '20px',
+  lineHeight: 1,
+  transition: 'all 0.2s',
+  '&:hover': {
+    backgroundColor: 'rgba(239, 68, 68, 0.9)',
+  },
+})
+
 export const ModificationsGroup = styled.div({
   display: 'flex',
   flexDirection: 'column',

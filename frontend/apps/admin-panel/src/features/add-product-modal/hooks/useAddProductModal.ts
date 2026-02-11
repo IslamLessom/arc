@@ -29,6 +29,7 @@ export const useAddProductModal = (props: AddProductModalProps) => {
     is_weighted: false,
     exclude_from_discounts: false,
     has_modifications: false,
+    cover_image: undefined,
   })
 
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({})
@@ -64,6 +65,7 @@ export const useAddProductModal = (props: AddProductModalProps) => {
         is_weighted: existingProduct.is_weighted || false,
         exclude_from_discounts: existingProduct.exclude_from_discounts || false,
         has_modifications: existingProduct.has_modifications || false,
+        cover_image: existingProduct.cover_image || undefined,
       })
     }
   }, [existingProduct, props.productId])
@@ -84,6 +86,7 @@ export const useAddProductModal = (props: AddProductModalProps) => {
         is_weighted: false,
         exclude_from_discounts: false,
         has_modifications: false,
+        cover_image: undefined,
       })
       setFieldErrors({})
       setError(null)
@@ -207,6 +210,7 @@ export const useAddProductModal = (props: AddProductModalProps) => {
           is_weighted: formData.is_weighted,
           exclude_from_discounts: formData.exclude_from_discounts,
           has_modifications: formData.has_modifications,
+          cover_image: formData.cover_image || undefined,
         }
 
         if (props.productId) {
@@ -235,6 +239,7 @@ export const useAddProductModal = (props: AddProductModalProps) => {
             is_weighted: false,
             exclude_from_discounts: false,
             has_modifications: false,
+            cover_image: undefined,
           })
           setFieldErrors({})
           setError(null)
