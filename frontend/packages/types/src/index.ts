@@ -51,6 +51,7 @@ export interface Product {
   name: string
   description?: string
   coverImage?: string
+  cover_image?: string // API returns snake_case
   isWeighted: boolean
   excludeFromDiscounts: boolean
   hasModifications: boolean
@@ -73,6 +74,7 @@ export interface TechCard {
   name: string
   description?: string
   coverImage?: string
+  cover_image?: string // API returns snake_case
   isWeighted: boolean
   excludeFromDiscounts: boolean
   costPrice: number

@@ -178,6 +178,76 @@ export const CoverPreview = styled.div({
   backgroundColor: '#9ca3af',
 })
 
+export const CoverImagePlaceholder = styled.div({
+  width: '200px',
+  height: '200px',
+  backgroundColor: '#f3f4f6',
+  borderRadius: '8px',
+  display: 'flex',
+  flexDirection: 'column',
+  alignItems: 'center',
+  justifyContent: 'center',
+  color: '#9ca3af',
+  fontSize: '14px',
+  border: 'none',
+  cursor: 'pointer',
+  transition: 'all 0.2s',
+  position: 'relative',
+  overflow: 'hidden',
+  '&:hover': {
+    backgroundColor: '#e5e7eb',
+  },
+  '& input[type="file"]': {
+    position: 'absolute',
+    width: '100%',
+    height: '100%',
+    opacity: 0,
+    cursor: 'pointer',
+    zIndex: 1,
+  },
+  '& span': {
+    pointerEvents: 'none',
+    textAlign: 'center',
+    padding: '0 16px',
+    zIndex: 0,
+  },
+})
+
+export const CoverImagePreview = styled.div({
+  width: '200px',
+  height: '200px',
+  borderRadius: '8px',
+  overflow: 'hidden',
+  position: 'relative',
+  '& img': {
+    width: '100%',
+    height: '100%',
+    objectFit: 'cover',
+  },
+})
+
+export const RemoveImageButton = styled.button({
+  position: 'absolute',
+  top: '8px',
+  right: '8px',
+  width: '28px',
+  height: '28px',
+  borderRadius: '50%',
+  backgroundColor: 'rgba(0, 0, 0, 0.6)',
+  color: '#ffffff',
+  border: 'none',
+  cursor: 'pointer',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  fontSize: '20px',
+  lineHeight: 1,
+  transition: 'all 0.2s',
+  '&:hover': {
+    backgroundColor: 'rgba(239, 68, 68, 0.9)',
+  },
+})
+
 export const OptionsList = styled.div({
   display: 'flex',
   flexDirection: 'column',

@@ -1,15 +1,18 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState, useCallback } from 'react'
 import { useAddTechnicalCardModal } from '../hooks/useAddTechnicalCardModal'
 import type { AddTechnicalCardModalProps } from '../model/types'
 import { Button, Input, ButtonSize, ButtonVariant } from '@restaurant-pos/ui'
 import { Checkbox, Alert, Spin } from 'antd'
-import { useGetCategories } from '@restaurant-pos/api-client'
+import { useGetCategories, useUploadImage } from '@restaurant-pos/api-client'
 import { translateUnit } from '../../../pages/technical-cards/lib/unitTranslator'
+import { handleImageUpload } from '../lib/fileUpload'
 import * as Styled from './styled'
 
 export const AddTechnicalCardModal = (props: AddTechnicalCardModalProps) => {
     const modalRef = useRef<HTMLDivElement>(null)
     const firstFocusableRef = useRef<HTMLInputElement>(null)
+    const uploadImage = useUploadImage()
+    const [isUploadingImage, setIsUploadingImage] = useState(false)
 
     const { data: categories, isLoading: categoriesLoading } = useGetCategories()
 
@@ -31,6 +34,26 @@ export const AddTechnicalCardModal = (props: AddTechnicalCardModalProps) => {
         handleSubmit,
         handleClose,
     } = useAddTechnicalCardModal(props)
+
+    const handleImageFileChange = useCallback(
+        async (e: React.ChangeEvent<HTMLInputElement>) => {
+            const file = e.target.files?.[0]
+            if (!file) return
+
+            handleImageUpload(file, async (file) => {
+                setIsUploadingImage(true)
+                try {
+                    const imageUrl = await uploadImage.mutateAsync(file)
+                    handleFieldChange('cover_image', imageUrl)
+                } catch (error) {
+                    console.error('Failed to upload image:', error)
+                } finally {
+                    setIsUploadingImage(false)
+                }
+            })
+        },
+        [handleFieldChange, uploadImage]
+    )
 
     // Focus trap implementation
     useEffect(() => {
@@ -219,7 +242,28 @@ export const AddTechnicalCardModal = (props: AddTechnicalCardModalProps) => {
                             <Styled.FormRow>
                                 <Styled.RowLabel>Обложка</Styled.RowLabel>
                                 <Styled.RowContent>
-                                    <Styled.CoverPreview />
+                                    {formData.cover_image ? (
+                                        <Styled.CoverImagePreview>
+                                            <img src={formData.cover_image} alt="Technical card cover" />
+                                            <Styled.RemoveImageButton
+                                                type="button"
+                                                onClick={() => handleFieldChange('cover_image', '')}
+                                                disabled={isSubmitting}
+                                            >
+                                                ×
+                                            </Styled.RemoveImageButton>
+                                        </Styled.CoverImagePreview>
+                                    ) : (
+                                        <Styled.CoverImagePlaceholder>
+                                            <input
+                                                type="file"
+                                                accept="image/*"
+                                                onChange={handleImageFileChange}
+                                                disabled={isSubmitting || isUploadingImage}
+                                            />
+                                            <span>{isUploadingImage ? 'Загрузка...' : 'Загрузить изображение'}</span>
+                                        </Styled.CoverImagePlaceholder>
+                                    )}
                                 </Styled.RowContent>
                             </Styled.FormRow>
 
