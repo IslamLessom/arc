@@ -7,10 +7,6 @@ const formatNumber = (num: number) => {
   return num.toLocaleString('ru-RU', { minimumFractionDigits: 0, maximumFractionDigits: 2 })
 }
 
-const formatCurrency = (num: number) => {
-  return num.toLocaleString('ru-RU', { style: 'currency', currency: 'RUB', minimumFractionDigits: 0, maximumFractionDigits: 2 })
-}
-
 export const getEmployeesTableColumns = ({ onEdit }: EmployeesTableProps) => [
   {
     title: '№',
@@ -65,15 +61,6 @@ export const getEmployeesTableColumns = ({ onEdit }: EmployeesTableProps) => [
     width: 80,
     render: (statistics: EmployeeTable['statistics']) => (
       <span>{statistics ? statistics.total_shifts : '-'}</span>
-    )
-  },
-  {
-    title: 'Продажи',
-    dataIndex: 'statistics',
-    key: 'sales',
-    width: 120,
-    render: (statistics: EmployeeTable['statistics']) => (
-      <span>{statistics ? formatCurrency(statistics.total_sales) : '-'}</span>
     )
   },
   {

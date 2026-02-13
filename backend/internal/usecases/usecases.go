@@ -50,7 +50,7 @@ func NewUseCases(repos *repositories.Repositories, cfg *config.Config, logger *z
 	financeUseCase := NewFinanceUseCase(repos.Transaction, repos.Account, repos.Shift, repos.Order)
 	warehouseUseCase := NewWarehouseUseCase(repos.Warehouse, repos.Supplier, financeUseCase)
 	salaryUseCase := NewSalaryUseCase(repos.User, repos.Role, repos.Shift, repos.Order)
-	employeeStatisticsUseCase := NewEmployeeStatisticsUseCase(repos.User, repos.Shift, repos.Order)
+	employeeStatisticsUseCase := NewEmployeeStatisticsUseCase(repos.User, repos.Shift)
 
 	return &UseCases{
 		Auth:                NewAuthUseCase(repos.User, repos.Role, repos.Subscription, repos.Token, repos.Establishment, shiftUseCase, cfg),

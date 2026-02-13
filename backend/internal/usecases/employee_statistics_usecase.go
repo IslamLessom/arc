@@ -15,7 +15,7 @@ type EmployeeStatistics struct {
 	UserID            uuid.UUID `json:"user_id"`
 	UserName          string    `json:"user_name"`
 	TotalHoursWorked  float64   `json:"total_hours_worked"`
-	TotalShifts       int       `json:"total_shifts"`
+	TotalShifts       int        `json:"total_shifts"`
 	TotalSales        float64   `json:"total_sales"`
 	StartDate         time.Time `json:"start_date"`
 	EndDate           time.Time `json:"end_date"`
@@ -24,18 +24,15 @@ type EmployeeStatistics struct {
 type EmployeeStatisticsUseCase struct {
 	userRepo  repositories.UserRepository
 	shiftRepo repositories.ShiftRepository
-	orderRepo repositories.OrderRepository
 }
 
 func NewEmployeeStatisticsUseCase(
 	userRepo repositories.UserRepository,
 	shiftRepo repositories.ShiftRepository,
-	orderRepo repositories.OrderRepository,
 ) *EmployeeStatisticsUseCase {
 	return &EmployeeStatisticsUseCase{
 		userRepo:  userRepo,
 		shiftRepo: shiftRepo,
-		orderRepo: orderRepo,
 	}
 }
 
@@ -51,7 +48,7 @@ func (uc *EmployeeStatisticsUseCase) GetEmployeeStatistics(
 		return nil, fmt.Errorf("failed to get user: %w", err)
 	}
 
-	// Get shifts for the user in the date range
+	// Get shifts for user in date range
 	shifts, err := uc.shiftRepo.GetByUserIDAndDateRange(ctx, userID, establishmentID, startDate, endDate)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get shifts: %w", err)
@@ -66,11 +63,9 @@ func (uc *EmployeeStatisticsUseCase) GetEmployeeStatistics(
 		}
 	}
 
-	// Get total sales for the user
-	totalSales, err := uc.orderRepo.GetTotalSalesByUserIDAndDateRange(ctx, userID, establishmentID, startDate, endDate)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get total sales: %w", err)
-	}
+	// Note: TotalSales is not calculated because orders are not directly linked to users
+	// TODO: Add shift_id to orders table to track sales per employee
+	var totalSales float64 = 0
 
 	return &EmployeeStatistics{
 		UserID:           user.ID,
@@ -89,7 +84,7 @@ func (uc *EmployeeStatisticsUseCase) GetAllEmployeesStatistics(
 	establishmentID uuid.UUID,
 	startDate, endDate time.Time,
 ) ([]EmployeeStatistics, error) {
-	// Get all users for the establishment
+	// Get all users for establishment
 	users, err := uc.userRepo.GetAllByEstablishmentID(ctx, establishmentID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get users: %w", err)
