@@ -9,15 +9,18 @@ export const useEmployees = () => {
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [editingEmployeeId, setEditingEmployeeId] = useState<string | null>(null)
 
-  // Get current month start and end dates for statistics
-  const now = new Date()
-  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString()
-  const endOfMonth = now.toISOString()
+  // Get current month start and end dates for statistics (memoized to prevent refetches)
+  const dateRange = useMemo(() => {
+    const now = new Date()
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString()
+    const endOfMonth = now.toISOString()
+    return { startOfMonth, endOfMonth }
+  }, []) // Empty deps - dates computed once on mount
 
   const { data: apiEmployees = [], isLoading, error } = useGetEmployees()
   const { data: statistics = [] } = useAllEmployeeStatistics({
-    startDate: startOfMonth,
-    endDate: endOfMonth,
+    startDate: dateRange.startOfMonth,
+    endDate: dateRange.endOfMonth,
     enabled: !isLoading && apiEmployees.length > 0,
   })
 

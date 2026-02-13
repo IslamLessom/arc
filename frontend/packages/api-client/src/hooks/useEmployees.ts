@@ -53,6 +53,10 @@ export function useGetEmployees() {
       )
       return response.data.data
     },
+    staleTime: 5 * 60 * 1000, // 5 минут
+    gcTime: 30 * 60 * 1000, // 30 минут
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
   })
 }
 

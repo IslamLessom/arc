@@ -74,7 +74,10 @@ export function useAllEmployeeStatistics({
       return response.data.data
     },
     enabled,
-    staleTime: 5 * 60 * 1000, // 5 минут
-    gcTime: 10 * 60 * 1000, // 10 минут
+    staleTime: 10 * 60 * 1000, // 10 минут - данные актуальны
+    gcTime: 30 * 60 * 1000, // 30 минут - храним в кэше
+    refetchOnWindowFocus: false, // Не обновлять при фокусе окна
+    refetchOnReconnect: false, // Не обновлять при реконекте
+    refetchOnMount: false, // Не обновлять при монтировании если данные свежие
   })
 }
