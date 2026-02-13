@@ -39,6 +39,11 @@ import { Invoices } from './pages/invoices'
 import { FinanceCategories } from './pages/finance-categories'
 import { ProfitAndLoss } from './pages/profit-and-loss'
 import { HallMap } from './pages/hall-map'
+import { Customers } from './pages/marketing-customers'
+import { CustomerGroups } from './pages/marketing-customer-groups'
+import { LoyaltyPrograms } from './pages/marketing-loyalty-programs'
+import { Exclusions } from './pages/marketing-exclusions'
+import { Promotions } from './pages/marketing-promotions'
 
 export function App() {
   const location = useLocation()
@@ -104,6 +109,11 @@ export function App() {
           <Route path="/finance/invoices" element={<Invoices />} />
           <Route path="/finance/categories" element={<FinanceCategories />} />
           <Route path="/finance/profit-and-loss" element={<ProfitAndLoss />} />
+          <Route path="/marketing/customers" element={<Customers />} />
+          <Route path="/marketing/customer-groups" element={<CustomerGroups />} />
+          <Route path="/marketing/loyalty-programs" element={<LoyaltyPrograms />} />
+          <Route path="/marketing/exclusions" element={<Exclusions />} />
+          <Route path="/marketing/promotions" element={<Promotions />} />
           <Route path="/settings/tables" element={<HallMap />} />
           <Route path="/" element={<Home />} />
           <Route path="*" element={<NotFound />} />

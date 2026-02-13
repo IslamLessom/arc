@@ -171,6 +171,8 @@ export {
 export type { ApiShift, ShiftSession, EndShiftRequest, StartShiftRequest, StartShiftResponse, ActiveShiftResponse, ActiveShiftErrorResponse, GetShiftsFilter } from './useShifts'
 export { useLogout } from './useLogout'
 export type { LogoutResponse } from './useLogout'
+export { useRefreshToken } from './useRefreshToken'
+export type { RefreshTokenRequest, RefreshTokenResponse } from './useRefreshToken'
 export {
   useGetTables,
   useGetTable,

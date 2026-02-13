@@ -5,6 +5,12 @@ export enum MenuItemId {
   Menu = 'menu',
   Warehouse = 'warehouse',
   Marketing = 'marketing',
+  // Marketing sub-items
+  MarketingCustomers = 'marketing-customers',
+  MarketingCustomerGroups = 'marketing-customer-groups',
+  MarketingLoyaltyPrograms = 'marketing-loyalty-programs',
+  MarketingExclusions = 'marketing-exclusions',
+  MarketingPromotions = 'marketing-promotions',
   Access = 'access',
   AllApplications = 'all-applications',
   Settings = 'settings',

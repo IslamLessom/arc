@@ -189,6 +189,38 @@ export const menuItems: MenuItem[] = [
     label: 'Маркетинг',
     icon: '📢',
     path: '/marketing',
+    children: [
+      {
+        id: MenuItemId.MarketingCustomers,
+        label: 'Клиенты',
+        icon: '👥',
+        path: '/marketing/customers',
+      },
+      {
+        id: MenuItemId.MarketingCustomerGroups,
+        label: 'Группы клиентов',
+        icon: '👤',
+        path: '/marketing/customer-groups',
+      },
+      {
+        id: MenuItemId.MarketingLoyaltyPrograms,
+        label: 'Программы лояльности',
+        icon: '🎁',
+        path: '/marketing/loyalty-programs',
+      },
+      {
+        id: MenuItemId.MarketingExclusions,
+        label: 'Исключения',
+        icon: '🚫',
+        path: '/marketing/exclusions',
+      },
+      {
+        id: MenuItemId.MarketingPromotions,
+        label: 'Акции',
+        icon: '🎉',
+        path: '/marketing/promotions',
+      },
+    ],
   },
   {
     id: MenuItemId.Access,
@@ -275,6 +307,11 @@ export const PATH_PATTERNS: Array<[string, MenuItemId]> = [
   ['/warehouse/warehouses', MenuItemId.WarehouseWarehouses],
   ['/warehouse/packaging', MenuItemId.WarehousePackaging],
   ['/marketing', MenuItemId.Marketing],
+  ['/marketing/customers', MenuItemId.MarketingCustomers],
+  ['/marketing/customer-groups', MenuItemId.MarketingCustomerGroups],
+  ['/marketing/loyalty-programs', MenuItemId.MarketingLoyaltyPrograms],
+  ['/marketing/exclusions', MenuItemId.MarketingExclusions],
+  ['/marketing/promotions', MenuItemId.MarketingPromotions],
   ['/access', MenuItemId.Access],
   ['/access/employees', MenuItemId.AccessEmployees],
   ['/access/positions', MenuItemId.AccessPositions],
@@ -329,4 +366,12 @@ export const FINANCE_SUB_ITEMS = [
 
 export const SETTINGS_SUB_ITEMS = [
   MenuItemId.SettingsTables,
+] as const;
+
+export const MARKETING_SUB_ITEMS = [
+  MenuItemId.MarketingCustomers,
+  MenuItemId.MarketingCustomerGroups,
+  MenuItemId.MarketingLoyaltyPrograms,
+  MenuItemId.MarketingExclusions,
+  MenuItemId.MarketingPromotions,
 ] as const;
