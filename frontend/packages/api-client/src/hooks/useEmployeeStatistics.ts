@@ -51,6 +51,8 @@ export function useEmployeeStatistics({
       return response.data.data
     },
     enabled: enabled && !!userId,
+    staleTime: 5 * 60 * 1000, // 5 минут
+    gcTime: 10 * 60 * 1000, // 10 минут
   })
 }
 
@@ -72,5 +74,7 @@ export function useAllEmployeeStatistics({
       return response.data.data
     },
     enabled,
+    staleTime: 5 * 60 * 1000, // 5 минут
+    gcTime: 10 * 60 * 1000, // 10 минут
   })
 }
