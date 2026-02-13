@@ -202,6 +202,8 @@ export type {
 } from './useEstablishments'
 export { useSalaryReport } from './useSalary'
 export type { SalaryEntry, SalaryReport } from './useSalary'
+export { useEmployeeStatistics, useAllEmployeeStatistics } from './useEmployeeStatistics'
+export type { EmployeeStatistics } from './useEmployeeStatistics'
 export { useProfitAndLossReport } from './useProfitAndLoss'
 export type { ProfitAndLossParams } from './useProfitAndLoss'
 export { useUploadImage } from './useUpload'

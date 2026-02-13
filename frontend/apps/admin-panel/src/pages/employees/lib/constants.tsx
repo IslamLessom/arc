@@ -3,6 +3,14 @@ import { EmployeesTableProps } from '../model/types'
 import { EditButton } from '@restaurant-pos/ui'
 import { getRoleName } from '../../../features/add-employee-modal/lib/roleMap'
 
+const formatNumber = (num: number) => {
+  return num.toLocaleString('ru-RU', { minimumFractionDigits: 0, maximumFractionDigits: 2 })
+}
+
+const formatCurrency = (num: number) => {
+  return num.toLocaleString('ru-RU', { style: 'currency', currency: 'RUB', minimumFractionDigits: 0, maximumFractionDigits: 2 })
+}
+
 export const getEmployeesTableColumns = ({ onEdit }: EmployeesTableProps) => [
   {
     title: '№',
@@ -40,6 +48,33 @@ export const getEmployeesTableColumns = ({ onEdit }: EmployeesTableProps) => [
     dataIndex: 'role',
     key: 'role',
     render: (role: EmployeeTable['role']) => <span>{role?.name ? getRoleName(role.name) : '-'}</span>
+  },
+  {
+    title: 'Часы',
+    dataIndex: 'statistics',
+    key: 'hours',
+    width: 80,
+    render: (statistics: EmployeeTable['statistics']) => (
+      <span>{statistics ? formatNumber(statistics.total_hours_worked) : '-'}</span>
+    )
+  },
+  {
+    title: 'Смены',
+    dataIndex: 'statistics',
+    key: 'shifts',
+    width: 80,
+    render: (statistics: EmployeeTable['statistics']) => (
+      <span>{statistics ? statistics.total_shifts : '-'}</span>
+    )
+  },
+  {
+    title: 'Продажи',
+    dataIndex: 'statistics',
+    key: 'sales',
+    width: 120,
+    render: (statistics: EmployeeTable['statistics']) => (
+      <span>{statistics ? formatCurrency(statistics.total_sales) : '-'}</span>
+    )
   },
   {
     title: 'Ред.',

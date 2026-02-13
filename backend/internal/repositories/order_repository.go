@@ -19,6 +19,7 @@ type OrderRepository interface {
 	CreateOrderItem(ctx context.Context, item *models.OrderItem) error
 	UpdateOrderItem(ctx context.Context, item *models.OrderItem) error
 	ListByShiftIDAndEstablishmentIDAndDateRange(ctx context.Context, shiftID, establishmentID uuid.UUID, startDate, endDate time.Time) ([]*models.Order, error)
+	GetTotalSalesByUserIDAndDateRange(ctx context.Context, userID, establishmentID uuid.UUID, startDate, endDate time.Time) (float64, error)
 }
 
 type orderRepository struct {
@@ -88,4 +89,21 @@ func (r *orderRepository) ListByShiftIDAndEstablishmentIDAndDateRange(ctx contex
 
 	err := query.Find(&orders).Error
 	return orders, err
+}
+
+func (r *orderRepository) GetTotalSalesByUserIDAndDateRange(ctx context.Context, userID, establishmentID uuid.UUID, startDate, endDate time.Time) (float64, error) {
+	var total float64
+	query := r.db.WithContext(ctx).Model(&models.Order{}).
+		Select("COALESCE(SUM(total_amount), 0)").
+		Where("establishment_id = ? AND created_by_id = ?", establishmentID, userID)
+
+	if !startDate.IsZero() {
+		query = query.Where("created_at >= ?", startDate)
+	}
+	if !endDate.IsZero() {
+		query = query.Where("created_at <= ?", endDate)
+	}
+
+	err := query.Scan(&total).Error
+	return total, err
 }

@@ -23,6 +23,7 @@ type ShiftRepository interface {
 	ListByFilter(ctx context.Context, filter *ShiftFilter) ([]*models.Shift, error)
 	Create(ctx context.Context, shift *models.Shift) error
 	Update(ctx context.Context, shift *models.Shift) error
+	GetByUserIDAndDateRange(ctx context.Context, userID, establishmentID uuid.UUID, startDate, endDate time.Time) ([]*models.Shift, error)
 }
 
 type shiftRepository struct {
@@ -85,6 +86,21 @@ func (r *shiftRepository) ListByFilter(ctx context.Context, filter *ShiftFilter)
 		if filter.EndDate != nil {
 			query = query.Where("end_time <= ? OR end_time IS NULL", *filter.EndDate)
 		}
+	}
+
+	err := query.Order("start_time DESC").Find(&shifts).Error
+	return shifts, err
+}
+
+func (r *shiftRepository) GetByUserIDAndDateRange(ctx context.Context, userID, establishmentID uuid.UUID, startDate, endDate time.Time) ([]*models.Shift, error) {
+	var shifts []*models.Shift
+	query := r.db.WithContext(ctx).Where("user_id = ? AND establishment_id = ?", userID, establishmentID)
+
+	if !startDate.IsZero() {
+		query = query.Where("start_time >= ?", startDate)
+	}
+	if !endDate.IsZero() {
+		query = query.Where("start_time <= ?", endDate)
 	}
 
 	err := query.Order("start_time DESC").Find(&shifts).Error

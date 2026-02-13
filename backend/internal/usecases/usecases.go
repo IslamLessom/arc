@@ -12,24 +12,25 @@ import (
 
 // UseCases содержит все use cases приложения
 type UseCases struct {
-	Auth         *AuthUseCase
-	Establishment *EstablishmentUseCase
-	Room         *RoomUseCase
-	Menu         *MenuUseCase
-	Warehouse    *WarehouseUseCase
-	Workshop     *WorkshopUseCase
-	Finance      *FinanceUseCase
-	Statistics   *StatisticsUseCase
-	Order        *OrderUseCase
-	Shift        *ShiftUseCase
-	Onboarding   *OnboardingUseCase
-	Account      *AccountUseCase
-	Table        *TableUseCase
-	User         *UserUseCase
-	Role         *RoleUseCase // Добавлен новый UseCase для управления ролями
-	Inventory    *InventoryUseCase
-	Salary       *SalaryUseCase
-	Storage      *storage.MinIOClient
+	Auth                  *AuthUseCase
+	Establishment         *EstablishmentUseCase
+	Room                  *RoomUseCase
+	Menu                  *MenuUseCase
+	Warehouse             *WarehouseUseCase
+	Workshop              *WorkshopUseCase
+	Finance               *FinanceUseCase
+	Statistics            *StatisticsUseCase
+	Order                 *OrderUseCase
+	Shift                 *ShiftUseCase
+	Onboarding            *OnboardingUseCase
+	Account               *AccountUseCase
+	Table                 *TableUseCase
+	User                  *UserUseCase
+	Role                  *RoleUseCase // Добавлен новый UseCase для управления ролями
+	Inventory             *InventoryUseCase
+	Salary                *SalaryUseCase
+	EmployeeStatistics     *EmployeeStatisticsUseCase
+	Storage               *storage.MinIOClient
 }
 
 // NewUseCases создает все use cases
@@ -49,25 +50,27 @@ func NewUseCases(repos *repositories.Repositories, cfg *config.Config, logger *z
 	financeUseCase := NewFinanceUseCase(repos.Transaction, repos.Account, repos.Shift, repos.Order)
 	warehouseUseCase := NewWarehouseUseCase(repos.Warehouse, repos.Supplier, financeUseCase)
 	salaryUseCase := NewSalaryUseCase(repos.User, repos.Role, repos.Shift, repos.Order)
+	employeeStatisticsUseCase := NewEmployeeStatisticsUseCase(repos.User, repos.Shift, repos.Order)
 
 	return &UseCases{
-		Auth:         NewAuthUseCase(repos.User, repos.Role, repos.Subscription, repos.Token, repos.Establishment, shiftUseCase, cfg),
-		Establishment: NewEstablishmentUseCase(repos.Establishment, repos.Table, repos.Room),
-		Room:         NewRoomUseCase(repos.Room),
-		Menu:         NewMenuUseCase(repos.Product, repos.TechCard, repos.SemiFinished, repos.Ingredient, repos.Category, repos.IngredientCategory, repos.Warehouse),
-		Warehouse:    warehouseUseCase,
-		Workshop:     NewWorkshopUseCase(repos.Workshop),
-		Finance:      financeUseCase,
-		Statistics:   NewStatisticsUseCase(repos.Order),
-		Order:        NewOrderUseCase(repos.Order, repos.Warehouse, repos.Transaction, accountUseCase),
-		Shift:        shiftUseCase,
-		Onboarding:   NewOnboardingUseCase(repos.Onboarding, repos.Establishment, repos.Table, repos.Room, repos.User, accountUseCase),
-		Account:      accountUseCase,
-		Table:        NewTableUseCase(repos.Table),
-		User:         userUseCase,
-		Role:         roleUseCase,
-		Inventory:    inventoryUseCase,
-		Salary:       salaryUseCase,
-		Storage:      storageClient,
+		Auth:                NewAuthUseCase(repos.User, repos.Role, repos.Subscription, repos.Token, repos.Establishment, shiftUseCase, cfg),
+		Establishment:        NewEstablishmentUseCase(repos.Establishment, repos.Table, repos.Room),
+		Room:                NewRoomUseCase(repos.Room),
+		Menu:                NewMenuUseCase(repos.Product, repos.TechCard, repos.SemiFinished, repos.Ingredient, repos.Category, repos.IngredientCategory, repos.Warehouse),
+		Warehouse:           warehouseUseCase,
+		Workshop:            NewWorkshopUseCase(repos.Workshop),
+		Finance:             financeUseCase,
+		Statistics:          NewStatisticsUseCase(repos.Order),
+		Order:               NewOrderUseCase(repos.Order, repos.Warehouse, repos.Transaction, accountUseCase),
+		Shift:               shiftUseCase,
+		Onboarding:          NewOnboardingUseCase(repos.Onboarding, repos.Establishment, repos.Table, repos.Room, repos.User, accountUseCase),
+		Account:             accountUseCase,
+		Table:               NewTableUseCase(repos.Table),
+		User:                userUseCase,
+		Role:                roleUseCase,
+		Inventory:           inventoryUseCase,
+		Salary:              salaryUseCase,
+		EmployeeStatistics:   employeeStatisticsUseCase,
+		Storage:             storageClient,
 	}, nil
 }

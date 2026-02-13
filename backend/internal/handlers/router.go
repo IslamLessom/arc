@@ -69,7 +69,7 @@ func NewRouter(usecases *usecases.UseCases, cfg *config.Config, logger *zap.Logg
 			// Upload routes (для загрузки изображений)
 			uploadHandler := NewUploadHandler(usecases.Storage, logger)
 			shiftHandler := NewShiftHandler(usecases.Shift, logger)
-			userHandler := NewUserHandler(usecases.User, logger)
+			userHandler := NewUserHandler(usecases.User, usecases.EmployeeStatistics, logger)
 			roleHandler := NewRoleHandler(usecases.Role, logger)
 			upload := protected.Group("/upload")
 			{
@@ -95,6 +95,8 @@ func NewRouter(usecases *usecases.UseCases, cfg *config.Config, logger *zap.Logg
 				users.GET("/:id", userHandler.GetEmployee)
 				users.PUT("/:id", userHandler.UpdateEmployee)
 				users.DELETE("/:id", userHandler.DeleteEmployee)
+				users.GET("/:id/statistics", userHandler.GetEmployeeStatistics)
+				users.GET("/statistics", userHandler.GetAllEmployeesStatistics)
 			}
 
 			// Access routes (алиас для users, для фронтенда)
@@ -108,6 +110,8 @@ func NewRouter(usecases *usecases.UseCases, cfg *config.Config, logger *zap.Logg
 					employees.GET("/:id", userHandler.GetEmployee)
 					employees.PUT("/:id", userHandler.UpdateEmployee)
 					employees.DELETE("/:id", userHandler.DeleteEmployee)
+					employees.GET("/:id/statistics", userHandler.GetEmployeeStatistics)
+					employees.GET("/statistics", userHandler.GetAllEmployeesStatistics)
 				}
 
 				// Positions routes (алиас для roles, используется фронтендом как "должности")

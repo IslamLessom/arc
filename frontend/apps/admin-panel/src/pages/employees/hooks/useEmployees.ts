@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react'
-import { useGetEmployees } from '@restaurant-pos/api-client'
+import { useGetEmployees, useAllEmployeeStatistics } from '@restaurant-pos/api-client'
 import { EmployeeTable, EmployeesSort } from '../model/types'
 import { SortDirection } from '../model/enums'
 
@@ -9,17 +9,34 @@ export const useEmployees = () => {
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [editingEmployeeId, setEditingEmployeeId] = useState<string | null>(null)
 
+  // Get current month start and end dates for statistics
+  const now = new Date()
+  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString()
+  const endOfMonth = now.toISOString()
+
   const { data: apiEmployees = [], isLoading, error } = useGetEmployees()
+  const { data: statistics = [] } = useAllEmployeeStatistics({
+    startDate: startOfMonth,
+    endDate: endOfMonth,
+    enabled: !isLoading && apiEmployees.length > 0,
+  })
 
   const employees = useMemo(() => {
     if (!apiEmployees) return []
     return apiEmployees.map((employee): EmployeeTable => {
+      // Find statistics for this employee
+      const empStats = statistics.find(s => s.user_id === employee.id)
       return {
         ...employee,
         number: 0,
+        statistics: empStats ? {
+          total_hours_worked: empStats.total_hours_worked,
+          total_shifts: empStats.total_shifts,
+          total_sales: empStats.total_sales,
+        } : undefined,
       }
     })
-  }, [apiEmployees])
+  }, [apiEmployees, statistics])
 
   const filteredAndSortedEmployees = useMemo(() => {
     if (!employees || employees.length === 0) return []

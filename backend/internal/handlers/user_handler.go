@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"net/http"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -12,14 +13,16 @@ import (
 )
 
 type UserHandler struct {
-	usecase *usecases.UserUseCase
-	logger  *zap.Logger
+	usecase                *usecases.UserUseCase
+	employeeStatisticsUsecase *usecases.EmployeeStatisticsUseCase
+	logger                 *zap.Logger
 }
 
-func NewUserHandler(usecase *usecases.UserUseCase, logger *zap.Logger) *UserHandler {
+func NewUserHandler(usecase *usecases.UserUseCase, employeeStatisticsUsecase *usecases.EmployeeStatisticsUseCase, logger *zap.Logger) *UserHandler {
 	return &UserHandler{
-		usecase: usecase,
-		logger:  logger,
+		usecase:                usecase,
+		employeeStatisticsUsecase: employeeStatisticsUsecase,
+		logger:                 logger,
 	}
 }
 
@@ -235,4 +238,104 @@ func (h *UserHandler) DeleteEmployee(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "Сотрудник успешно удален"})
+}
+
+// GetEmployeeStatistics returns statistics for a specific employee
+// @Summary Получить статистику сотрудника
+// @Description Возвращает статистику работы сотрудника за указанный период
+// @Tags users
+// @Produce json
+// @Security Bearer
+// @Param id path string true "ID сотрудника"
+// @Param start_date query string false "Начальная дата (ISO 8601)"
+// @Param end_date query string false "Конечная дата (ISO 8601)"
+// @Success 200 {object} usecases.EmployeeStatistics
+// @Failure 400 {object} map[string]string
+// @Failure 403 {object} map[string]string
+// @Failure 500 {object} map[string]string
+// @Router /users/{id}/statistics [get]
+func (h *UserHandler) GetEmployeeStatistics(c *gin.Context) {
+	estID, err := getEstablishmentID(c)
+	if err != nil {
+		c.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
+		return
+	}
+
+	userID, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Неверный ID сотрудника"})
+		return
+	}
+
+	// Parse dates from query parameters, default to current month
+	now := time.Now()
+	startDate := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, time.UTC)
+	endDate := now
+
+	if startStr := c.Query("start_date"); startStr != "" {
+		if parsed, err := time.Parse(time.RFC3339, startStr); err == nil {
+			startDate = parsed
+		}
+	}
+
+	if endStr := c.Query("end_date"); endStr != "" {
+		if parsed, err := time.Parse(time.RFC3339, endStr); err == nil {
+			endDate = parsed
+		}
+	}
+
+	stats, err := h.employeeStatisticsUsecase.GetEmployeeStatistics(c.Request.Context(), userID, estID, startDate, endDate)
+	if err != nil {
+		h.logger.Error("Failed to get employee statistics", zap.Error(err))
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"data": stats})
+}
+
+// GetAllEmployeesStatistics returns statistics for all employees
+// @Summary Получить статистику всех сотрудников
+// @Description Возвращает статистику работы всех сотрудников за указанный период
+// @Tags users
+// @Produce json
+// @Security Bearer
+// @Param start_date query string false "Начальная дата (ISO 8601)"
+// @Param end_date query string false "Конечная дата (ISO 8601)"
+// @Success 200 {array} usecases.EmployeeStatistics
+// @Failure 403 {object} map[string]string
+// @Failure 500 {object} map[string]string
+// @Router /users/statistics [get]
+func (h *UserHandler) GetAllEmployeesStatistics(c *gin.Context) {
+	estID, err := getEstablishmentID(c)
+	if err != nil {
+		c.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Parse dates from query parameters, default to current month
+	now := time.Now()
+	startDate := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, time.UTC)
+	endDate := now
+
+	if startStr := c.Query("start_date"); startStr != "" {
+		if parsed, err := time.Parse(time.RFC3339, startStr); err == nil {
+			startDate = parsed
+		}
+	}
+
+	if endStr := c.Query("end_date"); endStr != "" {
+		if parsed, err := time.Parse(time.RFC3339, endStr); err == nil {
+			endDate = parsed
+		}
+	}
+
+	stats, err := h.employeeStatisticsUsecase.GetAllEmployeesStatistics(c.Request.Context(), estID, startDate, endDate)
+	if err != nil {
+		h.logger.Error("Failed to get all employees statistics", zap.Error(err))
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"data": stats})
 }

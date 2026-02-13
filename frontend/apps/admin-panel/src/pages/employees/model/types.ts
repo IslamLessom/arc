@@ -17,8 +17,15 @@ export interface Employee {
   updated_at: string
 }
 
+export interface EmployeeStatistics {
+  total_hours_worked: number
+  total_shifts: number
+  total_sales: number
+}
+
 export interface EmployeeTable extends Employee {
   number: number
+  statistics?: EmployeeStatistics
 }
 
 export interface EmployeesSort {
