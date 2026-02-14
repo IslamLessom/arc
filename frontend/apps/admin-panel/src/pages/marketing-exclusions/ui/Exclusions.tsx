@@ -87,8 +87,10 @@ export const Exclusions = () => {
         <Table
           columns={columns}
           dataSource={exclusions}
-          onRowClick={(record: ExclusionTable) => handleEdit(record.id)}
-          emptyMessage="Нет исключений"
+          rowKey="id"
+          onRow={(record: ExclusionTable) => ({
+            onClick: () => handleEdit(record.id)
+          })}
         />
       </Styled.TableContainer>
 

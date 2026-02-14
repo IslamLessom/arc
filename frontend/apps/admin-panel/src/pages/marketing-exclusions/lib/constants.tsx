@@ -3,6 +3,7 @@ import { ExclusionsTableProps } from '../model/types'
 import { ExclusionType } from '../model/enums'
 import { EditButton } from '@restaurant-pos/ui'
 import { TypeBadge, StatusBadge } from '../ui/styled'
+import { TableAlign } from '@restaurant-pos/ui'
 
 const getTypeLabel = (type: string) => {
   switch (type) {
@@ -65,7 +66,7 @@ export const getExclusionsTableColumns = ({ onEdit }: ExclusionsTableProps) => [
     title: 'Ред.',
     dataIndex: 'edit',
     key: 'edit',
-    align: 'center' as const,
+    align: TableAlign.Center,
     width: 80,
     render: (_: unknown, record: ExclusionTable) => (
       <EditButton onClick={() => onEdit(record.id)} />
