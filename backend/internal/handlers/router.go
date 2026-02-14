@@ -363,7 +363,60 @@ func NewRouter(usecases *usecases.UseCases, cfg *config.Config, logger *zap.Logg
 				orders.POST("/:order_id/close-without-payment", orderHandler.CloseOrderWithoutPayment)
 			}
 		}
-	}
+		}
+		// Marketing
+		marketingHandler := NewMarketingHandler(usecases.Marketing, logger)
+		marketing := protected.Group("/marketing")
+		marketing.Use(middleware.RequireEstablishment(usecases.Auth))
+		{
+			// Clients
+			clients := marketing.Group("/clients")
+			{
+				clients.GET("", marketingHandler.ListClients)
+				clients.POST("", marketingHandler.CreateClient)
+				clients.GET("/:id", marketingHandler.GetClient)
+				clients.PUT("/:id", marketingHandler.UpdateClient)
+				clients.DELETE("/:id", marketingHandler.DeleteClient)
+				clients.POST("/:id/loyalty/add", marketingHandler.AddClientLoyaltyPoints)
+				clients.POST("/:id/loyalty/redeem", marketingHandler.RedeemClientLoyaltyPoints)
+			}
+			// Client Groups
+			clientGroups := marketing.Group("/customer-groups")
+			{
+				clientGroups.GET("", marketingHandler.ListClientGroups)
+				clientGroups.POST("", marketingHandler.CreateClientGroup)
+				clientGroups.GET("/:id", marketingHandler.GetClientGroup)
+				clientGroups.PUT("/:id", marketingHandler.UpdateClientGroup)
+				clientGroups.DELETE("/:id", marketingHandler.DeleteClientGroup)
+			}
+			// Loyalty Programs
+			loyaltyPrograms := marketing.Group("/loyalty-programs")
+			{
+				loyaltyPrograms.GET("", marketingHandler.ListLoyaltyPrograms)
+				loyaltyPrograms.POST("", marketingHandler.CreateLoyaltyProgram)
+				loyaltyPrograms.GET("/:id", marketingHandler.GetLoyaltyProgram)
+				loyaltyPrograms.PUT("/:id", marketingHandler.UpdateLoyaltyProgram)
+				loyaltyPrograms.DELETE("/:id", marketingHandler.DeleteLoyaltyProgram)
+			}
+			// Promotions
+			promotions := marketing.Group("/promotions")
+			{
+				promotions.GET("", marketingHandler.ListPromotions)
+				promotions.POST("", marketingHandler.CreatePromotion)
+				promotions.GET("/:id", marketingHandler.GetPromotion)
+				promotions.PUT("/:id", marketingHandler.UpdatePromotion)
+				promotions.DELETE("/:id", marketingHandler.DeletePromotion)
+			}
+			// Exclusions
+			exclusions := marketing.Group("/exclusions")
+			{
+				exclusions.GET("", marketingHandler.ListExclusions)
+				exclusions.POST("", marketingHandler.CreateExclusion)
+				exclusions.GET("/:id", marketingHandler.GetExclusion)
+				exclusions.PUT("/:id", marketingHandler.UpdateExclusion)
+				exclusions.DELETE("/:id", marketingHandler.DeleteExclusion)
+			}
+		}
 
 	return router
 }

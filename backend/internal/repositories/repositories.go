@@ -30,6 +30,12 @@ type Repositories struct {
 	Account      AccountRepository
 	AccountType  AccountTypeRepository
 	Inventory    InventoryRepository
+	// Marketing repositories
+	Client             ClientRepository
+	ClientGroup         ClientGroupRepository
+	LoyaltyProgram      LoyaltyProgramRepository
+	Promotion           PromotionRepository
+	Exclusion           ExclusionRepository
 }
 
 // NewRepositories создает все репозитории
@@ -59,6 +65,11 @@ func NewRepositories(db *gorm.DB) *Repositories {
 		Account:      NewAccountRepository(db),
 		AccountType:  NewAccountTypeRepository(db),
 		Inventory:    NewInventoryRepository(db),
+		Client:             NewClientRepository(db),
+		ClientGroup:         NewClientGroupRepository(db),
+		LoyaltyProgram:      NewLoyaltyProgramRepository(db),
+		Promotion:           NewPromotionRepository(db),
+		Exclusion:           NewExclusionRepository(db),
 	}
 }
 

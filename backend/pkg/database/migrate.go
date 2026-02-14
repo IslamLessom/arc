@@ -208,6 +208,9 @@ func RunMigrations(db *gorm.DB, logger *zap.Logger) error {
 	if err := migrateDB.AutoMigrate(&models.Promotion{}); err != nil {
 		return fmt.Errorf("failed to migrate Promotion: %w", err)
 	}
+	if err := migrateDB.AutoMigrate(&models.Exclusion{}); err != nil {
+		return fmt.Errorf("failed to migrate Exclusion: %w", err)
+	}
 
 	// 10. Модели для онбординга
 	if err := migrateDB.AutoMigrate(&models.OnboardingQuestion{}); err != nil {

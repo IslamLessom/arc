@@ -31,6 +31,7 @@ type UseCases struct {
 	Salary                *SalaryUseCase
 	EmployeeStatistics     *EmployeeStatisticsUseCase
 	Storage               *storage.MinIOClient
+	Marketing              *MarketingUseCase
 }
 
 // NewUseCases создает все use cases
@@ -44,6 +45,7 @@ func NewUseCases(repos *repositories.Repositories, cfg *config.Config, logger *z
 	accountUseCase := NewAccountUseCase(repos.Account, repos.AccountType)
 	userUseCase := NewUserUseCase(repos.User, repos.Role)
 	roleUseCase := NewRoleUseCase(repos.Role)
+	marketingUseCase := NewMarketingUseCase(repos.Client, repos.ClientGroup, repos.LoyaltyProgram, repos.Promotion, repos.Exclusion, logger)
 	shiftUseCase := NewShiftUseCase(repos.Shift, repos.ShiftSession, repos.User, repos.Transaction, repos.Account, repos.AccountType, repos.Order)
 	inventoryUseCase := NewInventoryUseCase(repos.Inventory, repos.Warehouse)
 
@@ -72,5 +74,6 @@ func NewUseCases(repos *repositories.Repositories, cfg *config.Config, logger *z
 		Salary:              salaryUseCase,
 		EmployeeStatistics:   employeeStatisticsUseCase,
 		Storage:             storageClient,
+		Marketing:            marketingUseCase,
 	}, nil
 }
