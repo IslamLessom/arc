@@ -18,7 +18,7 @@ export interface ExclusionCheckResult {
 export function useExclusions() {
   const { exclusions, isLoading } = useMarketingExclusions()
 
-  // Получаем активные исключения для товаров и категорий
+  // Получаем активные исключения
   const activeExclusions = useMemo(() => {
     return exclusions.filter(e => e.active)
   }, [exclusions])
@@ -33,7 +33,7 @@ export function useExclusions() {
     return (productId: string) => excludedProductIds.has(productId)
   }, [activeExclusions])
 
-  // Проверяет, исключена ли категория по ID
+  // Проверяет, исключена ли категория товаров по ID
   const isCategoryExcluded = useMemo(() => {
     const excludedCategoryIds = new Set(
       activeExclusions
@@ -43,7 +43,27 @@ export function useExclusions() {
     return (categoryId: string) => excludedCategoryIds.has(categoryId)
   }, [activeExclusions])
 
-  // Проверяет, исключён ли товар (по ID товара или категории)
+  // Проверяет, исключена ли тех-карта по ID
+  const isTechCardExcluded = useMemo(() => {
+    const excludedTechCardIds = new Set(
+      activeExclusions
+        .filter(e => e.type === 'tech_card' && e.entity_id)
+        .map(e => e.entity_id!)
+    )
+    return (techCardId: string) => excludedTechCardIds.has(techCardId)
+  }, [activeExclusions])
+
+  // Проверяет, исключена ли категория тех-карт по ID
+  const isTechCardCategoryExcluded = useMemo(() => {
+    const excludedTechCardCategoryIds = new Set(
+      activeExclusions
+        .filter(e => e.type === 'tech_card_category' && e.entity_id)
+        .map(e => e.entity_id!)
+    )
+    return (categoryId: string) => excludedTechCardCategoryIds.has(categoryId)
+  }, [activeExclusions])
+
+  // Проверяет, исключён ли товар или тех-карта
   const checkItemExcluded = useMemo(() => {
     return (item: OrderItem): boolean => {
       // Проверяем флаг exclude_from_discounts у самого товара
@@ -56,19 +76,34 @@ export function useExclusions() {
       }
 
       // Проверяем исключения по ID товара
-      if (item.productId && isProductExcluded(item.productId)) {
+      if (item.itemType === 'product' && item.productId && isProductExcluded(item.productId)) {
         return true
       }
 
-      // Проверяем исключения по ID категории
-      const categoryId = item.product?.category_id || item.techCard?.category_id
-      if (categoryId && isCategoryExcluded(categoryId)) {
+      // Проверяем исключения по ID тех-карты
+      if (item.itemType === 'tech_card' && item.techCardId && isTechCardExcluded(item.techCardId)) {
         return true
+      }
+
+      // Проверяем исключения по ID категории товара
+      if (item.itemType === 'product') {
+        const categoryId = item.product?.category_id
+        if (categoryId && isCategoryExcluded(categoryId)) {
+          return true
+        }
+      }
+
+      // Проверяем исключения по ID категории тех-карты
+      if (item.itemType === 'tech_card') {
+        const categoryId = item.techCard?.category_id
+        if (categoryId && isTechCardCategoryExcluded(categoryId)) {
+          return true
+        }
       }
 
       return false
     }
-  }, [isProductExcluded, isCategoryExcluded])
+  }, [isProductExcluded, isCategoryExcluded, isTechCardExcluded, isTechCardCategoryExcluded])
 
   // Разделяет товары на исключённые и участвующие в скидке
   const splitItemsByExclusion = useMemo(() => {
@@ -128,6 +163,8 @@ export function useExclusions() {
     isLoading,
     isProductExcluded,
     isCategoryExcluded,
+    isTechCardExcluded,
+    isTechCardCategoryExcluded,
     checkItemExcluded,
     splitItemsByExclusion,
     calculateDiscountWithExclusions,

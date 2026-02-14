@@ -15,11 +15,17 @@ export const AddExclusionModal = (props: AddExclusionModalProps) => {
     isFormValid,
     isLoadingProducts,
     isLoadingCategories,
+    isLoadingTechCards,
+    isLoadingTechCardCategories,
     products,
     categories,
+    techCards,
+    techCardCategories,
     handleFieldChange,
     toggleProduct,
     toggleCategory,
+    toggleTechCard,
+    toggleTechCardCategory,
     handleSubmit,
     handleClose,
   } = useAddExclusionModal(props)
@@ -42,6 +48,51 @@ export const AddExclusionModal = (props: AddExclusionModalProps) => {
   }, [props.isOpen, isSubmitting, handleClose])
 
   if (!props.isOpen) return null
+
+  const getPlaceholder = () => {
+    switch (formData.type) {
+      case 'product':
+        return 'Поиск по названию товара или категории'
+      case 'category':
+        return 'Поиск по названию категории'
+      case 'tech_card':
+        return 'Поиск по названию тех-карты или категории'
+      case 'tech_card_category':
+        return 'Поиск по названию категории'
+      default:
+        return 'Поиск...'
+    }
+  }
+
+  const getSelectionLabel = () => {
+    switch (formData.type) {
+      case 'product':
+        return 'Выберите товары'
+      case 'category':
+        return 'Выберите категории'
+      case 'tech_card':
+        return 'Выберите тех-карты'
+      case 'tech_card_category':
+        return 'Выберите категории'
+      default:
+        return 'Выберите элементы'
+    }
+  }
+
+  const getSelectedCount = () => {
+    switch (formData.type) {
+      case 'product':
+        return formData.selectedProducts.length
+      case 'category':
+        return formData.selectedCategories.length
+      case 'tech_card':
+        return formData.selectedTechCards.length
+      case 'tech_card_category':
+        return formData.selectedTechCardCategories.length
+      default:
+        return 0
+    }
+  }
 
   return (
     <Styled.Overlay $isOpen={props.isOpen} onClick={handleClose}>
@@ -98,7 +149,21 @@ export const AddExclusionModal = (props: AddExclusionModalProps) => {
                         $active={formData.type === 'category'}
                         onClick={() => handleFieldChange('type', 'category')}
                       >
-                        Категории
+                        Категории товаров
+                      </Styled.TypeButton>
+                      <Styled.TypeButton
+                        type="button"
+                        $active={formData.type === 'tech_card'}
+                        onClick={() => handleFieldChange('type', 'tech_card')}
+                      >
+                        Тех-карты
+                      </Styled.TypeButton>
+                      <Styled.TypeButton
+                        type="button"
+                        $active={formData.type === 'tech_card_category'}
+                        onClick={() => handleFieldChange('type', 'tech_card_category')}
+                      >
+                        Категории тех-карт
                       </Styled.TypeButton>
                     </Styled.TypeToggle>
                   </Styled.FormRow>
@@ -108,13 +173,13 @@ export const AddExclusionModal = (props: AddExclusionModalProps) => {
                     <Styled.SearchInput
                       value={formData.searchQuery}
                       onChange={(e) => handleFieldChange('searchQuery', e.target.value)}
-                      placeholder={formData.type === 'product' ? 'Поиск по названию товара или категории' : 'Поиск по названию категории'}
+                      placeholder={getPlaceholder()}
                     />
                   </Styled.FormRow>
 
                   <Styled.FormRow>
                     <Styled.RowLabel>
-                      {formData.type === 'product' ? 'Выберите товары' : 'Выберите категории'} <Styled.Required>*</Styled.Required>
+                      {getSelectionLabel()} <Styled.Required>*</Styled.Required>
                     </Styled.RowLabel>
                     {fieldErrors.selection && <Styled.FieldError>{fieldErrors.selection}</Styled.FieldError>}
 
@@ -142,7 +207,7 @@ export const AddExclusionModal = (props: AddExclusionModalProps) => {
                             </Styled.SelectionItem>
                           ))
                         )
-                      ) : (
+                      ) : formData.type === 'category' ? (
                         isLoadingCategories ? (
                           <Styled.LoadingText>Загрузка категорий...</Styled.LoadingText>
                         ) : categories.length === 0 ? (
@@ -161,13 +226,53 @@ export const AddExclusionModal = (props: AddExclusionModalProps) => {
                             </Styled.SelectionItem>
                           ))
                         )
-                      )}
+                      ) : formData.type === 'tech_card' ? (
+                        isLoadingTechCards ? (
+                          <Styled.LoadingText>Загрузка тех-карт...</Styled.LoadingText>
+                        ) : techCards.length === 0 ? (
+                          <Styled.EmptyText>Нет тех-карт</Styled.EmptyText>
+                        ) : (
+                          techCards.map((techCard) => (
+                            <Styled.SelectionItem key={techCard.id}>
+                              <Styled.Checkbox
+                                type="checkbox"
+                                checked={formData.selectedTechCards.includes(techCard.id)}
+                                onChange={() => toggleTechCard(techCard.id)}
+                              />
+                              <Styled.ItemInfo>
+                                <Styled.ItemName>{techCard.name}</Styled.ItemName>
+                                {techCard.category_name && (
+                                  <Styled.ItemSubtext>{techCard.category_name}</Styled.ItemSubtext>
+                                )}
+                              </Styled.ItemInfo>
+                              <Styled.ItemPrice>{techCard.price} ₽</Styled.ItemPrice>
+                            </Styled.SelectionItem>
+                          ))
+                        )
+                      ) : formData.type === 'tech_card_category' ? (
+                        isLoadingTechCardCategories ? (
+                          <Styled.LoadingText>Загрузка категорий...</Styled.LoadingText>
+                        ) : techCardCategories.length === 0 ? (
+                          <Styled.EmptyText>Нет категорий</Styled.EmptyText>
+                        ) : (
+                          techCardCategories.map((category) => (
+                            <Styled.SelectionItem key={category.id}>
+                              <Styled.Checkbox
+                                type="checkbox"
+                                checked={formData.selectedTechCardCategories.includes(category.id)}
+                                onChange={() => toggleTechCardCategory(category.id)}
+                              />
+                              <Styled.ItemInfo>
+                                <Styled.ItemName>{category.name}</Styled.ItemName>
+                              </Styled.ItemInfo>
+                            </Styled.SelectionItem>
+                          ))
+                        )
+                      ) : null}
                     </Styled.SelectionList>
 
                     <Styled.SelectionInfo>
-                      Выбрано: {formData.type === 'product'
-                        ? formData.selectedProducts.length
-                        : formData.selectedCategories.length}
+                      Выбрано: {getSelectedCount()}
                     </Styled.SelectionInfo>
                   </Styled.FormRow>
                 </>

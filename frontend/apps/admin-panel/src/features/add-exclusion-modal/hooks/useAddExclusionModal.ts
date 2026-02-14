@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useMarketingExclusions } from '@restaurant-pos/api-client'
-import { useGetProducts, useGetCategories } from '@restaurant-pos/api-client'
+import { useGetProducts, useGetCategories, useGetTechnicalCards } from '@restaurant-pos/api-client'
 import type { AddExclusionModalProps, ExclusionFormData } from '../model/types'
 
 const defaultForm: ExclusionFormData = {
@@ -9,6 +9,8 @@ const defaultForm: ExclusionFormData = {
   type: 'product',
   selectedProducts: [],
   selectedCategories: [],
+  selectedTechCards: [],
+  selectedTechCardCategories: [],
   searchQuery: '',
   active: true,
 }
@@ -17,6 +19,8 @@ export const useAddExclusionModal = (props: AddExclusionModalProps) => {
   const { exclusions, createExclusion, updateExclusion } = useMarketingExclusions()
   const { data: products = [], isLoading: isLoadingProducts } = useGetProducts({ active: true })
   const { data: categories = [], isLoading: isLoadingCategories } = useGetCategories({ type: 'product' })
+  const { data: techCards = [], isLoading: isLoadingTechCards } = useGetTechnicalCards({ active: true })
+  const { data: techCardCategories = [], isLoading: isLoadingTechCardCategories } = useGetCategories({ type: 'tech_card' })
 
   const [formData, setFormData] = useState<ExclusionFormData>(defaultForm)
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -36,9 +40,13 @@ export const useAddExclusionModal = (props: AddExclusionModalProps) => {
       setFormData({
         name: current.name || '',
         description: current.description || '',
-        type: current.type === 'product' || current.type === 'category' ? current.type : 'product',
+        type: (current.type === 'product' || current.type === 'category' || current.type === 'tech_card' || current.type === 'tech_card_category')
+          ? current.type as ExclusionFormData['type']
+          : 'product',
         selectedProducts: current.type === 'product' && current.entity_id ? [current.entity_id] : [],
         selectedCategories: current.type === 'category' && current.entity_id ? [current.entity_id] : [],
+        selectedTechCards: current.type === 'tech_card' && current.entity_id ? [current.entity_id] : [],
+        selectedTechCardCategories: current.type === 'tech_card_category' && current.entity_id ? [current.entity_id] : [],
         searchQuery: '',
         active: current.active,
       })
@@ -77,14 +85,44 @@ export const useAddExclusionModal = (props: AddExclusionModalProps) => {
     }))
   }
 
+  const toggleTechCard = (techCardId: string) => {
+    setFormData((prev) => ({
+      ...prev,
+      selectedTechCards: prev.selectedTechCards.includes(techCardId)
+        ? prev.selectedTechCards.filter((id) => id !== techCardId)
+        : [...prev.selectedTechCards, techCardId],
+    }))
+  }
+
+  const toggleTechCardCategory = (categoryId: string) => {
+    setFormData((prev) => ({
+      ...prev,
+      selectedTechCardCategories: prev.selectedTechCardCategories.includes(categoryId)
+        ? prev.selectedTechCardCategories.filter((id) => id !== categoryId)
+        : [...prev.selectedTechCardCategories, categoryId],
+    }))
+  }
+
   const validateForm = () => {
     const errors: Record<string, string> = {}
 
     if (!formData.name.trim()) errors.name = 'Название обязательно'
 
-    const hasSelection = formData.type === 'product'
-      ? formData.selectedProducts.length > 0
-      : formData.selectedCategories.length > 0
+    let hasSelection = false
+    switch (formData.type) {
+      case 'product':
+        hasSelection = formData.selectedProducts.length > 0
+        break
+      case 'category':
+        hasSelection = formData.selectedCategories.length > 0
+        break
+      case 'tech_card':
+        hasSelection = formData.selectedTechCards.length > 0
+        break
+      case 'tech_card_category':
+        hasSelection = formData.selectedTechCardCategories.length > 0
+        break
+    }
 
     if (!hasSelection) {
       errors.selection = 'Выберите хотя бы один элемент'
@@ -109,7 +147,11 @@ export const useAddExclusionModal = (props: AddExclusionModalProps) => {
           type: formData.type,
           entity_id: formData.type === 'product'
             ? (formData.selectedProducts[0] || undefined)
-            : (formData.selectedCategories[0] || undefined),
+            : formData.type === 'category'
+              ? (formData.selectedCategories[0] || undefined)
+              : formData.type === 'tech_card'
+                ? (formData.selectedTechCards[0] || undefined)
+                : (formData.selectedTechCardCategories[0] || undefined),
           entity_name: undefined,
           active: formData.active,
         })
@@ -130,6 +172,24 @@ export const useAddExclusionModal = (props: AddExclusionModalProps) => {
             type: 'category',
             entity_id: categoryId,
             entity_name: categories.find((c) => c.id === categoryId)?.name,
+          })
+        }
+        for (const techCardId of formData.selectedTechCards) {
+          await createExclusion({
+            name: formData.name.trim(),
+            description: formData.description.trim() || undefined,
+            type: 'tech_card',
+            entity_id: techCardId,
+            entity_name: techCards.find((t) => t.id === techCardId)?.name,
+          })
+        }
+        for (const categoryId of formData.selectedTechCardCategories) {
+          await createExclusion({
+            name: formData.name.trim(),
+            description: formData.description.trim() || undefined,
+            type: 'tech_card_category',
+            entity_id: categoryId,
+            entity_name: techCardCategories.find((c) => c.id === categoryId)?.name,
           })
         }
       }
@@ -158,11 +218,37 @@ export const useAddExclusionModal = (props: AddExclusionModalProps) => {
     return categories.filter((c) => c.name.toLowerCase().includes(query))
   }, [categories, formData.searchQuery])
 
+  const filteredTechCards = useMemo(() => {
+    if (!formData.searchQuery) return techCards
+    const query = formData.searchQuery.toLowerCase()
+    return techCards.filter((t) =>
+      t.name.toLowerCase().includes(query) ||
+      t.category_name?.toLowerCase().includes(query)
+    )
+  }, [techCards, formData.searchQuery])
+
+  const filteredTechCardCategories = useMemo(() => {
+    if (!formData.searchQuery) return techCardCategories
+    const query = formData.searchQuery.toLowerCase()
+    return techCardCategories.filter((c) => c.name.toLowerCase().includes(query))
+  }, [techCardCategories, formData.searchQuery])
+
   const isFormValid = useMemo(
-    () => Boolean(formData.name.trim()) &&
-      (formData.type === 'product'
-        ? formData.selectedProducts.length > 0
-        : formData.selectedCategories.length > 0),
+    () => {
+      if (!formData.name.trim()) return false
+      switch (formData.type) {
+        case 'product':
+          return formData.selectedProducts.length > 0
+        case 'category':
+          return formData.selectedCategories.length > 0
+        case 'tech_card':
+          return formData.selectedTechCards.length > 0
+        case 'tech_card_category':
+          return formData.selectedTechCardCategories.length > 0
+        default:
+          return false
+      }
+    },
     [formData]
   )
 
@@ -174,11 +260,17 @@ export const useAddExclusionModal = (props: AddExclusionModalProps) => {
     isFormValid,
     isLoadingProducts,
     isLoadingCategories,
+    isLoadingTechCards,
+    isLoadingTechCardCategories,
     products: filteredProducts,
     categories: filteredCategories,
+    techCards: filteredTechCards,
+    techCardCategories: filteredTechCardCategories,
     handleFieldChange,
     toggleProduct,
     toggleCategory,
+    toggleTechCard,
+    toggleTechCardCategory,
     handleSubmit,
     handleClose: props.onClose,
   }
