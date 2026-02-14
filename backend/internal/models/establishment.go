@@ -26,7 +26,7 @@ type Establishment struct {
 	HasReservations  bool          `json:"has_reservations" gorm:"default:false"`     // Принимаются ли бронирования
 
 	// Связи
-	Rooms           []Room         `json:"rooms,omitempty" gorm:"foreignKey:EstablishmentID"`
+	Rooms           []Room         `json:"rooms,omitempty" gorm:"foreignKey:EstablishmentID;constraint:OnDelete:CASCADE"`
 
 	Active          bool           `json:"active" gorm:"default:true"`
 	CreatedAt       time.Time      `json:"created_at"`

@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react'
-import { useCustomerGroups, type CustomerGroupFormData } from '@restaurant-pos/api-client'
+import { useCustomerGroups } from '@restaurant-pos/api-client'
 import type { CustomerGroupFormData } from '../model/types'
 
 export const useAddCustomerGroupModal = (props: { isOpen: boolean; groupId?: string | null; onSuccess?: () => void; onClose: () => void }) => {
