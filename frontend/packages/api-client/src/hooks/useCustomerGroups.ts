@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { apiClient } from '../client'
 import type { AxiosError } from 'axios'
 
@@ -43,6 +43,11 @@ export const useCustomerGroups = (): UseCustomerGroupsReturn => {
   const [customerGroups, setCustomerGroups] = useState<CustomerGroup[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<Error | null>(null)
+
+  // Load customer groups on mount
+  useEffect(() => {
+    refetch()
+  }, [])
 
   const refetch = async () => {
     setIsLoading(true)
