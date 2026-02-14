@@ -3,6 +3,16 @@ import { useMarketingExclusions, type MarketingExclusion } from '@restaurant-pos
 import { ExclusionTable, ExclusionsSort } from '../model/types'
 import { SortDirection } from '../model/enums'
 
+const confirmDelete = (id: string): Promise<boolean> => {
+  return new Promise((resolve) => {
+    if (window.confirm(`Вы уверены, что хотите удалить исключение с ID: ${id}?`)) {
+      resolve(true)
+    } else {
+      resolve(false)
+    }
+  })
+}
+
 const normalizeExclusion = (exclusion: MarketingExclusion, number: number): ExclusionTable => ({
   id: exclusion.id,
   name: exclusion.name,
@@ -17,7 +27,7 @@ const normalizeExclusion = (exclusion: MarketingExclusion, number: number): Excl
 })
 
 export const useExclusions = () => {
-  const { exclusions: apiExclusions, isLoading, error, refetch } = useMarketingExclusions()
+  const { exclusions: apiExclusions, isLoading, error, refetch, deleteExclusion } = useMarketingExclusions()
 
   const [searchQuery, setSearchQuery] = useState('')
   const [sort, setSort] = useState<ExclusionsSort>({ field: 'name', direction: SortDirection.ASC })
@@ -108,6 +118,18 @@ export const useExclusions = () => {
     console.log('Manage columns')
   }
 
+  const handleDelete = async (id: string) => {
+    const confirmed = await confirmDelete(id)
+    if (confirmed) {
+      try {
+        await deleteExclusion(id)
+        await refetch()
+      } catch (err) {
+        console.error('Failed to delete exclusion:', err)
+      }
+    }
+  }
+
   return {
     exclusions: filteredAndSortedExclusions,
     totalExclusionsCount: exclusions.length,
@@ -127,5 +149,6 @@ export const useExclusions = () => {
     handleExport,
     handlePrint,
     handleColumns,
+    handleDelete,
   }
 }

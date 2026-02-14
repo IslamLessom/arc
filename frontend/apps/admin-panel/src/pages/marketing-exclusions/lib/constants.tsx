@@ -1,7 +1,7 @@
 import { ExclusionTable } from '../model/types'
 import { ExclusionsTableProps } from '../model/types'
 import { ExclusionType } from '../model/enums'
-import { EditButton } from '@restaurant-pos/ui'
+import { EditButton, DeleteButton } from '@restaurant-pos/ui'
 import { TypeBadge, StatusBadge } from '../ui/styled'
 import { TableAlign } from '@restaurant-pos/ui'
 
@@ -20,7 +20,7 @@ const getTypeLabel = (type: string) => {
   }
 }
 
-export const getExclusionsTableColumns = ({ onEdit }: ExclusionsTableProps) => [
+export const getExclusionsTableColumns = ({ onEdit, onDelete }: ExclusionsTableProps) => [
   {
     title: '№',
     dataIndex: 'number',
@@ -70,6 +70,16 @@ export const getExclusionsTableColumns = ({ onEdit }: ExclusionsTableProps) => [
     width: 80,
     render: (_: unknown, record: ExclusionTable) => (
       <EditButton onClick={() => onEdit(record.id)} />
+    )
+  },
+  {
+    title: 'Удал.',
+    dataIndex: 'delete',
+    key: 'delete',
+    align: TableAlign.Center,
+    width: 90,
+    render: (_: unknown, record: ExclusionTable) => (
+      <DeleteButton onClick={() => onDelete(record.id)} />
     )
   }
 ]

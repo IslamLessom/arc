@@ -21,4 +21,5 @@ export interface ExclusionsSort {
 
 export interface ExclusionsTableProps {
   onEdit: (id: string) => void
+  onDelete: (id: string) => void
 }

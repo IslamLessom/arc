@@ -22,11 +22,13 @@ export const Exclusions = () => {
     handleSuccess,
     handleExport,
     handlePrint,
-    handleColumns
+    handleColumns,
+    handleDelete
   } = useExclusions()
 
   const columns = getExclusionsTableColumns({
-    onEdit: handleEdit
+    onEdit: handleEdit,
+    onDelete: handleDelete
   })
 
   if (isLoading) {
