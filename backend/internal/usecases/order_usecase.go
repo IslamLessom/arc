@@ -33,7 +33,7 @@ func NewOrderUseCase(
 	}
 }
 
-func (uc *OrderUseCase) CreateOrder(ctx context.Context, establishmentID uuid.UUID, tableID *uuid.UUID, items []models.OrderItem) (*models.Order, error) {
+func (uc *OrderUseCase) CreateOrder(ctx context.Context, establishmentID uuid.UUID, tableID *uuid.UUID, items []models.OrderItem, totalAmountOverride ...float64) (*models.Order, error) {
 	order := &models.Order{
 		EstablishmentID: establishmentID,
 		TableID:         tableID,
@@ -65,6 +65,20 @@ func (uc *OrderUseCase) CreateOrder(ctx context.Context, establishmentID uuid.UU
 	}
 
 	order.TotalAmount = totalAmount
+	if len(totalAmountOverride) > 0 {
+		overrideAmount := totalAmountOverride[0]
+		if overrideAmount < 0 {
+			return nil, errors.New("total amount override cannot be negative")
+		}
+
+		// Не разрешаем увеличить итог заказа через override, только применить скидку.
+		const epsilon = 0.01
+		if overrideAmount > totalAmount+epsilon {
+			return nil, fmt.Errorf("total amount override (%.2f) cannot exceed calculated amount (%.2f)", overrideAmount, totalAmount)
+		}
+
+		order.TotalAmount = overrideAmount
+	}
 
 	if err := uc.orderRepo.Create(ctx, order); err != nil {
 		return nil, fmt.Errorf("failed to create order: %w", err)

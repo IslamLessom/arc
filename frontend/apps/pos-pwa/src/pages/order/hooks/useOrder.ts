@@ -1,6 +1,6 @@
 import { useState, useCallback, useMemo, useEffect } from 'react'
 import { useNavigate, useParams, useLocation } from 'react-router-dom'
-import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { useQueryClient } from '@tanstack/react-query'
 import { useGetCategories, useGetProducts, useGetTechnicalCards, useOrder as useApiOrder } from '@restaurant-pos/api-client'
 import { useCurrentUser } from '@restaurant-pos/api-client'
 import { apiClient } from '@restaurant-pos/api-client'
@@ -8,21 +8,53 @@ import type { UseOrderResult, OrderData, GuestOrder, OrderItem, ProductCategory,
 import { OrderTab, DiscountType } from '../model/enums'
 import type { Product } from '@restaurant-pos/api-client'
 import type { TechnicalCard } from '@restaurant-pos/api-client'
+import type { Customer } from '@restaurant-pos/api-client'
 
 const ORDER_STORAGE_KEY = 'order_data_'
+
+function recalculateTotals(guests: GuestOrder[]) {
+  const totalAmount = guests.reduce((sum, g) => sum + g.finalAmount, 0)
+  const totalDiscount = guests.reduce((sum, g) => sum + (g.discount?.amount || 0), 0)
+  return { totalAmount, totalDiscount }
+}
+
+function normalizeOrderData(data: OrderData): OrderData {
+  const normalizedGuests = data.guests.map((guest) => ({
+    ...guest,
+    customer: guest.customer,
+    discount: guest.discount || {
+      type: DiscountType.None,
+      value: 0,
+      amount: 0,
+    },
+  }))
+
+  const selectedGuestNumber = data.selectedGuestNumber || 1
+  const selectedGuest = normalizedGuests.find((g) => g.guestNumber === selectedGuestNumber)
+  const selectedCustomer = selectedGuest?.customer
+  const { totalAmount, totalDiscount } = recalculateTotals(normalizedGuests)
+
+  return {
+    ...data,
+    guests: normalizedGuests,
+    selectedGuestNumber,
+    selectedCustomer,
+    totalAmount,
+    totalDiscount,
+    finalAmount: totalAmount,
+  }
+}
 
 export function useOrder(): UseOrderResult {
   const navigate = useNavigate()
   const location = useLocation()
   const { orderId } = useParams<{ orderId: string }>()
-  const { data: currentUser } = useCurrentUser()
-  const establishmentId = currentUser?.establishment_id || ''
+  useCurrentUser()
   const queryClient = useQueryClient()
 
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null)
   const [selectedTab, setSelectedTab] = useState<OrderTab>(OrderTab.Check)
   const [orderData, setOrderData] = useState<OrderData | null>(null)
-  const [isProcessingPayment, setIsProcessingPayment] = useState(false)
 
   // Fetch categories all types (product, tech_card, semi_finished)
   const { data: categories = [], isLoading: isLoadingCategories } = useGetCategories({
@@ -106,6 +138,7 @@ export function useOrder(): UseOrderResult {
 
       return {
         guestNumber,
+        customer: undefined,
         items: guestItems,
         totalAmount,
         discount: {
@@ -134,12 +167,12 @@ export function useOrder(): UseOrderResult {
 
   // Initialize order data from localStorage, server or create new
   // При первом заходе проверяем localStorage
-  useMemo(() => {
+  useEffect(() => {
     if (orderId && !orderData) {
       const stored = localStorage.getItem(`${ORDER_STORAGE_KEY}${orderId}`)
       if (stored) {
-        // Есть данные в localStorage - используем их
-        setOrderData(JSON.parse(stored))
+        const parsed = JSON.parse(stored) as OrderData
+        setOrderData(normalizeOrderData(parsed))
       }
     }
   }, [orderId, orderData])
@@ -163,6 +196,7 @@ export function useOrder(): UseOrderResult {
 
       const guests: GuestOrder[] = Array.from({ length: guestsCountFromState }, (_, index) => ({
         guestNumber: index + 1,
+        customer: undefined,
         items: [],
         totalAmount: 0,
         discount: {
@@ -190,7 +224,7 @@ export function useOrder(): UseOrderResult {
   }, [orderId, orderData, isUuidOrderId, serverOrder, locationState])
 
   // Save order data to localStorage whenever it changes
-  useMemo(() => {
+  useEffect(() => {
     if (orderData && orderId) {
       localStorage.setItem(`${ORDER_STORAGE_KEY}${orderId}`, JSON.stringify(orderData))
     }
@@ -214,18 +248,8 @@ export function useOrder(): UseOrderResult {
     const techCardItems = technicalCards.map(tc => ({ ...tc, itemType: 'tech_card' as const }))
     const items = [...productItems, ...techCardItems] as MenuItem[]
 
-    // Отладочный вывод
-    console.log('useOrder debug:', {
-      selectedCategoryId,
-      selectedCategoryType: selectedCategory?.type,
-      productsCount: products.length,
-      techCardsCount: technicalCards.length,
-      totalItems: items.length,
-      categories: categories.map(c => ({ id: c.id, name: c.name, type: c.type })),
-    })
-
     return items
-  }, [products, technicalCards, selectedCategoryId, selectedCategory, categories])
+  }, [products, technicalCards])
 
   // Navigate back - сохраняет черновик заказа если есть товары
   const handleBack = useCallback(async () => {
@@ -275,20 +299,16 @@ export function useOrder(): UseOrderResult {
 
       if (isUuidOrderId) {
         // Заказ уже существует на сервере - просто выходим, данные сохранены
-        console.log('Order already exists on server, keeping localStorage:', orderId)
       } else if (itemsToSend.length > 0) {
         // Создаём черновик заказа на сервере
-        const orderResponse = await apiClient.post('/orders', { items: itemsToSend })
+        const orderResponse = await apiClient.post('/orders', { items: itemsToSend, total_amount: orderData.totalAmount })
         const serverOrderId = orderResponse?.data?.id
 
         if (serverOrderId) {
-          console.log('Draft order saved:', serverOrderId)
           // Обновляем localStorage с новым UUID и удаляем старый ключ
           localStorage.removeItem(`${ORDER_STORAGE_KEY}${orderId}`)
           const updatedOrderData = { ...orderData, orderId: serverOrderId }
           localStorage.setItem(`${ORDER_STORAGE_KEY}${serverOrderId}`, JSON.stringify(updatedOrderData))
-        } else {
-          console.error('Failed to create order - no ID returned')
         }
       }
     } catch (error) {
@@ -374,8 +394,7 @@ export function useOrder(): UseOrderResult {
     const newGuests = [...orderData.guests]
     newGuests[guestIndex] = newGuest
 
-    const newTotalAmount = newGuests.reduce((sum, g) => sum + g.finalAmount, 0)
-    const newTotalDiscount = newGuests.reduce((sum, g) => sum + (g.discount?.amount || 0), 0)
+    const { totalAmount: newTotalAmount, totalDiscount: newTotalDiscount } = recalculateTotals(newGuests)
 
     setOrderData({
       ...orderData,
@@ -402,6 +421,7 @@ export function useOrder(): UseOrderResult {
     setOrderData({
       ...orderData,
       selectedGuestNumber: guestNumber,
+      selectedCustomer: orderData.guests.find(g => g.guestNumber === guestNumber)?.customer,
     })
   }, [orderData])
 
@@ -412,6 +432,7 @@ export function useOrder(): UseOrderResult {
     const newGuestNumber = orderData.guests.length + 1
     const newGuest: GuestOrder = {
       guestNumber: newGuestNumber,
+      customer: undefined,
       items: [],
       totalAmount: 0,
       discount: {
@@ -427,6 +448,7 @@ export function useOrder(): UseOrderResult {
       guestsCount: newGuestNumber,
       guests: [...orderData.guests, newGuest],
       selectedGuestNumber: newGuestNumber,
+      selectedCustomer: undefined,
     })
   }, [orderData])
 
@@ -467,8 +489,7 @@ export function useOrder(): UseOrderResult {
 
       const newGuests = [...orderData.guests]
       newGuests[guestIndex] = newGuest
-      const newTotalAmount = newGuests.reduce((sum, g) => sum + g.finalAmount, 0)
-      const newTotalDiscount = newGuests.reduce((sum, g) => sum + (g.discount?.amount || 0), 0)
+      const { totalAmount: newTotalAmount, totalDiscount: newTotalDiscount } = recalculateTotals(newGuests)
 
       setOrderData({
         ...orderData,
@@ -509,8 +530,7 @@ export function useOrder(): UseOrderResult {
 
       const newGuests = [...orderData.guests]
       newGuests[guestIndex] = newGuest
-      const newTotalAmount = newGuests.reduce((sum, g) => sum + g.finalAmount, 0)
-      const newTotalDiscount = newGuests.reduce((sum, g) => sum + (g.discount?.amount || 0), 0)
+      const { totalAmount: newTotalAmount, totalDiscount: newTotalDiscount } = recalculateTotals(newGuests)
 
       setOrderData({
         ...orderData,
@@ -575,8 +595,7 @@ export function useOrder(): UseOrderResult {
     const newGuests = [...orderData.guests]
     newGuests[guestIndex] = newGuest
 
-    const newTotalAmount = newGuests.reduce((sum, g) => sum + g.finalAmount, 0)
-    const newTotalDiscount = newGuests.reduce((sum, g) => sum + (g.discount?.amount || 0), 0)
+    const { totalAmount: newTotalAmount, totalDiscount: newTotalDiscount } = recalculateTotals(newGuests)
 
     setOrderData({
       ...orderData,
@@ -595,49 +614,82 @@ export function useOrder(): UseOrderResult {
   // Select customer for the order
   const handleCustomerSelect = useCallback((customer: Customer | null) => {
     if (!orderData) return
+    const selectedGuestNumber = orderData.selectedGuestNumber
 
-    // Update order data with selected customer
-    const updatedOrderData: OrderData = {
+    const newGuests = orderData.guests.map((guest) => {
+      if (customer?.id && guest.guestNumber !== selectedGuestNumber && guest.customer?.id === customer.id) {
+        return {
+          ...guest,
+          customer: undefined,
+          discount: { type: DiscountType.None, value: 0, amount: 0 },
+          finalAmount: guest.totalAmount,
+        }
+      }
+      return guest
+    })
+
+    const selectedGuestIndex = newGuests.findIndex((g) => g.guestNumber === selectedGuestNumber)
+    if (selectedGuestIndex === -1) return
+
+    const selectedGuest = newGuests[selectedGuestIndex]
+    let discountType = DiscountType.None
+    let discountValue = 0
+    let discountAmount = 0
+
+    const groupDiscount = Number((customer as any)?.group?.discount_percentage || 0)
+    if (groupDiscount > 0) {
+      discountType = DiscountType.Percentage
+      discountValue = groupDiscount
+      discountAmount = (selectedGuest.totalAmount * discountValue) / 100
+    }
+
+    newGuests[selectedGuestIndex] = {
+      ...selectedGuest,
+      customer: customer || undefined,
+      discount: {
+        type: discountType,
+        value: discountValue,
+        amount: discountAmount,
+      },
+      finalAmount: selectedGuest.totalAmount - discountAmount,
+    }
+
+    const { totalAmount: newTotalAmount, totalDiscount: newTotalDiscount } = recalculateTotals(newGuests)
+    setOrderData({
       ...orderData,
+      guests: newGuests,
       selectedCustomer: customer || undefined,
-    }
-
-    setOrderData(updatedOrderData)
-    localStorage.setItem(`${ORDER_STORAGE_KEY}${orderId}`, JSON.stringify(updatedOrderData))
-
-    // Apply discount ONLY to currently selected guest
-    if (customer?.group?.discount_percentage && customer.group.discount_percentage > 0) {
-      const currentGuest = orderData.guests.find(g => g.guestNumber === orderData.selectedGuestNumber)
-      if (currentGuest) {
-        handleSetGuestDiscount(currentGuest.guestNumber, DiscountType.Percentage, customer.group.discount_percentage)
-      }
-    } else {
-      // Remove discount from currently selected guest only
-      const currentGuest = orderData.guests.find(g => g.guestNumber === orderData.selectedGuestNumber)
-      if (currentGuest) {
-        handleRemoveGuestDiscount(currentGuest.guestNumber)
-      }
-    }
-  }, [orderData, orderId, handleSetGuestDiscount, handleRemoveGuestDiscount])
+      totalAmount: newTotalAmount,
+      totalDiscount: newTotalDiscount,
+      finalAmount: newTotalAmount,
+    })
+  }, [orderData])
 
   // Remove customer from order
   const handleCustomerRemove = useCallback(() => {
     if (!orderData) return
+    const selectedGuestIndex = orderData.guests.findIndex(g => g.guestNumber === orderData.selectedGuestNumber)
+    if (selectedGuestIndex === -1) return
 
-    const updatedOrderData: OrderData = {
+    const newGuests = [...orderData.guests]
+    const guest = newGuests[selectedGuestIndex]
+    newGuests[selectedGuestIndex] = {
+      ...guest,
+      customer: undefined,
+      discount: { type: DiscountType.None, value: 0, amount: 0 },
+      finalAmount: guest.totalAmount,
+    }
+
+    const { totalAmount: newTotalAmount, totalDiscount: newTotalDiscount } = recalculateTotals(newGuests)
+    setOrderData({
       ...orderData,
+      guests: newGuests,
       selectedCustomer: undefined,
-    }
-
-    setOrderData(updatedOrderData)
-    localStorage.setItem(`${ORDER_STORAGE_KEY}${orderId}`, JSON.stringify(updatedOrderData))
-
-    // Remove discount from currently selected guest only
-    const currentGuest = orderData.guests.find(g => g.guestNumber === orderData.selectedGuestNumber)
-    if (currentGuest) {
-      handleRemoveGuestDiscount(currentGuest.guestNumber)
-    }
-  }, [orderData, orderId, handleRemoveGuestDiscount])
+      totalAmount: newTotalAmount,
+      totalDiscount: newTotalDiscount,
+      finalAmount: newTotalAmount,
+    })
+  }, [orderData])
 
   return {
     // Data
@@ -649,7 +701,7 @@ export function useOrder(): UseOrderResult {
     selectedTab,
 
     // Loading states
-    isLoading: isLoadingCategories || isLoadingProducts || isLoadingTechnicalCards,
+    isLoading: !orderData || isLoadingCategories,
     isLoadingCategories,
     isLoadingProducts,
     isCreatingOrder: false,

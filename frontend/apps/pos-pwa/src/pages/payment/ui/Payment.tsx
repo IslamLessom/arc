@@ -150,7 +150,10 @@ export function Payment() {
           }
 
           console.log('Creating order with items:', itemsToSend)
-          const orderResponse = await apiClient.post('/orders', { items: itemsToSend })
+          const orderResponse = await apiClient.post('/orders', {
+            items: itemsToSend,
+            total_amount: orderData.totalAmount || 0,
+          })
           serverOrderId = orderResponse?.data?.id
         }
       }

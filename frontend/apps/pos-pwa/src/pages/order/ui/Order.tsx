@@ -139,7 +139,7 @@ export function Order() {
             {selectedTab === OrderTab.Check ? (
               <>
                 <CustomerSelector
-                  selectedCustomer={orderData?.selectedCustomer}
+                  selectedCustomer={selectedGuest?.customer}
                   onCustomerSelect={handleCustomerSelect}
                   onCustomerRemove={handleCustomerRemove}
                 />
@@ -147,7 +147,7 @@ export function Order() {
                 <Styled.GuestSection>
               <Styled.GuestHeader>
                 <Styled.GuestTitle>
-                  {orderData?.selectedCustomer?.name || `ГОСТЬ ${orderData?.selectedGuestNumber || 1}`}
+                  {selectedGuest?.customer?.name || `ГОСТЬ ${orderData?.selectedGuestNumber || 1}`}
                 </Styled.GuestTitle>
                 <Styled.AddGuestButton onClick={handleAddGuest}>
                   <Styled.PersonIcon />
@@ -161,7 +161,7 @@ export function Order() {
                     $selected={guest.guestNumber === orderData.selectedGuestNumber}
                     onClick={() => handleGuestSelect(guest.guestNumber)}
                   >
-                    Гость {guest.guestNumber}
+                    {guest.customer?.name || `Гость ${guest.guestNumber}`}
                   </Styled.GuestChip>
                 ))}
               </Styled.GuestList>

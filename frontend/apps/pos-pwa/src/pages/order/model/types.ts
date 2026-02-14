@@ -40,6 +40,7 @@ export interface GuestDiscount {
 
 export interface GuestOrder {
   guestNumber: number
+  customer?: Customer
   items: OrderItem[]
   totalAmount: number
   discount: GuestDiscount

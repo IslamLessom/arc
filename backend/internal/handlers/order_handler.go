@@ -17,8 +17,9 @@ type OrderHandler struct {
 }
 
 type CreateOrderRequest struct {
-	TableID         *uuid.UUID `json:"table_id,omitempty"`
-	Items           []OrderItemRequest `json:"items" binding:"required,min=1"`
+	TableID     *uuid.UUID         `json:"table_id,omitempty"`
+	Items       []OrderItemRequest `json:"items" binding:"required,min=1"`
+	TotalAmount *float64           `json:"total_amount,omitempty" binding:"omitempty,min=0"`
 }
 
 type OrderItemRequest struct {
@@ -191,7 +192,12 @@ func (h *OrderHandler) Create(c *gin.Context) {
 		}
 	}
 
-	order, err := h.usecase.CreateOrder(c.Request.Context(), estID, req.TableID, orderItems)
+	var order *models.Order
+	if req.TotalAmount != nil {
+		order, err = h.usecase.CreateOrder(c.Request.Context(), estID, req.TableID, orderItems, *req.TotalAmount)
+	} else {
+		order, err = h.usecase.CreateOrder(c.Request.Context(), estID, req.TableID, orderItems)
+	}
 	if err != nil {
 		h.logger.Error("Failed to create order", zap.Error(err))
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Не удалось создать заказ"})

@@ -522,29 +522,29 @@ export const ClientTabContainer = styled.div({
   display: 'flex',
   flexDirection: 'column',
   height: '100%',
-  backgroundColor: '#f5f6f7',
+  background: 'linear-gradient(180deg, #f4f7fb 0%, #eef2f7 100%)',
 })
 
 export const GuestsList = styled.div({
   flex: 1,
   overflowY: 'auto',
-  padding: '16px',
+  padding: '16px 16px 8px',
 })
 
 export const GuestsListHeader = styled.div({
-  marginBottom: '12px',
+  marginBottom: '14px',
 })
 
 export const GuestsListTitle = styled.h3({
-  fontSize: '16px',
-  fontWeight: 600,
-  color: '#2c3e50',
+  fontSize: '20px',
+  fontWeight: 700,
+  color: '#1f2d3d',
   margin: '0 0 4px 0',
 })
 
 export const GuestsListSubtitle = styled.p({
-  fontSize: '12px',
-  color: '#7f8c8d',
+  fontSize: '13px',
+  color: '#5f6c7b',
   margin: 0,
 })
 
@@ -552,16 +552,17 @@ export const GuestCard = styled.button<{ $selected: boolean }>((props) => ({
   display: 'flex',
   flexDirection: 'column',
   width: '100%',
-  padding: '12px',
-  backgroundColor: props.$selected ? '#3498db' : '#ffffff',
-  border: props.$selected ? '2px solid #3498db' : '2px solid #e0e0e0',
-  borderRadius: '8px',
+  padding: '14px 14px 12px',
+  backgroundColor: props.$selected ? '#0f4c81' : '#ffffff',
+  border: props.$selected ? '1px solid #0f4c81' : '1px solid #d8e0ea',
+  boxShadow: props.$selected ? '0 8px 20px rgba(15, 76, 129, 0.25)' : '0 3px 10px rgba(17, 37, 62, 0.06)',
+  borderRadius: '12px',
   cursor: 'pointer',
-  marginBottom: '8px',
+  marginBottom: '10px',
   transition: 'all 0.2s',
   '&:hover': {
-    borderColor: props.$selected ? '#2980b9' : '#3498db',
-    backgroundColor: props.$selected ? '#2980b9' : '#f8f9fa',
+    borderColor: props.$selected ? '#0f4c81' : '#9fb6cd',
+    transform: 'translateY(-1px)',
   },
 }))
 
@@ -569,42 +570,42 @@ export const GuestCardHeader = styled.div({
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'space-between',
-  marginBottom: '8px',
+  marginBottom: '10px',
 })
 
 export const GuestCardTitle = styled.span<{ $selected?: boolean }>((props) => ({
-  fontSize: '14px',
-  fontWeight: 600,
+  fontSize: '15px',
+  fontWeight: 700,
   color: props.$selected ? '#ffffff' : '#2c3e50',
 }))
 
 export const GuestCardAmount = styled.span<{ $selected?: boolean }>((props) => ({
-  fontSize: '16px',
+  fontSize: '22px',
   fontWeight: 700,
-  color: props.$selected ? '#ffffff' : '#27ae60',
+  color: props.$selected ? '#d9f3e4' : '#1c9c5b',
 }))
 
 export const GuestCardBody = styled.div({
   display: 'flex',
   flexDirection: 'column',
-  gap: '4px',
+  gap: '6px',
 })
 
 export const GuestCardRow = styled.div<{ $highlight?: boolean }>((props) => ({
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'space-between',
-  fontSize: '12px',
-  color: props.$highlight ? '#e74c3c' : '#7f8c8d',
+  fontSize: '13px',
+  color: props.$highlight ? '#d43f32' : '#5e6b78',
 }))
 
 export const GuestCardLabel = styled.span({
-  fontWeight: 400,
+  fontWeight: 500,
 })
 
 export const GuestCardValue = styled.span<{ $highlight?: boolean }>((props) => ({
   fontWeight: props.$highlight ? 600 : 500,
-  color: props.$highlight ? '#e74c3c' : '#2c3e50',
+  color: props.$highlight ? '#d43f32' : '#1f2d3d',
 }))
 
 export const RemoveDiscountButton = styled.button({
@@ -624,10 +625,10 @@ export const RemoveDiscountButton = styled.button({
 })
 
 export const DiscountPanel = styled.div({
-  padding: '16px',
+  padding: '12px 16px',
   backgroundColor: '#ffffff',
-  borderTop: '1px solid #e0e0e0',
-  borderBottom: '1px solid #e0e0e0',
+  borderTop: '1px solid #dbe4ef',
+  borderBottom: '1px solid #dbe4ef',
 })
 
 export const DiscountPanelHeader = styled.div({
@@ -643,9 +644,9 @@ export const DiscountPanelTitle = styled.h3({
 
 export const DiscountPanelEmpty = styled.p({
   fontSize: '13px',
-  color: '#7f8c8d',
+  color: '#5f6c7b',
   textAlign: 'center',
-  margin: '20px 0',
+  margin: '10px 0',
 })
 
 export const DiscountForm = styled.div({
@@ -734,6 +735,7 @@ export const DiscountPreviewText = styled.p({
 export const OrderSummary = styled.div({
   padding: '16px',
   backgroundColor: '#ffffff',
+  borderTop: '1px solid #dbe4ef',
 })
 
 export const SummaryRow = styled.div<{ $total?: boolean }>((props) => ({
@@ -741,7 +743,7 @@ export const SummaryRow = styled.div<{ $total?: boolean }>((props) => ({
   alignItems: 'center',
   justifyContent: 'space-between',
   padding: props.$total ? '12px 0' : '8px 0',
-  borderBottom: props.$total ? 'none' : '1px solid #ecf0f1',
+  borderBottom: props.$total ? 'none' : '1px dashed #d8e0ea',
 }))
 
 export const SummaryLabel = styled.span<{ $total?: boolean }>((props) => ({

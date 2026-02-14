@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import * as Styled from '../ui/styled'
 import { DiscountType } from '../model/enums'
 import type { GuestOrder } from '../model/types'
@@ -11,8 +11,12 @@ interface ClientTabProps {
 
 export function ClientTab({ guests, onSetDiscount, onRemoveDiscount }: ClientTabProps) {
   const [selectedGuest, setSelectedGuest] = useState<number | null>(null)
+  const activeGuestNumber = selectedGuest ?? guests[0]?.guestNumber ?? null
 
-  const selectedGuestData = guests.find(g => g.guestNumber === selectedGuest)
+  const selectedGuestData = useMemo(
+    () => guests.find(g => g.guestNumber === activeGuestNumber),
+    [guests, activeGuestNumber]
+  )
 
   const handleRemoveDiscount = (guestNumber: number) => {
     onRemoveDiscount(guestNumber)
@@ -44,14 +48,14 @@ export function ClientTab({ guests, onSetDiscount, onRemoveDiscount }: ClientTab
         {guests.map(guest => (
           <Styled.GuestCard
             key={guest.guestNumber}
-            $selected={selectedGuest === guest.guestNumber}
+            $selected={activeGuestNumber === guest.guestNumber}
             onClick={() => setSelectedGuest(guest.guestNumber)}
           >
             <Styled.GuestCardHeader>
-              <Styled.GuestCardTitle>
-                Гость {guest.guestNumber}
+              <Styled.GuestCardTitle $selected={activeGuestNumber === guest.guestNumber}>
+                {guest.customer?.name || `Гость ${guest.guestNumber}`}
               </Styled.GuestCardTitle>
-              <Styled.GuestCardAmount>
+              <Styled.GuestCardAmount $selected={activeGuestNumber === guest.guestNumber}>
                 {formatPrice(guest.finalAmount)}
               </Styled.GuestCardAmount>
             </Styled.GuestCardHeader>
