@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import type { AxiosError } from 'axios'
 import { apiClient } from '../client'
 
-export type ExclusionType = 'product' | 'category' | 'customer' | 'customer_group'
+export type ExclusionType = 'product' | 'category' | 'customer' | 'customer_group' | 'tech_card'
 
 export interface Exclusion {
   id: string

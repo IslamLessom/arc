@@ -2,7 +2,7 @@ export interface Exclusion {
   id: string
   name: string
   description: string | null
-  type: 'product' | 'category' | 'customer' | 'customer_group'
+  type: 'product' | 'category' | 'customer' | 'customer_group' | 'tech_card'
   entity_id?: string
   entity_name?: string
   is_active: boolean

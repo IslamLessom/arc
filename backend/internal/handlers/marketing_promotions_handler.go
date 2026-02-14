@@ -451,7 +451,7 @@ func (h *MarketingHandler) DeletePromotion(c *gin.Context) {
 type CreateExclusionRequest struct {
 	Name        string  `json:"name" binding:"required"`
 	Description  *string `json:"description,omitempty"`
-	Type        string  `json:"type" binding:"required,oneof=product category customer customer_group"`
+	Type        string  `json:"type" binding:"required,oneof=product category customer customer_group tech_card"`
 	EntityID    *string `json:"entity_id,omitempty" binding:"omitempty,uuid"`
 	EntityName  *string `json:"entity_name,omitempty"`
 }
@@ -459,7 +459,7 @@ type CreateExclusionRequest struct {
 type UpdateExclusionRequest struct {
 	Name        *string `json:"name,omitempty"`
 	Description  *string `json:"description,omitempty"`
-	Type        *string `json:"type,omitempty" binding:"omitempty,oneof=product category customer customer_group"`
+	Type        *string `json:"type,omitempty" binding:"omitempty,oneof=product category customer customer_group tech_card"`
 	EntityID    *string `json:"entity_id,omitempty" binding:"omitempty,uuid"`
 	EntityName  *string `json:"entity_name,omitempty"`
 	Active       *bool   `json:"active,omitempty"`

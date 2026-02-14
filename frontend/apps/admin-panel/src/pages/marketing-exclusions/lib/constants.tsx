@@ -15,6 +15,8 @@ const getTypeLabel = (type: string) => {
       return 'Клиент'
     case ExclusionType.CUSTOMER_GROUP:
       return 'Группа клиентов'
+    case ExclusionType.TECH_CARD:
+      return 'Тех-карта'
     default:
       return type
   }
