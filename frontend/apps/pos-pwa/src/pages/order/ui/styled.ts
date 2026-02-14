@@ -755,3 +755,226 @@ export const SummaryValue = styled.span<{ $total?: boolean; $discount?: boolean 
   fontWeight: props.$total ? 700 : 500,
   color: props.$discount ? '#e74c3c' : props.$total ? '#27ae60' : '#2c3e50',
 }))
+
+// ===== CustomerSelector Styles =====
+export const CustomerSelectorContainer = styled.div({
+  marginBottom: '16px',
+})
+
+export const SelectedCustomerCard = styled.div({
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'space-between',
+  padding: '12px 16px',
+  backgroundColor: '#3498db',
+  borderRadius: '8px',
+  color: '#ffffff',
+})
+
+export const SelectedCustomerInfo = styled.div({
+  flex: 1,
+  display: 'flex',
+  flexDirection: 'column',
+  gap: '4px',
+})
+
+export const SelectedCustomerName = styled.span({
+  fontSize: '16px',
+  fontWeight: 600,
+})
+
+export const SelectedCustomerPhone = styled.span({
+  fontSize: '14px',
+  opacity: 0.9,
+})
+
+export const SelectedCustomerGroup = styled.div({
+  display: 'flex',
+  alignItems: 'center',
+  gap: '8px',
+  fontSize: '13px',
+})
+
+export const DiscountBadge = styled.span({
+  padding: '2px 8px',
+  backgroundColor: '#27ae60',
+  borderRadius: '12px',
+  fontSize: '12px',
+  fontWeight: 600,
+})
+
+export const RemoveCustomerButton = styled.button({
+  width: '32px',
+  height: '32px',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  backgroundColor: 'rgba(255, 255, 255, 0.2)',
+  border: 'none',
+  borderRadius: '50%',
+  color: '#ffffff',
+  fontSize: '24px',
+  cursor: 'pointer',
+  transition: 'background-color 0.2s',
+  '&:hover': {
+    backgroundColor: 'rgba(231, 76, 60, 0.8)',
+  },
+})
+
+export const CustomerSearchButton = styled.button({
+  width: '100%',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  gap: '8px',
+  padding: '12px 16px',
+  backgroundColor: '#ecf0f1',
+  border: '2px dashed #bdc3c7',
+  borderRadius: '8px',
+  color: '#2c3e50',
+  fontSize: '14px',
+  fontWeight: 500,
+  cursor: 'pointer',
+  transition: 'all 0.2s',
+  '&:hover': {
+    backgroundColor: '#d5dbdb',
+    borderColor: '#3498db',
+  },
+})
+
+export const SearchButtonText = styled.span({
+  fontSize: '14px',
+  fontWeight: 500,
+})
+
+export const CustomerSearchModal = styled.div({
+  position: 'fixed',
+  top: '50%',
+  left: '50%',
+  transform: 'translate(-50%, -50%)',
+  width: '90%',
+  maxWidth: '400px',
+  maxHeight: '70vh',
+  backgroundColor: '#ffffff',
+  borderRadius: '12px',
+  boxShadow: '0 8px 24px rgba(0, 0, 0, 0.2)',
+  zIndex: 1000,
+  display: 'flex',
+  flexDirection: 'column',
+})
+
+export const Overlay = styled.div({
+  position: 'fixed',
+  top: 0,
+  left: 0,
+  right: 0,
+  bottom: 0,
+  backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  zIndex: 999,
+})
+
+export const SearchHeader = styled.div({
+  display: 'flex',
+  alignItems: 'center',
+  gap: '8px',
+  padding: '12px 16px',
+  borderBottom: '1px solid #e0e0e0',
+})
+
+export const SearchInput = styled.input({
+  flex: 1,
+  padding: '8px 12px',
+  fontSize: '14px',
+  border: '1px solid #e0e0e0',
+  borderRadius: '6px',
+  outline: 'none',
+  '&:focus': {
+    borderColor: '#3498db',
+  },
+})
+
+export const CloseSearchButton = styled.button({
+  width: '32px',
+  height: '32px',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  backgroundColor: '#e74c3c',
+  border: 'none',
+  borderRadius: '50%',
+  color: '#ffffff',
+  fontSize: '20px',
+  cursor: 'pointer',
+  transition: 'background-color 0.2s',
+  '&:hover': {
+    backgroundColor: '#c0392b',
+  },
+})
+
+export const CustomerList = styled.div({
+  flex: 1,
+  overflowY: 'auto',
+  padding: '8px',
+})
+
+export const EmptySearchResult = styled.div({
+  padding: '16px',
+  textAlign: 'center',
+  color: '#7f8c8d',
+  fontSize: '14px',
+})
+
+export const CustomerListItem = styled.button({
+  width: '100%',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'space-between',
+  padding: '12px',
+  backgroundColor: '#ffffff',
+  border: 'none',
+  borderBottom: '1px solid #ecf0f1',
+  cursor: 'pointer',
+  transition: 'background-color 0.2s',
+  '&:hover': {
+    backgroundColor: '#f8f9fa',
+  },
+  '&:last-child': {
+    borderBottom: 'none',
+  },
+})
+
+export const CustomerListItemMain = styled.div({
+  flex: 1,
+  display: 'flex',
+  flexDirection: 'column',
+  gap: '4px',
+  alignItems: 'flex-start',
+})
+
+export const CustomerListItemName = styled.span({
+  fontSize: '14px',
+  fontWeight: 500,
+  color: '#2c3e50',
+})
+
+export const CustomerListItemPhone = styled.span({
+  fontSize: '12px',
+  color: '#7f8c8d',
+})
+
+export const CustomerListGroup = styled.div({
+  display: 'flex',
+  alignItems: 'center',
+  gap: '8px',
+  fontSize: '12px',
+  color: '#3498db',
+})
+
+export const SmallDiscountBadge = styled.span({
+  padding: '2px 6px',
+  backgroundColor: '#27ae60',
+  color: '#ffffff',
+  borderRadius: '8px',
+  fontSize: '11px',
+  fontWeight: 600,
+})

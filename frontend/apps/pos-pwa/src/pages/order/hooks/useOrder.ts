@@ -592,6 +592,50 @@ export function useOrder(): UseOrderResult {
     handleSetGuestDiscount(guestNumber, DiscountType.None, 0)
   }, [handleSetGuestDiscount])
 
+  // Select customer for the order
+  const handleCustomerSelect = useCallback((customer: Customer | null) => {
+    if (!orderData) return
+
+    // Update order data with selected customer
+    const updatedOrderData: OrderData = {
+      ...orderData,
+      selectedCustomer: customer || undefined,
+    }
+
+    setOrderData(updatedOrderData)
+    localStorage.setItem(`${ORDER_STORAGE_KEY}${orderId}`, JSON.stringify(updatedOrderData))
+
+    // If customer has a group with discount, apply it to all guests
+    if (customer?.group?.discount_percentage && customer.group.discount_percentage > 0) {
+      orderData.guests.forEach(guest => {
+        handleSetGuestDiscount(guest.guestNumber, DiscountType.Percentage, customer.group.discount_percentage)
+      })
+    } else {
+      // Remove all discounts if customer has no discount group
+      orderData.guests.forEach(guest => {
+        handleRemoveGuestDiscount(guest.guestNumber)
+      })
+    }
+  }, [orderData, orderId, handleSetGuestDiscount, handleRemoveGuestDiscount])
+
+  // Remove customer from order
+  const handleCustomerRemove = useCallback(() => {
+    if (!orderData) return
+
+    const updatedOrderData: OrderData = {
+      ...orderData,
+      selectedCustomer: undefined,
+    }
+
+    setOrderData(updatedOrderData)
+    localStorage.setItem(`${ORDER_STORAGE_KEY}${orderId}`, JSON.stringify(updatedOrderData))
+
+    // Remove all discounts when customer is removed
+    orderData?.guests.forEach(guest => {
+      handleRemoveGuestDiscount(guest.guestNumber)
+    })
+  }, [orderData, orderId, handleRemoveGuestDiscount])
+
   return {
     // Data
     orderData,
@@ -620,6 +664,10 @@ export function useOrder(): UseOrderResult {
     handleTabChange,
     handleSubmitOrder,
     handlePayment,
+
+    // Customer actions
+    handleCustomerSelect,
+    handleCustomerRemove,
 
     // Discount actions
     handleSetGuestDiscount,

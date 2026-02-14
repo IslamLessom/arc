@@ -4,6 +4,7 @@ import { OrderTab } from '../model/enums'
 import { useCurrentUser } from '@restaurant-pos/api-client'
 import type { MenuItem } from '../model/types'
 import { ClientTab } from '../components/ClientTab'
+import { CustomerSelector } from '../components/CustomerSelector'
 
 const CATEGORY_ICONS: Record<string, string> = {
   coffee: '☕',
@@ -56,6 +57,8 @@ export function Order() {
     handlePayment,
     handleSetGuestDiscount,
     handleRemoveGuestDiscount,
+    handleCustomerSelect,
+    handleCustomerRemove,
   } = useOrder()
 
   const userName = currentUser?.name || 'Maki'
@@ -135,6 +138,12 @@ export function Order() {
           <Styled.PanelContent>
             {selectedTab === OrderTab.Check ? (
               <>
+                <CustomerSelector
+                  selectedCustomer={orderData?.selectedCustomer}
+                  onCustomerSelect={handleCustomerSelect}
+                  onCustomerRemove={handleCustomerRemove}
+                />
+
                 <Styled.GuestSection>
               <Styled.GuestHeader>
                 <Styled.GuestTitle>

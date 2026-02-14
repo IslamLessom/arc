@@ -1,5 +1,6 @@
 import type { Product } from '@restaurant-pos/api-client'
 import type { TechnicalCard } from '@restaurant-pos/api-client'
+import type { Customer } from '@restaurant-pos/api-client'
 import { OrderTab, DiscountType } from './enums'
 
 export interface ProductCategory {
@@ -51,6 +52,7 @@ export interface OrderData {
   guestsCount: number
   guests: GuestOrder[]
   selectedGuestNumber: number
+  selectedCustomer?: Customer // выбранный клиент для всего заказа
   totalAmount: number
   totalDiscount: number
   finalAmount: number
@@ -84,6 +86,10 @@ export interface UseOrderResult {
   handleTabChange: (tab: OrderTab) => void
   handleSubmitOrder: () => void
   handlePayment: () => void
+
+  // Customer actions
+  handleCustomerSelect: (customer: Customer | null) => void
+  handleCustomerRemove: () => void
 
   // Discount actions
   handleSetGuestDiscount: (guestNumber: number, type: DiscountType, value: number) => void
