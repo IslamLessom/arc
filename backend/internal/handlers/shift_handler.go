@@ -25,6 +25,7 @@ func NewShiftHandler(usecase *usecases.ShiftUseCase, logger *zap.Logger) *ShiftH
 type EndShiftRequest struct {
 	ShiftID   string  `json:"shift_id" binding:"required,uuid"`
 	FinalCash float64 `json:"final_cash" binding:"required,min=0"`
+	LeaveCash *float64 `json:"leave_cash" binding:"omitempty,min=0"`
 	Comment   *string `json:"comment"`
 	CashAccountID string `json:"cash_account_id" binding:"required,uuid"`
 }
@@ -115,7 +116,7 @@ func (h *ShiftHandler) EndShift(c *gin.Context) {
 		return
 	}
 
-	shift, err := h.usecase.EndShift(c.Request.Context(), shiftID, req.FinalCash, req.Comment, cashAccountID)
+	shift, err := h.usecase.EndShift(c.Request.Context(), shiftID, req.FinalCash, req.LeaveCash, req.Comment, cashAccountID)
 	if err != nil {
 		h.logger.Error("Failed to end shift", zap.Error(err))
 		if err.Error() == "shift already ended" { // Assuming this specific error string from usecase

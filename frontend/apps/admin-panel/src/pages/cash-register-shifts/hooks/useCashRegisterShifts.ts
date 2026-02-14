@@ -17,9 +17,9 @@ export const useCashRegisterShifts = () => {
 
   // Transform data for table
   const shiftsTable = useMemo(() => {
-    return shifts.map((shift, index) => {
+    return shifts.map((shift) => {
       const transformed = transformApiShiftToShift(shift)
-      return transformShiftToTable(transformed, index)
+      return transformShiftToTable(transformed)
     })
   }, [shifts])
 
@@ -46,8 +46,28 @@ export const useCashRegisterShifts = () => {
       return bTime - aTime
     })
 
-    // Recalculate row numbers after filtering/sorting
-    return result.map((shift, index) => ({ ...shift, number: index + 1 }))
+    // Рассчитываем разницу открытия текущей смены к остатку предыдущей смены
+    // (предыдущая в хронологическом порядке при сортировке DESC находится на index + 1).
+    return result.map((shift, index) => {
+      const previousShift = result[index + 1]
+      let difference = 0
+
+      if (previousShift) {
+        const previousCarryOver = previousShift.leaveCash
+          ?? previousShift.closingBalance
+          ?? previousShift.openingBalance
+        difference = shift.openingBalance - previousCarryOver
+        if (Math.abs(difference) < 0.01) {
+          difference = 0
+        }
+      }
+
+      return {
+        ...shift,
+        number: index + 1,
+        difference,
+      }
+    })
   }, [shiftsTable, searchQuery])
 
   // Handlers

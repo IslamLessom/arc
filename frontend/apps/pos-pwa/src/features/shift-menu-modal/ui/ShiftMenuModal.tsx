@@ -88,6 +88,7 @@ export function ShiftMenuModal({ isOpen, onClose }: ShiftMenuModalProps) {
       await endShift.mutateAsync({
         shift_id: activeShift.id,
         final_cash: cashValue,
+        leave_cash: leaveAmount,
         cash_account_id: selectedAccountId,
       })
 

@@ -34,6 +34,7 @@ export interface ApiShift {
   end_time: string | null
   initial_cash: number
   final_cash: number | null
+  leave_cash: number | null
   cash_amount: number // Сумма наличных оплат за смену
   card_amount: number // Сумма оплат картой за смену
   shortage: number | null // Недостача при закрытии смены
@@ -52,6 +53,7 @@ export interface ActiveShiftErrorResponse {
 export interface EndShiftRequest {
   shift_id: string
   final_cash: number
+  leave_cash?: number
   cash_account_id: string
   comment?: string
 }
@@ -226,6 +228,7 @@ export function transformApiShiftToShift(apiShift: ApiShift) {
     closedAt: apiShift.end_time,
     openingBalance: apiShift.initial_cash,
     closingBalance: apiShift.final_cash,
+    leaveCash: apiShift.leave_cash ?? undefined,
     cashAmount: apiShift.cash_amount,
     cardAmount: apiShift.card_amount,
     shortage: apiShift.shortage ?? undefined,

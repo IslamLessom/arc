@@ -19,6 +19,7 @@ type Shift struct {
 	EndTime         *time.Time     `json:"end_time,omitempty"`
 	InitialCash     float64        `json:"initial_cash" gorm:"not null"`
 	FinalCash       *float64       `json:"final_cash,omitempty"`
+	LeaveCash       *float64       `json:"leave_cash,omitempty"` // Сумма, оставленная в кассе для следующей смены
 	CashAmount      float64        `json:"cash_amount" gorm:"default:0"` // Сумма наличных оплат за смену
 	CardAmount      float64        `json:"card_amount" gorm:"default:0"` // Сумма оплат картой за смену
 	Shortage        *float64       `json:"shortage,omitempty"`          // Недостача при закрытии смены

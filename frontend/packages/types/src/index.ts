@@ -375,6 +375,7 @@ export interface Shift {
   closedAt?: string
   openingBalance: number
   closingBalance?: number
+  leaveCash?: number
   cashAmount: number // Сумма наличных оплат за смену
   cardAmount: number // Сумма оплат картой за смену
   shortage?: number // Недостача при закрытии смены
@@ -457,4 +458,3 @@ export interface ProfitAndLossReport {
 // ===== Сервисы =====
 
 export * from './services'
-

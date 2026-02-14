@@ -120,7 +120,7 @@ func (uc *ShiftUseCase) EndUserSession(ctx context.Context, sessionID uuid.UUID)
 }
 
 // EndShift завершает смену заведения
-func (uc *ShiftUseCase) EndShift(ctx context.Context, shiftID uuid.UUID, finalCash float64, comment *string, cashAccountID uuid.UUID) (*models.Shift, error) {
+func (uc *ShiftUseCase) EndShift(ctx context.Context, shiftID uuid.UUID, finalCash float64, leaveCash *float64, comment *string, cashAccountID uuid.UUID) (*models.Shift, error) {
 	shift, err := uc.shiftRepo.GetByID(ctx, shiftID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get shift: %w", err)
@@ -164,6 +164,15 @@ func (uc *ShiftUseCase) EndShift(ctx context.Context, shiftID uuid.UUID, finalCa
 	fmt.Printf("DEBUG Shift End: initialCash=%.2f, cashSalesTotal=%.2f, expectedCash=%.2f, finalCash=%.2f\n",
 		shift.InitialCash, cashSalesTotal, expectedCash, finalCash)
 
+	// Сколько оставить в кассе для следующей смены
+	leaveAmount := finalCash
+	if leaveCash != nil {
+		leaveAmount = *leaveCash
+	}
+	if leaveAmount > finalCash+0.01 {
+		return nil, errors.New("leave cash cannot be greater than final cash")
+	}
+
 	// Рассчитываем недостачу (если finalCash меньше expected)
 	var shortage *float64
 	if finalCash < expectedCash - 0.01 {
@@ -174,6 +183,7 @@ func (uc *ShiftUseCase) EndShift(ctx context.Context, shiftID uuid.UUID, finalCa
 	now := time.Now()
 	shift.EndTime = &now
 	shift.FinalCash = &finalCash
+	shift.LeaveCash = &leaveAmount
 	shift.CashAmount = cashSalesTotal
 	shift.CardAmount = cardSalesTotal
 	shift.Shortage = shortage
@@ -183,9 +193,9 @@ func (uc *ShiftUseCase) EndShift(ctx context.Context, shiftID uuid.UUID, finalCa
 		return nil, fmt.Errorf("failed to update shift: %w", err)
 	}
 
-	// Инкассация - отправляем все наличные продажи в сейф
-	// cashSalesTotal - это сумма всех наличных оплат за смену
-	if cashSalesTotal > 0.01 {
+	// Инкассация: всё, что больше оставленной суммы, уходит в сейф
+	encashmentAmount := finalCash - leaveAmount
+	if encashmentAmount > 0.01 {
 		// Используем переданный cashAccountID (выбранный денежный ящик)
 		cashAccount, err := uc.accountRepo.GetByID(ctx, cashAccountID, &shift.EstablishmentID)
 		if err == nil && cashAccount != nil {
@@ -194,8 +204,8 @@ func (uc *ShiftUseCase) EndShift(ctx context.Context, shiftID uuid.UUID, finalCa
 				TransactionDate: time.Now(),
 				Type:            "expense",
 				Category:        "Инкассация",
-				Description:     fmt.Sprintf("Инкассация в сейф, смена №%s. Наличные продажи: %.2f ₽", shift.ID.String()[:8], cashSalesTotal),
-				Amount:          cashSalesTotal,
+				Description:     fmt.Sprintf("Инкассация в сейф, смена №%s. Изъято из кассы: %.2f ₽", shift.ID.String()[:8], encashmentAmount),
+				Amount:          encashmentAmount,
 				AccountID:       cashAccount.ID,
 				EstablishmentID: shift.EstablishmentID,
 				ShiftID:         &shift.ID,

@@ -29,6 +29,7 @@ interface ActiveShiftResponse {
 interface EndShiftRequest {
   shift_id: string;
   final_cash: number;
+  leave_cash?: number;
   cash_account_id: string;
   comment?: string;
 }
@@ -135,6 +136,7 @@ export function useLogoutWithShiftEnd(props: UseLogoutWithShiftEndProps = {}) {
           const endShiftRequest: EndShiftRequest = {
             shift_id: activeShift.id,
             final_cash: activeShift.initial_cash,
+            leave_cash: activeShift.initial_cash,
             cash_account_id: finalCashAccountId,
             comment: 'Смена завершена при выходе из системы',
           };
