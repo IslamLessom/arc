@@ -161,9 +161,7 @@ export function Order() {
                     $selected={guest.guestNumber === orderData.selectedGuestNumber}
                     onClick={() => handleGuestSelect(guest.guestNumber)}
                   >
-                    {orderData?.selectedCustomer?.group && guest.guestNumber === orderData.selectedGuestNumber
-                      ? orderData.selectedCustomer.name
-                      : `Гость ${guest.guestNumber}`}
+                    Гость {guest.guestNumber}
                   </Styled.GuestChip>
                 ))}
               </Styled.GuestList>

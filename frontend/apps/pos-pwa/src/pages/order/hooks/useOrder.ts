@@ -605,16 +605,18 @@ export function useOrder(): UseOrderResult {
     setOrderData(updatedOrderData)
     localStorage.setItem(`${ORDER_STORAGE_KEY}${orderId}`, JSON.stringify(updatedOrderData))
 
-    // If customer has a group with discount, apply it to all guests
+    // Apply discount ONLY to currently selected guest
     if (customer?.group?.discount_percentage && customer.group.discount_percentage > 0) {
-      orderData.guests.forEach(guest => {
-        handleSetGuestDiscount(guest.guestNumber, DiscountType.Percentage, customer.group.discount_percentage)
-      })
+      const currentGuest = orderData.guests.find(g => g.guestNumber === orderData.selectedGuestNumber)
+      if (currentGuest) {
+        handleSetGuestDiscount(currentGuest.guestNumber, DiscountType.Percentage, customer.group.discount_percentage)
+      }
     } else {
-      // Remove all discounts if customer has no discount group
-      orderData.guests.forEach(guest => {
-        handleRemoveGuestDiscount(guest.guestNumber)
-      })
+      // Remove discount from currently selected guest only
+      const currentGuest = orderData.guests.find(g => g.guestNumber === orderData.selectedGuestNumber)
+      if (currentGuest) {
+        handleRemoveGuestDiscount(currentGuest.guestNumber)
+      }
     }
   }, [orderData, orderId, handleSetGuestDiscount, handleRemoveGuestDiscount])
 
@@ -630,10 +632,11 @@ export function useOrder(): UseOrderResult {
     setOrderData(updatedOrderData)
     localStorage.setItem(`${ORDER_STORAGE_KEY}${orderId}`, JSON.stringify(updatedOrderData))
 
-    // Remove all discounts when customer is removed
-    orderData?.guests.forEach(guest => {
-      handleRemoveGuestDiscount(guest.guestNumber)
-    })
+    // Remove discount from currently selected guest only
+    const currentGuest = orderData.guests.find(g => g.guestNumber === orderData.selectedGuestNumber)
+    if (currentGuest) {
+      handleRemoveGuestDiscount(currentGuest.guestNumber)
+    }
   }, [orderData, orderId, handleRemoveGuestDiscount])
 
   return {
