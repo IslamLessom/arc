@@ -11,28 +11,11 @@ interface ClientTabProps {
 
 export function ClientTab({ guests, onSetDiscount, onRemoveDiscount }: ClientTabProps) {
   const [selectedGuest, setSelectedGuest] = useState<number | null>(null)
-  const [discountType, setDiscountType] = useState<DiscountType>(DiscountType.Percentage)
-  const [discountValue, setDiscountValue] = useState('')
 
   const selectedGuestData = guests.find(g => g.guestNumber === selectedGuest)
 
-  const handleApplyDiscount = () => {
-    if (!selectedGuest) return
-
-    const value = parseFloat(discountValue)
-    if (isNaN(value) || value <= 0) return
-
-    if (discountType === DiscountType.Percentage && value > 100) return
-
-    onSetDiscount(selectedGuest, discountType, value)
-    setDiscountValue('')
-  }
-
   const handleRemoveDiscount = (guestNumber: number) => {
     onRemoveDiscount(guestNumber)
-    if (selectedGuest === guestNumber) {
-      setDiscountValue('')
-    }
   }
 
   const formatPrice = (price: number): string => {
@@ -85,26 +68,15 @@ export function ClientTab({ guests, onSetDiscount, onRemoveDiscount }: ClientTab
               </Styled.GuestCardRow>
 
               {guest.discount.type !== DiscountType.None && (
-                <>
-                  <Styled.GuestCardRow $highlight>
-                    <Styled.GuestCardLabel>Скидка:</Styled.GuestCardLabel>
-                    <Styled.GuestCardValue $highlight>
-                      {guest.discount.type === DiscountType.Percentage
-                        ? `${guest.discount.value}%`
-                        : formatPrice(guest.discount.value)}
-                      {' '}({formatPrice(guest.discount.amount)})
-                    </Styled.GuestCardValue>
-                  </Styled.GuestCardRow>
-
-                  <Styled.RemoveDiscountButton
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      handleRemoveDiscount(guest.guestNumber)
-                    }}
-                  >
-                    Удалить скидку
-                  </Styled.RemoveDiscountButton>
-                </>
+                <Styled.GuestCardRow $highlight>
+                  <Styled.GuestCardLabel>Скидка:</Styled.GuestCardLabel>
+                  <Styled.GuestCardValue $highlight>
+                    {guest.discount.type === DiscountType.Percentage
+                      ? `${guest.discount.value}%`
+                      : formatPrice(guest.discount.value)}
+                    {' '}({formatPrice(guest.discount.amount)})
+                  </Styled.GuestCardValue>
+                </Styled.GuestCardRow>
               )}
             </Styled.GuestCardBody>
           </Styled.GuestCard>
@@ -112,69 +84,9 @@ export function ClientTab({ guests, onSetDiscount, onRemoveDiscount }: ClientTab
       </Styled.GuestsList>
 
       <Styled.DiscountPanel>
-        {selectedGuestData ? (
-          <>
-            <Styled.DiscountPanelHeader>
-              <Styled.DiscountPanelTitle>
-                Скидка для Гостя {selectedGuestData.guestNumber}
-              </Styled.DiscountPanelTitle>
-            </Styled.DiscountPanelHeader>
-
-            <Styled.DiscountForm>
-              <Styled.DiscountTypeSelector>
-                <Styled.DiscountTypeButton
-                  $active={discountType === DiscountType.Percentage}
-                  onClick={() => setDiscountType(DiscountType.Percentage)}
-                >
-                  Процент
-                </Styled.DiscountTypeButton>
-                <Styled.DiscountTypeButton
-                  $active={discountType === DiscountType.Fixed}
-                  onClick={() => setDiscountType(DiscountType.Fixed)}
-                >
-                  Сумма
-                </Styled.DiscountTypeButton>
-              </Styled.DiscountTypeSelector>
-
-              <Styled.DiscountInputWrapper>
-                <Styled.DiscountInput
-                  type="number"
-                  placeholder={discountType === DiscountType.Percentage ? '0' : '0 ₽'}
-                  value={discountValue}
-                  onChange={(e) => setDiscountValue(e.target.value)}
-                  min={0}
-                  max={discountType === DiscountType.Percentage ? 100 : undefined}
-                  step={discountType === DiscountType.Percentage ? 1 : 0.01}
-                />
-                <Styled.DiscountInputSuffix>
-                  {discountType === DiscountType.Percentage ? '%' : '₽'}
-                </Styled.DiscountInputSuffix>
-              </Styled.DiscountInputWrapper>
-
-              <Styled.ApplyDiscountButton onClick={handleApplyDiscount}>
-                Применить
-              </Styled.ApplyDiscountButton>
-            </Styled.DiscountForm>
-
-            <Styled.DiscountPreview>
-              {discountType === DiscountType.Percentage && discountValue ? (
-                <Styled.DiscountPreviewText>
-                  Скидка составит:{' '}
-                  <strong>
-                    {formatPrice((selectedGuestData.totalAmount * parseFloat(discountValue)) / 100)}
-                  </strong>
-                </Styled.DiscountPreviewText>
-              ) : discountType === DiscountType.Fixed && discountValue ? (
-                <Styled.DiscountPreviewText>
-                  Скидка составит:{' '}
-                  <strong>{formatPrice(Math.min(parseFloat(discountValue), selectedGuestData.totalAmount))}</strong>
-                </Styled.DiscountPreviewText>
-              ) : null}
-            </Styled.DiscountPreview>
-          </>
-        ) : (
+        {selectedGuestData && (
           <Styled.DiscountPanelEmpty>
-            Выберите гостя, чтобы применить скидку
+            Скидки управляются через выбранного клиента
           </Styled.DiscountPanelEmpty>
         )}
       </Styled.DiscountPanel>
