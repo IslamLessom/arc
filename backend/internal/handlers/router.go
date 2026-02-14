@@ -362,13 +362,12 @@ func NewRouter(usecases *usecases.UseCases, cfg *config.Config, logger *zap.Logg
 				orders.POST("/:order_id/pay", orderHandler.ProcessOrderPayment)
 				orders.POST("/:order_id/close-without-payment", orderHandler.CloseOrderWithoutPayment)
 			}
-		}
-		}
-		// Marketing
-		marketingHandler := NewMarketingHandler(usecases.Marketing, logger)
-		marketing := protected.Group("/marketing")
-		marketing.Use(middleware.RequireEstablishment(usecases.Auth))
-		{
+
+			// Marketing
+			marketingHandler := NewMarketingHandler(usecases.Marketing, logger)
+			marketing := protected.Group("/marketing")
+			marketing.Use(middleware.RequireEstablishment(usecases.Auth))
+			{
 			// Clients
 			clients := marketing.Group("/clients")
 			{
@@ -417,6 +416,8 @@ func NewRouter(usecases *usecases.UseCases, cfg *config.Config, logger *zap.Logg
 				exclusions.DELETE("/:id", marketingHandler.DeleteExclusion)
 			}
 		}
+	}
+	}
 
 	return router
 }

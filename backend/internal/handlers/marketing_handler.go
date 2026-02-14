@@ -8,7 +8,6 @@ import (
 	"github.com/google/uuid"
 	"go.uber.org/zap"
 
-	"github.com/yourusername/arc/backend/internal/models"
 	"github.com/yourusername/arc/backend/internal/usecases"
 )
 
@@ -126,12 +125,6 @@ func (h *MarketingHandler) CreateClient(c *gin.Context) {
 // @Failure 500 {object} map[string]string
 // @Router /marketing/clients/{id} [get]
 func (h *MarketingHandler) GetClient(c *gin.Context) {
-	estID, err := getEstablishmentID(c)
-	if err != nil {
-		c.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
-		return
-	}
-
 	clientID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Неверный ID клиента"})
@@ -229,10 +222,15 @@ func (h *MarketingHandler) UpdateClient(c *gin.Context) {
 		loyaltyProgramID = &parsedID
 	}
 
+	var name string
+	if req.Name != nil {
+		name = *req.Name
+	}
+
 	client, err := h.usecase.UpdateClient(
 		c.Request.Context(),
 		clientID,
-		req.Name,
+		name,
 		req.Email,
 		req.Phone,
 		req.Birthday,
@@ -262,12 +260,6 @@ func (h *MarketingHandler) UpdateClient(c *gin.Context) {
 // @Failure 500 {object} map[string]string
 // @Router /marketing/clients/{id} [delete]
 func (h *MarketingHandler) DeleteClient(c *gin.Context) {
-	estID, err := getEstablishmentID(c)
-	if err != nil {
-		c.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
-		return
-	}
-
 	clientID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Неверный ID клиента"})
@@ -299,12 +291,6 @@ func (h *MarketingHandler) DeleteClient(c *gin.Context) {
 // @Failure 500 {object} map[string]string
 // @Router /marketing/clients/{id}/loyalty/add [post]
 func (h *MarketingHandler) AddClientLoyaltyPoints(c *gin.Context) {
-	estID, err := getEstablishmentID(c)
-	if err != nil {
-		c.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
-		return
-	}
-
 	clientID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Неверный ID клиента"})
@@ -342,12 +328,6 @@ func (h *MarketingHandler) AddClientLoyaltyPoints(c *gin.Context) {
 // @Failure 500 {object} map[string]string
 // @Router /marketing/clients/{id}/loyalty/redeem [post]
 func (h *MarketingHandler) RedeemClientLoyaltyPoints(c *gin.Context) {
-	estID, err := getEstablishmentID(c)
-	if err != nil {
-		c.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
-		return
-	}
-
 	clientID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Неверный ID клиента"})
@@ -444,12 +424,6 @@ func (h *MarketingHandler) CreateClientGroup(c *gin.Context) {
 // @Failure 500 {object} map[string]string
 // @Router /marketing/customer-groups/{id} [get]
 func (h *MarketingHandler) GetClientGroup(c *gin.Context) {
-	estID, err := getEstablishmentID(c)
-	if err != nil {
-		c.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
-		return
-	}
-
 	groupID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Неверный ID группы"})
@@ -527,12 +501,21 @@ func (h *MarketingHandler) UpdateClientGroup(c *gin.Context) {
 		return
 	}
 
+	var name string
+	if req.Name != nil {
+		name = *req.Name
+	}
+	var discountPercentage float64
+	if req.DiscountPercentage != nil {
+		discountPercentage = *req.DiscountPercentage
+	}
+
 	group, err := h.usecase.UpdateClientGroup(
 		c.Request.Context(),
 		groupID,
-		req.Name,
+		name,
 		req.Description,
-		req.DiscountPercentage,
+		discountPercentage,
 		req.MinOrders,
 		req.MinSpent,
 		estID,
@@ -559,12 +542,6 @@ func (h *MarketingHandler) UpdateClientGroup(c *gin.Context) {
 // @Failure 500 {object} map[string]string
 // @Router /marketing/customer-groups/{id} [delete]
 func (h *MarketingHandler) DeleteClientGroup(c *gin.Context) {
-	estID, err := getEstablishmentID(c)
-	if err != nil {
-		c.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
-		return
-	}
-
 	groupID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Неверный ID группы"})

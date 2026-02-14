@@ -6,8 +6,6 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"go.uber.org/zap"
-
-	"github.com/yourusername/arc/backend/internal/usecases"
 )
 
 // ===== LOYALTY PROGRAMS =====
@@ -92,12 +90,6 @@ func (h *MarketingHandler) CreateLoyaltyProgram(c *gin.Context) {
 // @Failure 500 {object} map[string]string
 // @Router /marketing/loyalty-programs/{id} [get]
 func (h *MarketingHandler) GetLoyaltyProgram(c *gin.Context) {
-	estID, err := getEstablishmentID(c)
-	if err != nil {
-		c.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
-		return
-	}
-
 	programID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Неверный ID программы"})
@@ -157,12 +149,6 @@ func (h *MarketingHandler) ListLoyaltyPrograms(c *gin.Context) {
 // @Failure 500 {object} map[string]string
 // @Router /marketing/loyalty-programs/{id} [put]
 func (h *MarketingHandler) UpdateLoyaltyProgram(c *gin.Context) {
-	estID, err := getEstablishmentID(c)
-	if err != nil {
-		c.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
-		return
-	}
-
 	programID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Неверный ID программы"})
@@ -175,16 +161,29 @@ func (h *MarketingHandler) UpdateLoyaltyProgram(c *gin.Context) {
 		return
 	}
 
+	var name string
+	if req.Name != nil {
+		name = *req.Name
+	}
+	var programType string
+	if req.Type != nil {
+		programType = *req.Type
+	}
+	var pointMultiplier float64
+	if req.PointMultiplier != nil {
+		pointMultiplier = *req.PointMultiplier
+	}
+
 	program, err := h.usecase.UpdateLoyaltyProgram(
 		c.Request.Context(),
 		programID,
-		req.Name,
+		name,
 		req.Description,
-		req.Type,
+		programType,
 		req.PointsPerCurrency,
 		req.CashbackPercentage,
 		req.MaxCashbackAmount,
-		req.PointMultiplier,
+		pointMultiplier,
 		req.Active != nil && *req.Active,
 	)
 	if err != nil {
@@ -209,12 +208,6 @@ func (h *MarketingHandler) UpdateLoyaltyProgram(c *gin.Context) {
 // @Failure 500 {object} map[string]string
 // @Router /marketing/loyalty-programs/{id} [delete]
 func (h *MarketingHandler) DeleteLoyaltyProgram(c *gin.Context) {
-	estID, err := getEstablishmentID(c)
-	if err != nil {
-		c.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
-		return
-	}
-
 	programID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Неверный ID программы"})
@@ -315,12 +308,6 @@ func (h *MarketingHandler) CreatePromotion(c *gin.Context) {
 // @Failure 500 {object} map[string]string
 // @Router /marketing/promotions/{id} [get]
 func (h *MarketingHandler) GetPromotion(c *gin.Context) {
-	estID, err := getEstablishmentID(c)
-	if err != nil {
-		c.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
-		return
-	}
-
 	promotionID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Неверный ID акции"})
@@ -380,12 +367,6 @@ func (h *MarketingHandler) ListPromotions(c *gin.Context) {
 // @Failure 500 {object} map[string]string
 // @Router /marketing/promotions/{id} [put]
 func (h *MarketingHandler) UpdatePromotion(c *gin.Context) {
-	estID, err := getEstablishmentID(c)
-	if err != nil {
-		c.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
-		return
-	}
-
 	promotionID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Неверный ID акции"})
@@ -398,17 +379,34 @@ func (h *MarketingHandler) UpdatePromotion(c *gin.Context) {
 		return
 	}
 
+	var name string
+	if req.Name != nil {
+		name = *req.Name
+	}
+	var promotionType string
+	if req.Type != nil {
+		promotionType = *req.Type
+	}
+	var startDate string
+	if req.StartDate != nil {
+		startDate = *req.StartDate
+	}
+	var endDate string
+	if req.EndDate != nil {
+		endDate = *req.EndDate
+	}
+
 	promotion, err := h.usecase.UpdatePromotion(
 		c.Request.Context(),
 		promotionID,
-		req.Name,
+		name,
 		req.Description,
-		req.Type,
+		promotionType,
 		req.DiscountPercentage,
 		req.BuyQuantity,
 		req.GetQuantity,
-		req.StartDate,
-		req.EndDate,
+		startDate,
+		endDate,
 		req.Active != nil && *req.Active,
 	)
 	if err != nil {
@@ -433,12 +431,6 @@ func (h *MarketingHandler) UpdatePromotion(c *gin.Context) {
 // @Failure 500 {object} map[string]string
 // @Router /marketing/promotions/{id} [delete]
 func (h *MarketingHandler) DeletePromotion(c *gin.Context) {
-	estID, err := getEstablishmentID(c)
-	if err != nil {
-		c.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
-		return
-	}
-
 	promotionID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Неверный ID акции"})
@@ -540,12 +532,6 @@ func (h *MarketingHandler) CreateExclusion(c *gin.Context) {
 // @Failure 500 {object} map[string]string
 // @Router /marketing/exclusions/{id} [get]
 func (h *MarketingHandler) GetExclusion(c *gin.Context) {
-	estID, err := getEstablishmentID(c)
-	if err != nil {
-		c.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
-		return
-	}
-
 	exclusionID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Неверный ID исключения"})
@@ -605,12 +591,6 @@ func (h *MarketingHandler) ListExclusions(c *gin.Context) {
 // @Failure 500 {object} map[string]string
 // @Router /marketing/exclusions/{id} [put]
 func (h *MarketingHandler) UpdateExclusion(c *gin.Context) {
-	estID, err := getEstablishmentID(c)
-	if err != nil {
-		c.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
-		return
-	}
-
 	exclusionID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Неверный ID исключения"})
@@ -633,12 +613,21 @@ func (h *MarketingHandler) UpdateExclusion(c *gin.Context) {
 		entityID = &parsedID
 	}
 
+	var name string
+	if req.Name != nil {
+		name = *req.Name
+	}
+	var exclusionType string
+	if req.Type != nil {
+		exclusionType = *req.Type
+	}
+
 	exclusion, err := h.usecase.UpdateExclusion(
 		c.Request.Context(),
 		exclusionID,
-		req.Name,
+		name,
 		req.Description,
-		req.Type,
+		exclusionType,
 		entityID,
 		req.EntityName,
 		req.Active != nil && *req.Active,
@@ -665,12 +654,6 @@ func (h *MarketingHandler) UpdateExclusion(c *gin.Context) {
 // @Failure 500 {object} map[string]string
 // @Router /marketing/exclusions/{id} [delete]
 func (h *MarketingHandler) DeleteExclusion(c *gin.Context) {
-	estID, err := getEstablishmentID(c)
-	if err != nil {
-		c.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
-		return
-	}
-
 	exclusionID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Неверный ID исключения"})
