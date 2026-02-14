@@ -1,6 +1,7 @@
 import { useCustomers } from '../hooks/useCustomers'
 import { Table } from '@restaurant-pos/ui'
 import { getCustomersTableColumns } from '../lib/constants'
+import { AddCustomerModal } from '../../../features/add-customer-modal'
 import * as Styled from './styled'
 
 export const Customers = () => {
@@ -90,7 +91,12 @@ export const Customers = () => {
         />
       </Styled.TableContainer>
 
-      {/* TODO: Add AddCustomerModal component when ready */}
+      <AddCustomerModal
+        isOpen={isModalOpen}
+        customerId={editingCustomerId}
+        onSuccess={handleSuccess}
+        onClose={handleCloseModal}
+      />
     </Styled.PageContainer>
   )
 }

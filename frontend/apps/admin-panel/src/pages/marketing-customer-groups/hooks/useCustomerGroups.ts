@@ -1,58 +1,30 @@
 import { useState, useMemo } from 'react'
+import { useCustomerGroups, type CustomerGroup } from '@restaurant-pos/api-client'
 import { CustomerGroupTable, CustomerGroupsSort } from '../model/types'
 import { SortDirection } from '../model/enums'
 
-// Mock data - replace with actual API calls when available
-const mockCustomerGroups: CustomerGroupTable[] = [
-  {
-    id: '1',
-    name: 'VIP',
-    description: 'Особые клиенты с повышенными бонусами',
-    discount_percentage: 15,
-    min_orders: 50,
-    min_spent: 500000,
-    customers_count: 125,
-    number: 1,
-    created_at: '2024-01-15',
-    updated_at: '2024-02-10'
-  },
-  {
-    id: '2',
-    name: 'Regular',
-    description: 'Обычные клиенты',
-    discount_percentage: 5,
-    min_orders: 10,
-    min_spent: 50000,
-    customers_count: 450,
-    number: 2,
-    created_at: '2024-01-20',
-    updated_at: '2024-02-08'
-  },
-  {
-    id: '3',
-    name: 'New',
-    description: 'Новые клиенты',
-    discount_percentage: 0,
-    min_orders: null,
-    min_spent: null,
-    customers_count: 200,
-    number: 3,
-    created_at: '2024-01-25',
-    updated_at: '2024-02-05'
-  }
-]
-
 export const useCustomerGroups = () => {
+  const { customerGroups: apiGroups, isLoading, error, refetch } = useCustomerGroups()
   const [searchQuery, setSearchQuery] = useState('')
   const [sort, setSort] = useState<CustomerGroupsSort>({ field: 'name', direction: SortDirection.ASC })
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [editingGroupId, setEditingGroupId] = useState<string | null>(null)
 
-  // TODO: Replace with actual API calls
-  // const { data: apiGroups = [], isLoading, error } = useGetCustomerGroups()
-  const customerGroups: CustomerGroupTable[] = mockCustomerGroups
-  const isLoading = false
-  const error = null
+  // Transform API groups to table format
+  const customerGroups: CustomerGroupTable[] = useMemo(() => {
+    return apiGroups.map((group, index) => ({
+      id: group.id,
+      name: group.name,
+      description: group.description || '',
+      discount_percentage: group.discount_percentage,
+      min_orders: group.min_orders || null,
+      min_spent: group.min_spent || null,
+      customers_count: 0, // TODO: get from API
+      number: index + 1,
+      created_at: group.created_at,
+      updated_at: group.updated_at,
+    }))
+  }, [apiGroups])
 
   const filteredAndSortedGroups = useMemo(() => {
     if (!customerGroups || customerGroups.length === 0) return []
@@ -114,6 +86,7 @@ export const useCustomerGroups = () => {
 
   const handleSuccess = () => {
     handleCloseModal()
+    refetch()
   }
 
   const handleExport = () => {

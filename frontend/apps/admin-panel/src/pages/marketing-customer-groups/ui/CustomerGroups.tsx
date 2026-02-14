@@ -1,6 +1,7 @@
 import { useCustomerGroups } from '../hooks/useCustomerGroups'
 import { Table } from '@restaurant-pos/ui'
 import { getCustomerGroupsTableColumns } from '../lib/constants'
+import { AddCustomerGroupModal } from '../../../features/add-customer-group-modal'
 import * as Styled from './styled'
 
 export const CustomerGroups = () => {
@@ -90,7 +91,12 @@ export const CustomerGroups = () => {
         />
       </Styled.TableContainer>
 
-      {/* TODO: Add AddCustomerGroupModal component when ready */}
+      <AddCustomerGroupModal
+        isOpen={isModalOpen}
+        groupId={editingGroupId}
+        onSuccess={handleSuccess}
+        onClose={handleCloseModal}
+      />
     </Styled.PageContainer>
   )
 }

@@ -1,52 +1,33 @@
 import { useState, useMemo } from 'react'
+import { useCustomers, type Customer } from '@restaurant-pos/api-client'
 import { CustomerTable, CustomersSort } from '../model/types'
 import { SortDirection } from '../model/enums'
 
-// Mock data - replace with actual API calls when available
-const mockCustomers: CustomerTable[] = [
-  {
-    id: '1',
-    name: 'Иванов Иван',
-    phone: '+7 777 123 4567',
-    email: 'ivanov@example.com',
-    birthday: '1990-05-15',
-    group_id: '1',
-    group: { id: '1', name: 'VIP' },
-    loyalty_points: 1500,
-    total_orders: 45,
-    total_spent: 250000,
-    number: 1,
-    created_at: '2024-01-15',
-    updated_at: '2024-02-10'
-  },
-  {
-    id: '2',
-    name: 'Петрова Мария',
-    phone: '+7 777 234 5678',
-    email: 'petrova@example.com',
-    birthday: '1985-08-22',
-    group_id: '2',
-    group: { id: '2', name: 'Regular' },
-    loyalty_points: 500,
-    total_orders: 12,
-    total_spent: 75000,
-    number: 2,
-    created_at: '2024-01-20',
-    updated_at: '2024-02-08'
-  }
-]
-
 export const useCustomers = () => {
+  const { customers: apiCustomers, isLoading, error, refetch } = useCustomers()
   const [searchQuery, setSearchQuery] = useState('')
   const [sort, setSort] = useState<CustomersSort>({ field: 'name', direction: SortDirection.ASC })
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [editingCustomerId, setEditingCustomerId] = useState<string | null>(null)
 
-  // TODO: Replace with actual API calls
-  // const { data: apiCustomers = [], isLoading, error } = useGetCustomers()
-  const customers: CustomerTable[] = mockCustomers
-  const isLoading = false
-  const error = null
+  // Transform API customers to table format
+  const customers: CustomerTable[] = useMemo(() => {
+    return apiCustomers.map((customer, index) => ({
+      id: customer.id,
+      name: customer.name,
+      phone: customer.phone || '',
+      email: customer.email || '',
+      birthday: customer.birthday || '',
+      group_id: customer.group_id || '',
+      group: customer.group,
+      loyalty_points: customer.loyalty_points,
+      total_orders: customer.total_orders,
+      total_spent: customer.total_spent,
+      number: index + 1,
+      created_at: customer.created_at,
+      updated_at: customer.updated_at,
+    }))
+  }, [apiCustomers])
 
   const filteredAndSortedCustomers = useMemo(() => {
     if (!customers || customers.length === 0) return []
@@ -110,6 +91,7 @@ export const useCustomers = () => {
 
   const handleSuccess = () => {
     handleCloseModal()
+    refetch()
   }
 
   const handleExport = () => {

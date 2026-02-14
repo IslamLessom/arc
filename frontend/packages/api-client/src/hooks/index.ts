@@ -209,6 +209,10 @@ export type { EmployeeStatistics } from './useEmployeeStatistics'
 export { useProfitAndLossReport } from './useProfitAndLoss'
 export type { ProfitAndLossParams } from './useProfitAndLoss'
 export { useUploadImage } from './useUpload'
+export { useCustomers } from './useCustomers'
+export type { Customer, CreateCustomerRequest, UpdateCustomerRequest } from './useCustomers'
+export { useCustomerGroups } from './useCustomerGroups'
+export type { CustomerGroup, CreateCustomerGroupRequest, UpdateCustomerGroupRequest } from './useCustomerGroups'
 
 // Types
 export * from '../types'
