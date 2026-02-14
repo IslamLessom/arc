@@ -13,7 +13,13 @@ export const AddExclusionModal = (props: AddExclusionModalProps) => {
     error,
     fieldErrors,
     isFormValid,
+    isLoadingProducts,
+    isLoadingCategories,
+    products,
+    categories,
     handleFieldChange,
+    toggleProduct,
+    toggleCategory,
     handleSubmit,
     handleClose,
   } = useAddExclusionModal(props)
@@ -61,6 +67,7 @@ export const AddExclusionModal = (props: AddExclusionModalProps) => {
                   value={formData.name}
                   onChange={(e) => handleFieldChange('name', e.target.value)}
                   $hasError={!!fieldErrors.name}
+                  placeholder="Например: Скидки на праздничные товары"
                 />
                 {fieldErrors.name && <Styled.FieldError>{fieldErrors.name}</Styled.FieldError>}
               </Styled.FormRow>
@@ -70,41 +77,101 @@ export const AddExclusionModal = (props: AddExclusionModalProps) => {
                 <Styled.StyledTextarea
                   value={formData.description}
                   onChange={(e) => handleFieldChange('description', e.target.value)}
+                  placeholder="Опишите исключение (необязательно)"
                 />
               </Styled.FormRow>
 
-              <Styled.TwoCols>
-                <Styled.FormRow>
-                  <Styled.RowLabel>Тип</Styled.RowLabel>
-                  <Styled.StyledSelect
-                    value={formData.type}
-                    onChange={(e) => handleFieldChange('type', e.target.value as typeof formData.type)}
-                  >
-                    <option value="product">Товар</option>
-                    <option value="category">Категория</option>
-                    <option value="customer">Клиент</option>
-                    <option value="customer_group">Группа клиентов</option>
-                  </Styled.StyledSelect>
-                </Styled.FormRow>
+              {!props.exclusionId && (
+                <>
+                  <Styled.FormRow>
+                    <Styled.RowLabel>Тип исключения</Styled.RowLabel>
+                    <Styled.TypeToggle>
+                      <Styled.TypeButton
+                        type="button"
+                        $active={formData.type === 'product'}
+                        onClick={() => handleFieldChange('type', 'product')}
+                      >
+                        Товары
+                      </Styled.TypeButton>
+                      <Styled.TypeButton
+                        type="button"
+                        $active={formData.type === 'category'}
+                        onClick={() => handleFieldChange('type', 'category')}
+                      >
+                        Категории
+                      </Styled.TypeButton>
+                    </Styled.TypeToggle>
+                  </Styled.FormRow>
 
-                <Styled.FormRow>
-                  <Styled.RowLabel>Название объекта</Styled.RowLabel>
-                  <Styled.StyledInput
-                    value={formData.entity_name}
-                    onChange={(e) => handleFieldChange('entity_name', e.target.value)}
-                  />
-                </Styled.FormRow>
-              </Styled.TwoCols>
+                  <Styled.FormRow>
+                    <Styled.RowLabel>Поиск</Styled.RowLabel>
+                    <Styled.SearchInput
+                      value={formData.searchQuery}
+                      onChange={(e) => handleFieldChange('searchQuery', e.target.value)}
+                      placeholder={formData.type === 'product' ? 'Поиск по названию товара или категории' : 'Поиск по названию категории'}
+                    />
+                  </Styled.FormRow>
 
-              <Styled.FormRow>
-                <Styled.RowLabel>ID объекта (UUID, необязательно)</Styled.RowLabel>
-                <Styled.StyledInput
-                  value={formData.entity_id}
-                  onChange={(e) => handleFieldChange('entity_id', e.target.value)}
-                  $hasError={!!fieldErrors.entity_id}
-                />
-                {fieldErrors.entity_id && <Styled.FieldError>{fieldErrors.entity_id}</Styled.FieldError>}
-              </Styled.FormRow>
+                  <Styled.FormRow>
+                    <Styled.RowLabel>
+                      {formData.type === 'product' ? 'Выберите товары' : 'Выберите категории'} <Styled.Required>*</Styled.Required>
+                    </Styled.RowLabel>
+                    {fieldErrors.selection && <Styled.FieldError>{fieldErrors.selection}</Styled.FieldError>}
+
+                    <Styled.SelectionList>
+                      {formData.type === 'product' ? (
+                        isLoadingProducts ? (
+                          <Styled.LoadingText>Загрузка товаров...</Styled.LoadingText>
+                        ) : products.length === 0 ? (
+                          <Styled.EmptyText>Нет товаров</Styled.EmptyText>
+                        ) : (
+                          products.map((product) => (
+                            <Styled.SelectionItem key={product.id}>
+                              <Styled.Checkbox
+                                type="checkbox"
+                                checked={formData.selectedProducts.includes(product.id)}
+                                onChange={() => toggleProduct(product.id)}
+                              />
+                              <Styled.ItemInfo>
+                                <Styled.ItemName>{product.name}</Styled.ItemName>
+                                {product.category_name && (
+                                  <Styled.ItemSubtext>{product.category_name}</Styled.ItemSubtext>
+                                )}
+                              </Styled.ItemInfo>
+                              <Styled.ItemPrice>{product.price} ₽</Styled.ItemPrice>
+                            </Styled.SelectionItem>
+                          ))
+                        )
+                      ) : (
+                        isLoadingCategories ? (
+                          <Styled.LoadingText>Загрузка категорий...</Styled.LoadingText>
+                        ) : categories.length === 0 ? (
+                          <Styled.EmptyText>Нет категорий</Styled.EmptyText>
+                        ) : (
+                          categories.map((category) => (
+                            <Styled.SelectionItem key={category.id}>
+                              <Styled.Checkbox
+                                type="checkbox"
+                                checked={formData.selectedCategories.includes(category.id)}
+                                onChange={() => toggleCategory(category.id)}
+                              />
+                              <Styled.ItemInfo>
+                                <Styled.ItemName>{category.name}</Styled.ItemName>
+                              </Styled.ItemInfo>
+                            </Styled.SelectionItem>
+                          ))
+                        )
+                      )}
+                    </Styled.SelectionList>
+
+                    <Styled.SelectionInfo>
+                      Выбрано: {formData.type === 'product'
+                        ? formData.selectedProducts.length
+                        : formData.selectedCategories.length}
+                    </Styled.SelectionInfo>
+                  </Styled.FormRow>
+                </>
+              )}
 
               {props.exclusionId && (
                 <Styled.CheckboxRow>

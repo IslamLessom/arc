@@ -238,7 +238,7 @@ export const OrderItemsList = styled.div({
   padding: '16px',
 })
 
-export const OrderItemCard = styled.div({
+export const OrderItemCard = styled.div<{ $excluded?: boolean }>((props) => ({
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'space-between',
@@ -246,7 +246,9 @@ export const OrderItemCard = styled.div({
   backgroundColor: '#f8f9fa',
   borderRadius: '8px',
   marginBottom: '8px',
-})
+  border: props.$excluded ? '1px solid #e74c3c' : 'none',
+  opacity: props.$excluded ? 0.85 : 1,
+}))
 
 export const ItemInfo = styled.div({
   flex: 1,
@@ -257,6 +259,21 @@ export const ItemName = styled.div({
   fontWeight: 500,
   color: '#2c3e50',
   marginBottom: '4px',
+  display: 'flex',
+  alignItems: 'center',
+  gap: '8px',
+  flexWrap: 'wrap',
+})
+
+export const ExcludedBadge = styled.span({
+  fontSize: '10px',
+  fontWeight: 600,
+  backgroundColor: '#e74c3c',
+  color: '#ffffff',
+  padding: '2px 6px',
+  borderRadius: '4px',
+  textTransform: 'uppercase',
+  letterSpacing: '0.5px',
 })
 
 export const ItemPrice = styled.div({
@@ -321,22 +338,44 @@ export const CheckoutPanel = styled.div({
   backgroundColor: '#ffffff',
 })
 
-export const CheckoutRow = styled.div({
+export const CheckoutRow = styled.div<{ $discount?: boolean }>({
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'space-between',
   marginBottom: '12px',
 })
 
-export const CheckoutLabel = styled.span({
+export const CheckoutLabel = styled.span<{ $discount?: boolean }>((props) => ({
   fontSize: '14px',
-  color: '#7f8c8d',
-})
+  color: props.$discount ? '#e74c3c' : '#7f8c8d',
+  fontWeight: props.$discount ? 600 : 400,
+}))
 
-export const CheckoutAmount = styled.span({
+export const CheckoutAmount = styled.span<{ $discount?: boolean }>((props) => ({
   fontSize: '24px',
   fontWeight: 700,
-  color: '#2c3e50',
+  color: props.$discount ? '#e74c3c' : '#2c3e50',
+}))
+
+export const ExcludedInfo = styled.div({
+  display: 'flex',
+  alignItems: 'center',
+  gap: '8px',
+  padding: '10px 12px',
+  backgroundColor: '#fff3cd',
+  border: '1px solid #ffc107',
+  borderRadius: '6px',
+  marginBottom: '12px',
+  fontSize: '13px',
+})
+
+export const ExcludedIcon = styled.span({
+  fontSize: '16px',
+})
+
+export const ExcludedText = styled.span({
+  color: '#856404',
+  fontWeight: 500,
 })
 
 export const CheckoutActions = styled.div({

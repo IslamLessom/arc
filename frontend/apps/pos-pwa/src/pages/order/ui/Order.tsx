@@ -1,6 +1,6 @@
 import * as Styled from './styled'
 import { useOrder } from '../hooks/useOrder'
-import { OrderTab } from '../model/enums'
+import { OrderTab, DiscountType } from '../model/enums'
 import { useCurrentUser } from '@restaurant-pos/api-client'
 import type { MenuItem } from '../model/types'
 import { ClientTab } from '../components/ClientTab'
@@ -59,6 +59,7 @@ export function Order() {
     handleRemoveGuestDiscount,
     handleCustomerSelect,
     handleCustomerRemove,
+    checkAllItemsExcluded,
   } = useOrder()
 
   const userName = currentUser?.name || 'Maki'
@@ -178,41 +179,68 @@ export function Order() {
                   </Styled.EmptyItemsText>
                 </Styled.EmptyItems>
               ) : (
-                selectedGuest?.items.map(item => (
-                  <Styled.OrderItemCard key={item.id}>
-                    <Styled.ItemInfo>
-                      <Styled.ItemName>{item.product?.name || item.techCard?.name || 'Товар'}</Styled.ItemName>
-                      <Styled.ItemPrice>{formatPrice(item.price)} / шт</Styled.ItemPrice>
-                    </Styled.ItemInfo>
-                    <Styled.ItemQuantity>
-                      <Styled.QuantityButton
-                        onClick={() => handleQuantityChange(item.id, -1)}
-                      >
-                        <Styled.RemoveIcon />
-                      </Styled.QuantityButton>
-                      <Styled.QuantityValue>{item.quantity}</Styled.QuantityValue>
-                      <Styled.QuantityButton
-                        onClick={() => handleQuantityChange(item.id, 1)}
-                      >
-                        <Styled.AddIcon />
-                      </Styled.QuantityButton>
-                      <Styled.DeleteIcon onClick={() => handleRemoveItem(item.id)} />
-                    </Styled.ItemQuantity>
-                    <Styled.ItemTotal>
-                      {formatPrice(item.totalPrice)}
-                    </Styled.ItemTotal>
-                  </Styled.OrderItemCard>
-                ))
+                <>
+                  {selectedGuest?.items.map(item => {
+                    const isExcluded = item.product?.exclude_from_discounts || item.techCard?.exclude_from_discounts || false
+                    return (
+                      <Styled.OrderItemCard key={item.id} $excluded={isExcluded}>
+                        <Styled.ItemInfo>
+                          <Styled.ItemName>
+                            {item.product?.name || item.techCard?.name || 'Товар'}
+                            {isExcluded && <Styled.ExcludedBadge>Без скидки</Styled.ExcludedBadge>}
+                          </Styled.ItemName>
+                          <Styled.ItemPrice>{formatPrice(item.price)} / шт</Styled.ItemPrice>
+                        </Styled.ItemInfo>
+                        <Styled.ItemQuantity>
+                          <Styled.QuantityButton
+                            onClick={() => handleQuantityChange(item.id, -1)}
+                          >
+                            <Styled.RemoveIcon />
+                          </Styled.QuantityButton>
+                          <Styled.QuantityValue>{item.quantity}</Styled.QuantityValue>
+                          <Styled.QuantityButton
+                            onClick={() => handleQuantityChange(item.id, 1)}
+                          >
+                            <Styled.AddIcon />
+                          </Styled.QuantityButton>
+                          <Styled.DeleteIcon onClick={() => handleRemoveItem(item.id)} />
+                        </Styled.ItemQuantity>
+                        <Styled.ItemTotal>
+                          {formatPrice(item.totalPrice)}
+                        </Styled.ItemTotal>
+                      </Styled.OrderItemCard>
+                    )
+                  })}
+                </>
               )}
             </Styled.OrderItemsList>
 
             <Styled.CheckoutPanel>
+              {selectedGuest && selectedGuest.discount.type !== DiscountType.None && checkAllItemsExcluded(selectedGuest.items).length > 0 && (
+                <Styled.ExcludedInfo>
+                  <Styled.ExcludedIcon>⚠️</Styled.ExcludedIcon>
+                  <Styled.ExcludedText>
+                    {checkAllItemsExcluded(selectedGuest.items).length} товар(ов) не участвуют в скидке
+                  </Styled.ExcludedText>
+                </Styled.ExcludedInfo>
+              )}
+
               <Styled.CheckoutRow>
                 <Styled.CheckoutLabel>К оплате</Styled.CheckoutLabel>
                 <Styled.CheckoutAmount>
                   {formatPrice(orderData?.totalAmount || 0)}
                 </Styled.CheckoutAmount>
               </Styled.CheckoutRow>
+
+              {selectedGuest && selectedGuest.discount.type !== DiscountType.None && selectedGuest.discount.amount > 0 && (
+                <Styled.CheckoutRow $discount>
+                  <Styled.CheckoutLabel>Скидка: {selectedGuest.discount.type === DiscountType.Percentage ? `${selectedGuest.discount.value}%` : formatPrice(selectedGuest.discount.value)}</Styled.CheckoutLabel>
+                  <Styled.CheckoutAmount $discount>
+                    - {formatPrice(selectedGuest.discount.amount)}
+                  </Styled.CheckoutAmount>
+                </Styled.CheckoutRow>
+              )}
+
               <Styled.CheckoutActions>
                 <Styled.CheckoutButton $variant="icon">
                   <Styled.MoreIcon />

@@ -9,6 +9,7 @@ import { OrderTab, DiscountType } from '../model/enums'
 import type { Product } from '@restaurant-pos/api-client'
 import type { TechnicalCard } from '@restaurant-pos/api-client'
 import type { Customer } from '@restaurant-pos/api-client'
+import { useExclusions } from './useExclusions'
 
 const ORDER_STORAGE_KEY = 'order_data_'
 
@@ -88,6 +89,9 @@ export function useOrder(): UseOrderResult {
         ? { category_id: selectedCategoryId, active: true }
         : undefined
   )
+
+  // Загружаем исключения из скидок
+  const { calculateDiscountWithExclusions, checkAllItemsExcluded } = useExclusions()
 
   const locationState = location.state as { guestsCount?: number; tableNumber?: number } | null
 
@@ -574,12 +578,16 @@ export function useOrder(): UseOrderResult {
 
     const guest = orderData.guests[guestIndex]
 
-    // Вычисляем сумму скидки
+    // Вычисляем сумму скидки с учётом исключений
     let discountAmount = 0
-    if (type === DiscountType.Percentage) {
-      discountAmount = (guest.totalAmount * value) / 100
-    } else if (type === DiscountType.Fixed) {
-      discountAmount = Math.min(value, guest.totalAmount)
+    const discountType = type === DiscountType.Percentage ? 'percentage' : 'fixed'
+
+    if (type === DiscountType.None || value === 0) {
+      discountAmount = 0
+    } else {
+      // Используем функцию calculateDiscountWithExclusions для учёта исключённых товаров
+      const result = calculateDiscountWithExclusions(guest.items, discountType, value)
+      discountAmount = result.discountAmount
     }
 
     const newGuest: GuestOrder = {
@@ -604,7 +612,7 @@ export function useOrder(): UseOrderResult {
       totalDiscount: newTotalDiscount,
       finalAmount: newTotalAmount,
     })
-  }, [orderData])
+  }, [orderData, calculateDiscountWithExclusions])
 
   // Remove discount from a guest
   const handleRemoveGuestDiscount = useCallback((guestNumber: number) => {
@@ -640,7 +648,9 @@ export function useOrder(): UseOrderResult {
     if (groupDiscount > 0) {
       discountType = DiscountType.Percentage
       discountValue = groupDiscount
-      discountAmount = (selectedGuest.totalAmount * discountValue) / 100
+      // Вычисляем скидку с учётом исключений
+      const result = calculateDiscountWithExclusions(selectedGuest.items, 'percentage', discountValue)
+      discountAmount = result.discountAmount
     }
 
     newGuests[selectedGuestIndex] = {
@@ -663,7 +673,7 @@ export function useOrder(): UseOrderResult {
       totalDiscount: newTotalDiscount,
       finalAmount: newTotalAmount,
     })
-  }, [orderData])
+  }, [orderData, calculateDiscountWithExclusions])
 
   // Remove customer from order
   const handleCustomerRemove = useCallback(() => {
@@ -732,5 +742,8 @@ export function useOrder(): UseOrderResult {
     selectedGuest,
     selectedCategoryProducts,
     selectedCategoryItems,
+
+    // Exclusions
+    checkAllItemsExcluded,
   }
 }

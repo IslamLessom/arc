@@ -100,4 +100,7 @@ export interface UseOrderResult {
   selectedGuest: GuestOrder | null
   selectedCategoryProducts: Product[]
   selectedCategoryItems: MenuItem[]
+
+  // Exclusions
+  checkAllItemsExcluded: (items: OrderItem[]) => OrderItem[]
 }

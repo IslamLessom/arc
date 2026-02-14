@@ -1,23 +1,22 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useMarketingExclusions } from '@restaurant-pos/api-client'
+import { useGetProducts, useGetCategories } from '@restaurant-pos/api-client'
 import type { AddExclusionModalProps, ExclusionFormData } from '../model/types'
 
 const defaultForm: ExclusionFormData = {
   name: '',
   description: '',
-  type: 'category',
-  entity_id: '',
-  entity_name: '',
+  type: 'product',
+  selectedProducts: [],
+  selectedCategories: [],
+  searchQuery: '',
   active: true,
-}
-
-const isValidUuid = (value: string) => {
-  if (!value) return true
-  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value)
 }
 
 export const useAddExclusionModal = (props: AddExclusionModalProps) => {
   const { exclusions, createExclusion, updateExclusion } = useMarketingExclusions()
+  const { data: products = [], isLoading: isLoadingProducts } = useGetProducts({ active: true })
+  const { data: categories = [], isLoading: isLoadingCategories } = useGetCategories({ type: 'product' })
 
   const [formData, setFormData] = useState<ExclusionFormData>(defaultForm)
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -25,7 +24,10 @@ export const useAddExclusionModal = (props: AddExclusionModalProps) => {
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
 
   useEffect(() => {
-    if (!props.isOpen) return
+    if (!props.isOpen) {
+      setFormData(defaultForm)
+      return
+    }
 
     if (props.exclusionId) {
       const current = exclusions.find((item) => item.id === props.exclusionId)
@@ -34,9 +36,10 @@ export const useAddExclusionModal = (props: AddExclusionModalProps) => {
       setFormData({
         name: current.name || '',
         description: current.description || '',
-        type: current.type,
-        entity_id: current.entity_id || '',
-        entity_name: current.entity_name || '',
+        type: current.type === 'product' || current.type === 'category' ? current.type : 'product',
+        selectedProducts: current.type === 'product' && current.entity_id ? [current.entity_id] : [],
+        selectedCategories: current.type === 'category' && current.entity_id ? [current.entity_id] : [],
+        searchQuery: '',
         active: current.active,
       })
       return
@@ -45,7 +48,7 @@ export const useAddExclusionModal = (props: AddExclusionModalProps) => {
     setFormData(defaultForm)
   }, [props.isOpen, props.exclusionId, exclusions])
 
-  const handleFieldChange = (field: keyof ExclusionFormData, value: string | boolean) => {
+  const handleFieldChange = (field: keyof ExclusionFormData, value: string | boolean | string[]) => {
     setFormData((prev) => ({ ...prev, [field]: value }))
     if (fieldErrors[field]) {
       setFieldErrors((prev) => {
@@ -56,11 +59,36 @@ export const useAddExclusionModal = (props: AddExclusionModalProps) => {
     }
   }
 
+  const toggleProduct = (productId: string) => {
+    setFormData((prev) => ({
+      ...prev,
+      selectedProducts: prev.selectedProducts.includes(productId)
+        ? prev.selectedProducts.filter((id) => id !== productId)
+        : [...prev.selectedProducts, productId],
+    }))
+  }
+
+  const toggleCategory = (categoryId: string) => {
+    setFormData((prev) => ({
+      ...prev,
+      selectedCategories: prev.selectedCategories.includes(categoryId)
+        ? prev.selectedCategories.filter((id) => id !== categoryId)
+        : [...prev.selectedCategories, categoryId],
+    }))
+  }
+
   const validateForm = () => {
     const errors: Record<string, string> = {}
 
     if (!formData.name.trim()) errors.name = 'Название обязательно'
-    if (!isValidUuid(formData.entity_id.trim())) errors.entity_id = 'ID должен быть UUID'
+
+    const hasSelection = formData.type === 'product'
+      ? formData.selectedProducts.length > 0
+      : formData.selectedCategories.length > 0
+
+    if (!hasSelection) {
+      errors.selection = 'Выберите хотя бы один элемент'
+    }
 
     setFieldErrors(errors)
     return Object.keys(errors).length === 0
@@ -74,21 +102,36 @@ export const useAddExclusionModal = (props: AddExclusionModalProps) => {
     setError(null)
 
     try {
-      const basePayload = {
-        name: formData.name.trim(),
-        description: formData.description.trim() || undefined,
-        type: formData.type,
-        entity_id: formData.entity_id.trim() || undefined,
-        entity_name: formData.entity_name.trim() || undefined,
-      }
-
       if (props.exclusionId) {
         await updateExclusion(props.exclusionId, {
-          ...basePayload,
+          name: formData.name.trim(),
+          description: formData.description.trim() || undefined,
+          type: formData.type,
+          entity_id: formData.type === 'product'
+            ? (formData.selectedProducts[0] || undefined)
+            : (formData.selectedCategories[0] || undefined),
+          entity_name: undefined,
           active: formData.active,
         })
       } else {
-        await createExclusion(basePayload)
+        for (const productId of formData.selectedProducts) {
+          await createExclusion({
+            name: formData.name.trim(),
+            description: formData.description.trim() || undefined,
+            type: 'product',
+            entity_id: productId,
+            entity_name: products.find((p) => p.id === productId)?.name,
+          })
+        }
+        for (const categoryId of formData.selectedCategories) {
+          await createExclusion({
+            name: formData.name.trim(),
+            description: formData.description.trim() || undefined,
+            type: 'category',
+            entity_id: categoryId,
+            entity_name: categories.find((c) => c.id === categoryId)?.name,
+          })
+        }
       }
 
       props.onSuccess?.()
@@ -100,7 +143,28 @@ export const useAddExclusionModal = (props: AddExclusionModalProps) => {
     }
   }
 
-  const isFormValid = useMemo(() => Boolean(formData.name.trim()), [formData])
+  const filteredProducts = useMemo(() => {
+    if (!formData.searchQuery) return products
+    const query = formData.searchQuery.toLowerCase()
+    return products.filter((p) =>
+      p.name.toLowerCase().includes(query) ||
+      p.category_name?.toLowerCase().includes(query)
+    )
+  }, [products, formData.searchQuery])
+
+  const filteredCategories = useMemo(() => {
+    if (!formData.searchQuery) return categories
+    const query = formData.searchQuery.toLowerCase()
+    return categories.filter((c) => c.name.toLowerCase().includes(query))
+  }, [categories, formData.searchQuery])
+
+  const isFormValid = useMemo(
+    () => Boolean(formData.name.trim()) &&
+      (formData.type === 'product'
+        ? formData.selectedProducts.length > 0
+        : formData.selectedCategories.length > 0),
+    [formData]
+  )
 
   return {
     formData,
@@ -108,7 +172,13 @@ export const useAddExclusionModal = (props: AddExclusionModalProps) => {
     error,
     fieldErrors,
     isFormValid,
+    isLoadingProducts,
+    isLoadingCategories,
+    products: filteredProducts,
+    categories: filteredCategories,
     handleFieldChange,
+    toggleProduct,
+    toggleCategory,
     handleSubmit,
     handleClose: props.onClose,
   }
