@@ -1,10 +1,10 @@
 import { useState, useMemo } from 'react'
-import { useCustomerGroups, type CustomerGroup } from '@restaurant-pos/api-client'
+import { useCustomerGroups as useApiCustomerGroups, type CustomerGroup } from '@restaurant-pos/api-client'
 import { CustomerGroupTable, CustomerGroupsSort } from '../model/types'
 import { SortDirection } from '../model/enums'
 
 export const useCustomerGroups = () => {
-  const { customerGroups: apiGroups, isLoading, error, refetch } = useCustomerGroups()
+  const { customerGroups: apiGroups, isLoading, error, refetch } = useApiCustomerGroups()
   const [searchQuery, setSearchQuery] = useState('')
   const [sort, setSort] = useState<CustomerGroupsSort>({ field: 'name', direction: SortDirection.ASC })
   const [isModalOpen, setIsModalOpen] = useState(false)
