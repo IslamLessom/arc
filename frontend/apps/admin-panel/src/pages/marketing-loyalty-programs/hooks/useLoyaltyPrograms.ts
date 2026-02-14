@@ -1,13 +1,7 @@
 import { useMemo, useState } from 'react'
-import {
-  useMarketingLoyaltyPrograms,
-  type MarketingLoyaltyProgram,
-  type MarketingLoyaltyProgramType,
-} from '@restaurant-pos/api-client'
+import { useMarketingLoyaltyPrograms, type MarketingLoyaltyProgram } from '@restaurant-pos/api-client'
 import { LoyaltyProgramTable, LoyaltyProgramsSort } from '../model/types'
 import { SortDirection } from '../model/enums'
-
-const LOYALTY_TYPES: MarketingLoyaltyProgramType[] = ['points', 'cashback', 'tier']
 
 const normalizeProgram = (program: MarketingLoyaltyProgram, number: number): LoyaltyProgramTable => ({
   id: program.id,
@@ -26,16 +20,12 @@ const normalizeProgram = (program: MarketingLoyaltyProgram, number: number): Loy
 })
 
 export const useLoyaltyPrograms = () => {
-  const {
-    loyaltyPrograms: apiPrograms,
-    isLoading,
-    error,
-    createLoyaltyProgram,
-    updateLoyaltyProgram,
-  } = useMarketingLoyaltyPrograms()
+  const { loyaltyPrograms: apiPrograms, isLoading, error, refetch } = useMarketingLoyaltyPrograms()
 
   const [searchQuery, setSearchQuery] = useState('')
   const [sort, setSort] = useState<LoyaltyProgramsSort>({ field: 'name', direction: SortDirection.ASC })
+  const [isModalOpen, setIsModalOpen] = useState(false)
+  const [editingProgramId, setEditingProgramId] = useState<string | null>(null)
 
   const loyaltyPrograms = useMemo(
     () => apiPrograms.map((program, index) => normalizeProgram(program, index + 1)),
@@ -88,73 +78,25 @@ export const useLoyaltyPrograms = () => {
     window.history.back()
   }
 
-  const handleEdit = async (id: string) => {
-    const current = apiPrograms.find((item) => item.id === id)
-    if (!current) return
-
-    const nextName = window.prompt('Название программы лояльности', current.name)
-    if (nextName === null) return
-
-    const nextDescription = window.prompt('Описание программы', current.description ?? '')
-    if (nextDescription === null) return
-
-    const nextActive = window.confirm('Сделать программу активной? Нажмите Отмена, чтобы деактивировать.')
-
-    try {
-      await updateLoyaltyProgram(id, {
-        name: nextName.trim() || current.name,
-        description: nextDescription.trim() || undefined,
-        type: current.type,
-        points_per_currency: current.points_per_currency ?? undefined,
-        cashback_percentage: current.cashback_percentage ?? undefined,
-        max_cashback_amount: current.max_cashback_amount ?? undefined,
-        point_multiplier: current.point_multiplier,
-        active: nextActive,
-      })
-    } catch (updateError) {
-      alert(updateError instanceof Error ? updateError.message : 'Не удалось обновить программу лояльности')
-    }
+  const handleEdit = (id: string) => {
+    setEditingProgramId(id)
+    setIsModalOpen(true)
   }
 
-  const handleAdd = async () => {
-    const name = window.prompt('Название программы лояльности')
-    if (!name || !name.trim()) return
-
-    const typeInput = window.prompt('Тип программы: points | cashback | tier', 'points')
-    const type = (typeInput ?? 'points') as MarketingLoyaltyProgramType
-
-    if (!LOYALTY_TYPES.includes(type)) {
-      alert('Некорректный тип программы')
-      return
-    }
-
-    const description = window.prompt('Описание программы (необязательно)', '')
-    if (description === null) return
-
-    const pointMultiplierInput = window.prompt('Мультипликатор баллов', '1')
-    if (!pointMultiplierInput) return
-
-    const pointsInput = type === 'points' ? window.prompt('Баллов на единицу валюты', '1') : null
-    const cashbackInput = type === 'cashback' ? window.prompt('Кэшбэк (%)', '5') : null
-    const maxCashbackInput = type === 'cashback' ? window.prompt('Максимум кэшбэка', '0') : null
-
-    try {
-      await createLoyaltyProgram({
-        name: name.trim(),
-        description: description.trim() || undefined,
-        type,
-        points_per_currency: pointsInput ? Number(pointsInput) : undefined,
-        cashback_percentage: cashbackInput ? Number(cashbackInput) : undefined,
-        max_cashback_amount: maxCashbackInput ? Number(maxCashbackInput) : undefined,
-        point_multiplier: Number(pointMultiplierInput),
-      })
-    } catch (createError) {
-      alert(createError instanceof Error ? createError.message : 'Не удалось создать программу лояльности')
-    }
+  const handleAdd = () => {
+    setEditingProgramId(null)
+    setIsModalOpen(true)
   }
 
-  const handleCloseModal = () => undefined
-  const handleSuccess = () => undefined
+  const handleCloseModal = () => {
+    setIsModalOpen(false)
+    setEditingProgramId(null)
+  }
+
+  const handleSuccess = async () => {
+    await refetch()
+    handleCloseModal()
+  }
 
   const handleExport = () => {
     console.log('Export loyalty programs')
@@ -175,8 +117,8 @@ export const useLoyaltyPrograms = () => {
     error,
     searchQuery,
     sort,
-    isModalOpen: false,
-    editingProgramId: null,
+    isModalOpen,
+    editingProgramId,
     handleSearchChange,
     handleSort,
     handleBack,

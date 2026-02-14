@@ -1,6 +1,8 @@
 import { useExclusions } from '../hooks/useExclusions'
 import { Table } from '@restaurant-pos/ui'
 import { getExclusionsTableColumns } from '../lib/constants'
+import type { ExclusionTable } from '../model/types'
+import { AddExclusionModal } from '../../../features/add-exclusion-modal'
 import * as Styled from './styled'
 
 export const Exclusions = () => {
@@ -85,12 +87,17 @@ export const Exclusions = () => {
         <Table
           columns={columns}
           dataSource={exclusions}
-          onRowClick={(record) => handleEdit(record.id)}
+          onRowClick={(record: ExclusionTable) => handleEdit(record.id)}
           emptyMessage="Нет исключений"
         />
       </Styled.TableContainer>
 
-      {/* TODO: Add AddExclusionModal component when ready */}
+      <AddExclusionModal
+        isOpen={isModalOpen}
+        exclusionId={editingExclusionId}
+        onSuccess={handleSuccess}
+        onClose={handleCloseModal}
+      />
     </Styled.PageContainer>
   )
 }

@@ -1,5 +1,5 @@
 import { LoyaltyProgramTable } from '../model/types'
-import { CustomerGroupsTableProps } from '../model/types'
+import { LoyaltyProgramsTableProps } from '../model/types'
 import { EditButton } from '@restaurant-pos/ui'
 import { LoyaltyProgramType } from '../model/enums'
 import { StatusBadge } from '../ui/styled'
@@ -17,7 +17,7 @@ const getTypeLabel = (type: string) => {
   }
 }
 
-export const getLoyaltyProgramsTableColumns = ({ onEdit }: CustomerGroupsTableProps) => [
+export const getLoyaltyProgramsTableColumns = ({ onEdit }: LoyaltyProgramsTableProps) => [
   {
     title: '№',
     dataIndex: 'number',
@@ -29,56 +29,56 @@ export const getLoyaltyProgramsTableColumns = ({ onEdit }: CustomerGroupsTablePr
     title: 'Название',
     dataIndex: 'name',
     key: 'name',
-    render: (name: string) => <span>{name || '-'}</span>
+    render: (name: unknown) => <span>{(name as string) || '-'}</span>
   },
   {
     title: 'Описание',
     dataIndex: 'description',
     key: 'description',
-    render: (description: string | null) => <span>{description || '-'}</span>
+    render: (description: unknown) => <span>{(description as string | null) || '-'}</span>
   },
   {
     title: 'Тип',
     dataIndex: 'type',
     key: 'type',
     width: 100,
-    render: (type: string) => <span>{getTypeLabel(type)}</span>
+    render: (type: unknown) => <span>{getTypeLabel((type as string) || '')}</span>
   },
   {
     title: 'Баллов/₸',
     dataIndex: 'points_per_currency',
     key: 'points_per_currency',
     width: 100,
-    render: (points: number | null) => <span>{points ?? '-'}</span>
+    render: (points: unknown) => <span>{(points as number | null) ?? '-'}</span>
   },
   {
     title: 'Кэшбэк %',
     dataIndex: 'cashback_percentage',
     key: 'cashback_percentage',
     width: 100,
-    render: (cashback: number | null) => <span>{cashback ?? '-'}</span>
+    render: (cashback: unknown) => <span>{(cashback as number | null) ?? '-'}</span>
   },
   {
     title: 'Мультипликатор',
     dataIndex: 'point_multiplier',
     key: 'point_multiplier',
     width: 120,
-    render: (multiplier: number) => <span>x{multiplier}</span>
+    render: (multiplier: unknown) => <span>x{(multiplier as number) ?? 0}</span>
   },
   {
     title: 'Участников',
     dataIndex: 'members_count',
     key: 'members_count',
     width: 110,
-    render: (count: number) => <span>{count ?? 0}</span>
+    render: (count: unknown) => <span>{(count as number) ?? 0}</span>
   },
   {
     title: 'Статус',
     dataIndex: 'is_active',
     key: 'is_active',
     width: 100,
-    render: (isActive: boolean) => (
-      <StatusBadge $active={isActive}>{isActive ? 'Активен' : 'Неактивен'}</StatusBadge>
+    render: (isActive: unknown) => (
+      <StatusBadge $active={Boolean(isActive)}>{isActive ? 'Активен' : 'Неактивен'}</StatusBadge>
     )
   },
   {

@@ -31,34 +31,34 @@ export const getExclusionsTableColumns = ({ onEdit }: ExclusionsTableProps) => [
     title: 'Название',
     dataIndex: 'name',
     key: 'name',
-    render: (name: string) => <span>{name || '-'}</span>
+    render: (name: unknown) => <span>{(name as string) || '-'}</span>
   },
   {
     title: 'Описание',
     dataIndex: 'description',
     key: 'description',
-    render: (description: string | null) => <span>{description || '-'}</span>
+    render: (description: unknown) => <span>{(description as string | null) || '-'}</span>
   },
   {
     title: 'Тип',
     dataIndex: 'type',
     key: 'type',
     width: 130,
-    render: (type: string) => <TypeBadge $type={type}>{getTypeLabel(type)}</TypeBadge>
+    render: (type: unknown) => <TypeBadge $type={(type as string) || ''}>{getTypeLabel((type as string) || '')}</TypeBadge>
   },
   {
     title: 'Объект',
     dataIndex: 'entity_name',
     key: 'entity_name',
-    render: (entityName: string) => <span>{entityName || '-'}</span>
+    render: (entityName: unknown) => <span>{(entityName as string) || '-'}</span>
   },
   {
     title: 'Статус',
     dataIndex: 'is_active',
     key: 'is_active',
     width: 100,
-    render: (isActive: boolean) => (
-      <StatusBadge $active={isActive}>{isActive ? 'Активен' : 'Неактивен'}</StatusBadge>
+    render: (isActive: unknown) => (
+      <StatusBadge $active={Boolean(isActive)}>{isActive ? 'Активен' : 'Неактивен'}</StatusBadge>
     )
   },
   {

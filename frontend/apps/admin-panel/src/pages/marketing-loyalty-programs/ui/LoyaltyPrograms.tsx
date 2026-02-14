@@ -1,6 +1,8 @@
 import { useLoyaltyPrograms } from '../hooks/useLoyaltyPrograms'
 import { Table } from '@restaurant-pos/ui'
 import { getLoyaltyProgramsTableColumns } from '../lib/constants'
+import type { LoyaltyProgramTable } from '../model/types'
+import { AddLoyaltyProgramModal } from '../../../features/add-loyalty-program-modal'
 import * as Styled from './styled'
 
 export const LoyaltyPrograms = () => {
@@ -85,12 +87,17 @@ export const LoyaltyPrograms = () => {
         <Table
           columns={columns}
           dataSource={loyaltyPrograms}
-          onRowClick={(record) => handleEdit(record.id)}
+          onRowClick={(record: LoyaltyProgramTable) => handleEdit(record.id)}
           emptyMessage="Нет программ лояльности"
         />
       </Styled.TableContainer>
 
-      {/* TODO: Add AddLoyaltyProgramModal component when ready */}
+      <AddLoyaltyProgramModal
+        isOpen={isModalOpen}
+        programId={editingProgramId}
+        onSuccess={handleSuccess}
+        onClose={handleCloseModal}
+      />
     </Styled.PageContainer>
   )
 }

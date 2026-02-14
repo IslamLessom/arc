@@ -36,27 +36,27 @@ export const getPromotionsTableColumns = ({ onEdit }: PromotionsTableProps) => [
     title: 'Название',
     dataIndex: 'name',
     key: 'name',
-    render: (name: string) => <span>{name || '-'}</span>
+    render: (name: unknown) => <span>{(name as string) || '-'}</span>
   },
   {
     title: 'Описание',
     dataIndex: 'description',
     key: 'description',
-    render: (description: string | null) => <span>{description || '-'}</span>
+    render: (description: unknown) => <span>{(description as string | null) || '-'}</span>
   },
   {
     title: 'Тип',
     dataIndex: 'type',
     key: 'type',
     width: 110,
-    render: (type: string) => <TypeBadge $type={type}>{getTypeLabel(type)}</TypeBadge>
+    render: (type: unknown) => <TypeBadge $type={(type as string) || ''}>{getTypeLabel((type as string) || '')}</TypeBadge>
   },
   {
     title: 'Скидка %',
     dataIndex: 'discount_percentage',
     key: 'discount_percentage',
     width: 90,
-    render: (discount: number | null) => <span>{discount ? `${discount}%` : '-'}</span>
+    render: (discount: unknown) => <span>{(discount as number | null) ? `${discount}%` : '-'}</span>
   },
   {
     title: 'Период',
@@ -72,15 +72,15 @@ export const getPromotionsTableColumns = ({ onEdit }: PromotionsTableProps) => [
     dataIndex: 'usage_count',
     key: 'usage_count',
     width: 110,
-    render: (count: number) => <span>{count ?? 0}</span>
+    render: (count: unknown) => <span>{(count as number) ?? 0}</span>
   },
   {
     title: 'Статус',
     dataIndex: 'is_active',
     key: 'is_active',
     width: 100,
-    render: (isActive: boolean) => (
-      <StatusBadge $active={isActive}>{isActive ? 'Активна' : 'Неактивна'}</StatusBadge>
+    render: (isActive: unknown) => (
+      <StatusBadge $active={Boolean(isActive)}>{isActive ? 'Активна' : 'Неактивна'}</StatusBadge>
     )
   },
   {

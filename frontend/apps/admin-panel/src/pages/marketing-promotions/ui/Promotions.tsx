@@ -1,6 +1,8 @@
 import { usePromotions } from '../hooks/usePromotions'
 import { Table } from '@restaurant-pos/ui'
 import { getPromotionsTableColumns } from '../lib/constants'
+import type { PromotionTable } from '../model/types'
+import { AddPromotionModal } from '../../../features/add-promotion-modal'
 import * as Styled from './styled'
 
 export const Promotions = () => {
@@ -85,12 +87,17 @@ export const Promotions = () => {
         <Table
           columns={columns}
           dataSource={promotions}
-          onRowClick={(record) => handleEdit(record.id)}
+          onRowClick={(record: PromotionTable) => handleEdit(record.id)}
           emptyMessage="Нет акций"
         />
       </Styled.TableContainer>
 
-      {/* TODO: Add AddPromotionModal component when ready */}
+      <AddPromotionModal
+        isOpen={isModalOpen}
+        promotionId={editingPromotionId}
+        onSuccess={handleSuccess}
+        onClose={handleCloseModal}
+      />
     </Styled.PageContainer>
   )
 }

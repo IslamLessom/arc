@@ -1,13 +1,7 @@
 import { useMemo, useState } from 'react'
-import {
-  useMarketingExclusions,
-  type MarketingExclusion,
-  type MarketingExclusionType,
-} from '@restaurant-pos/api-client'
+import { useMarketingExclusions, type MarketingExclusion } from '@restaurant-pos/api-client'
 import { ExclusionTable, ExclusionsSort } from '../model/types'
 import { SortDirection } from '../model/enums'
-
-const EXCLUSION_TYPES: MarketingExclusionType[] = ['product', 'category', 'customer', 'customer_group']
 
 const normalizeExclusion = (exclusion: MarketingExclusion, number: number): ExclusionTable => ({
   id: exclusion.id,
@@ -23,10 +17,12 @@ const normalizeExclusion = (exclusion: MarketingExclusion, number: number): Excl
 })
 
 export const useExclusions = () => {
-  const { exclusions: apiExclusions, isLoading, error, createExclusion, updateExclusion } = useMarketingExclusions()
+  const { exclusions: apiExclusions, isLoading, error, refetch } = useMarketingExclusions()
 
   const [searchQuery, setSearchQuery] = useState('')
   const [sort, setSort] = useState<ExclusionsSort>({ field: 'name', direction: SortDirection.ASC })
+  const [isModalOpen, setIsModalOpen] = useState(false)
+  const [editingExclusionId, setEditingExclusionId] = useState<string | null>(null)
 
   const exclusions = useMemo(
     () => apiExclusions.map((exclusion, index) => normalizeExclusion(exclusion, index + 1)),
@@ -80,70 +76,25 @@ export const useExclusions = () => {
     window.history.back()
   }
 
-  const handleEdit = async (id: string) => {
-    const current = apiExclusions.find((item) => item.id === id)
-    if (!current) return
-
-    const nextName = window.prompt('Название исключения', current.name)
-    if (nextName === null) return
-
-    const nextDescription = window.prompt('Описание исключения', current.description ?? '')
-    if (nextDescription === null) return
-
-    const nextEntityName = window.prompt('Название объекта исключения', current.entity_name ?? '')
-    if (nextEntityName === null) return
-
-    const nextActive = window.confirm('Сделать исключение активным? Нажмите Отмена, чтобы деактивировать.')
-
-    try {
-      await updateExclusion(id, {
-        name: nextName.trim() || current.name,
-        description: nextDescription.trim() || undefined,
-        type: current.type,
-        entity_id: current.entity_id,
-        entity_name: nextEntityName.trim() || undefined,
-        active: nextActive,
-      })
-    } catch (updateError) {
-      alert(updateError instanceof Error ? updateError.message : 'Не удалось обновить исключение')
-    }
+  const handleEdit = (id: string) => {
+    setEditingExclusionId(id)
+    setIsModalOpen(true)
   }
 
-  const handleAdd = async () => {
-    const name = window.prompt('Название исключения')
-    if (!name || !name.trim()) return
-
-    const typeInput = window.prompt(
-      'Тип исключения: product | category | customer | customer_group',
-      'category'
-    )
-    const type = (typeInput ?? 'category') as MarketingExclusionType
-
-    if (!EXCLUSION_TYPES.includes(type)) {
-      alert('Некорректный тип исключения')
-      return
-    }
-
-    const description = window.prompt('Описание исключения (необязательно)', '')
-    if (description === null) return
-
-    const entityName = window.prompt('Название объекта (необязательно)', '')
-    if (entityName === null) return
-
-    try {
-      await createExclusion({
-        name: name.trim(),
-        description: description.trim() || undefined,
-        type,
-        entity_name: entityName.trim() || undefined,
-      })
-    } catch (createError) {
-      alert(createError instanceof Error ? createError.message : 'Не удалось создать исключение')
-    }
+  const handleAdd = () => {
+    setEditingExclusionId(null)
+    setIsModalOpen(true)
   }
 
-  const handleCloseModal = () => undefined
-  const handleSuccess = () => undefined
+  const handleCloseModal = () => {
+    setIsModalOpen(false)
+    setEditingExclusionId(null)
+  }
+
+  const handleSuccess = async () => {
+    await refetch()
+    handleCloseModal()
+  }
 
   const handleExport = () => {
     console.log('Export exclusions')
@@ -164,8 +115,8 @@ export const useExclusions = () => {
     error,
     searchQuery,
     sort,
-    isModalOpen: false,
-    editingExclusionId: null,
+    isModalOpen,
+    editingExclusionId,
     handleSearchChange,
     handleSort,
     handleBack,
