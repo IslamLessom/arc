@@ -11,3 +11,9 @@ export enum OrderStatus {
   Paid = 'paid',
   Cancelled = 'cancelled',
 }
+
+export enum DiscountType {
+  None = 'none',
+  Percentage = 'percentage',
+  Fixed = 'fixed',
+}

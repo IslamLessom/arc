@@ -516,3 +516,242 @@ export const LoadingSpinner = styled.div({
   fontSize: '14px',
   color: '#7f8c8d',
 })
+
+// ===== ClientTab Styles =====
+export const ClientTabContainer = styled.div({
+  display: 'flex',
+  flexDirection: 'column',
+  height: '100%',
+  backgroundColor: '#f5f6f7',
+})
+
+export const GuestsList = styled.div({
+  flex: 1,
+  overflowY: 'auto',
+  padding: '16px',
+})
+
+export const GuestsListHeader = styled.div({
+  marginBottom: '12px',
+})
+
+export const GuestsListTitle = styled.h3({
+  fontSize: '16px',
+  fontWeight: 600,
+  color: '#2c3e50',
+  margin: '0 0 4px 0',
+})
+
+export const GuestsListSubtitle = styled.p({
+  fontSize: '12px',
+  color: '#7f8c8d',
+  margin: 0,
+})
+
+export const GuestCard = styled.button<{ $selected: boolean }>((props) => ({
+  display: 'flex',
+  flexDirection: 'column',
+  width: '100%',
+  padding: '12px',
+  backgroundColor: props.$selected ? '#3498db' : '#ffffff',
+  border: props.$selected ? '2px solid #3498db' : '2px solid #e0e0e0',
+  borderRadius: '8px',
+  cursor: 'pointer',
+  marginBottom: '8px',
+  transition: 'all 0.2s',
+  '&:hover': {
+    borderColor: props.$selected ? '#2980b9' : '#3498db',
+    backgroundColor: props.$selected ? '#2980b9' : '#f8f9fa',
+  },
+}))
+
+export const GuestCardHeader = styled.div({
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'space-between',
+  marginBottom: '8px',
+})
+
+export const GuestCardTitle = styled.span<{ $selected?: boolean }>((props) => ({
+  fontSize: '14px',
+  fontWeight: 600,
+  color: props.$selected ? '#ffffff' : '#2c3e50',
+}))
+
+export const GuestCardAmount = styled.span<{ $selected?: boolean }>((props) => ({
+  fontSize: '16px',
+  fontWeight: 700,
+  color: props.$selected ? '#ffffff' : '#27ae60',
+}))
+
+export const GuestCardBody = styled.div({
+  display: 'flex',
+  flexDirection: 'column',
+  gap: '4px',
+})
+
+export const GuestCardRow = styled.div<{ $highlight?: boolean }>((props) => ({
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'space-between',
+  fontSize: '12px',
+  color: props.$highlight ? '#e74c3c' : '#7f8c8d',
+}))
+
+export const GuestCardLabel = styled.span({
+  fontWeight: 400,
+})
+
+export const GuestCardValue = styled.span<{ $highlight?: boolean }>((props) => ({
+  fontWeight: props.$highlight ? 600 : 500,
+  color: props.$highlight ? '#e74c3c' : '#2c3e50',
+}))
+
+export const RemoveDiscountButton = styled.button({
+  marginTop: '8px',
+  padding: '6px 12px',
+  backgroundColor: '#e74c3c',
+  color: '#ffffff',
+  border: 'none',
+  borderRadius: '4px',
+  fontSize: '11px',
+  fontWeight: 500,
+  cursor: 'pointer',
+  transition: 'background-color 0.2s',
+  '&:hover': {
+    backgroundColor: '#c0392b',
+  },
+})
+
+export const DiscountPanel = styled.div({
+  padding: '16px',
+  backgroundColor: '#ffffff',
+  borderTop: '1px solid #e0e0e0',
+  borderBottom: '1px solid #e0e0e0',
+})
+
+export const DiscountPanelHeader = styled.div({
+  marginBottom: '12px',
+})
+
+export const DiscountPanelTitle = styled.h3({
+  fontSize: '14px',
+  fontWeight: 600,
+  color: '#2c3e50',
+  margin: 0,
+})
+
+export const DiscountPanelEmpty = styled.p({
+  fontSize: '13px',
+  color: '#7f8c8d',
+  textAlign: 'center',
+  margin: '20px 0',
+})
+
+export const DiscountForm = styled.div({
+  display: 'flex',
+  flexDirection: 'column',
+  gap: '12px',
+})
+
+export const DiscountTypeSelector = styled.div({
+  display: 'flex',
+  gap: '8px',
+})
+
+export const DiscountTypeButton = styled.button<{ $active: boolean }>((props) => ({
+  flex: 1,
+  padding: '8px 12px',
+  backgroundColor: props.$active ? '#3498db' : '#ecf0f1',
+  color: props.$active ? '#ffffff' : '#2c3e50',
+  border: 'none',
+  borderRadius: '6px',
+  fontSize: '12px',
+  fontWeight: props.$active ? 600 : 400,
+  cursor: 'pointer',
+  transition: 'all 0.2s',
+  '&:hover': {
+    backgroundColor: props.$active ? '#2980b9' : '#bdc3c7',
+  },
+}))
+
+export const DiscountInputWrapper = styled.div({
+  display: 'flex',
+  alignItems: 'center',
+  gap: '8px',
+})
+
+export const DiscountInput = styled.input({
+  flex: 1,
+  padding: '8px 12px',
+  fontSize: '14px',
+  border: '1px solid #e0e0e0',
+  borderRadius: '6px',
+  outline: 'none',
+  '&:focus': {
+    borderColor: '#3498db',
+  },
+})
+
+export const DiscountInputSuffix = styled.span({
+  fontSize: '14px',
+  fontWeight: 600,
+  color: '#7f8c8d',
+  minWidth: '20px',
+})
+
+export const ApplyDiscountButton = styled.button({
+  padding: '10px 16px',
+  backgroundColor: '#27ae60',
+  color: '#ffffff',
+  border: 'none',
+  borderRadius: '6px',
+  fontSize: '13px',
+  fontWeight: 600,
+  cursor: 'pointer',
+  transition: 'background-color 0.2s',
+  '&:hover': {
+    backgroundColor: '#229954',
+  },
+})
+
+export const DiscountPreview = styled.div({
+  padding: '8px 12px',
+  backgroundColor: '#f8f9fa',
+  borderRadius: '6px',
+})
+
+export const DiscountPreviewText = styled.p({
+  fontSize: '12px',
+  color: '#7f8c8d',
+  margin: 0,
+  '& strong': {
+    color: '#2c3e50',
+    fontWeight: 600,
+  },
+})
+
+export const OrderSummary = styled.div({
+  padding: '16px',
+  backgroundColor: '#ffffff',
+})
+
+export const SummaryRow = styled.div<{ $total?: boolean }>((props) => ({
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'space-between',
+  padding: props.$total ? '12px 0' : '8px 0',
+  borderBottom: props.$total ? 'none' : '1px solid #ecf0f1',
+}))
+
+export const SummaryLabel = styled.span<{ $total?: boolean }>((props) => ({
+  fontSize: props.$total ? '16px' : '13px',
+  fontWeight: props.$total ? 600 : 400,
+  color: props.$total ? '#2c3e50' : '#7f8c8d',
+}))
+
+export const SummaryValue = styled.span<{ $total?: boolean; $discount?: boolean }>((props) => ({
+  fontSize: props.$total ? '20px' : '14px',
+  fontWeight: props.$total ? 700 : 500,
+  color: props.$discount ? '#e74c3c' : props.$total ? '#27ae60' : '#2c3e50',
+}))

@@ -4,8 +4,8 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useGetCategories, useGetProducts, useGetTechnicalCards, useOrder as useApiOrder } from '@restaurant-pos/api-client'
 import { useCurrentUser } from '@restaurant-pos/api-client'
 import { apiClient } from '@restaurant-pos/api-client'
-import type { UseOrderResult, OrderData, GuestOrder, OrderItem, ProductCategory, MenuItem } from '../model/types'
-import { OrderTab } from '../model/enums'
+import type { UseOrderResult, OrderData, GuestOrder, OrderItem, ProductCategory, MenuItem, GuestDiscount } from '../model/types'
+import { OrderTab, DiscountType } from '../model/enums'
 import type { Product } from '@restaurant-pos/api-client'
 import type { TechnicalCard } from '@restaurant-pos/api-client'
 
@@ -98,7 +98,7 @@ export function useOrder(): UseOrderResult {
       ? Math.max(...serverOrderData.items.map((i: any) => i.guest_number || 1))
       : serverOrderData.guests_count || 1
 
-    // Создаём гостей
+    // Создаём гостей с пустыми скидками
     const guests: GuestOrder[] = Array.from({ length: maxGuestNumber }, (_, index) => {
       const guestNumber = index + 1
       const guestItems = guestsMap.get(guestNumber) || []
@@ -108,8 +108,17 @@ export function useOrder(): UseOrderResult {
         guestNumber,
         items: guestItems,
         totalAmount,
+        discount: {
+          type: DiscountType.None,
+          value: 0,
+          amount: 0,
+        },
+        finalAmount: totalAmount,
       }
     })
+
+    const totalAmount = guests.reduce((sum, g) => sum + g.finalAmount, 0)
+    const totalDiscount = guests.reduce((sum, g) => sum + g.discount.amount, 0)
 
     return {
       orderId: serverOrderData.id,
@@ -117,7 +126,9 @@ export function useOrder(): UseOrderResult {
       guestsCount: maxGuestNumber,
       guests,
       selectedGuestNumber: 1,
-      totalAmount: serverOrderData.total_amount || 0,
+      totalAmount,
+      totalDiscount,
+      finalAmount: totalAmount,
     }
   }, [])
 
@@ -154,6 +165,12 @@ export function useOrder(): UseOrderResult {
         guestNumber: index + 1,
         items: [],
         totalAmount: 0,
+        discount: {
+          type: DiscountType.None,
+          value: 0,
+          amount: 0,
+        },
+        finalAmount: 0,
       }))
 
       // Create initial order data
@@ -164,6 +181,8 @@ export function useOrder(): UseOrderResult {
         guests,
         selectedGuestNumber: 1,
         totalAmount: 0,
+        totalDiscount: 0,
+        finalAmount: 0,
       }
       setOrderData(initialData)
       localStorage.setItem(`${ORDER_STORAGE_KEY}${orderId}`, JSON.stringify(initialData))
@@ -335,19 +354,35 @@ export function useOrder(): UseOrderResult {
     }
 
     const newGuestTotal = newItems.reduce((sum, orderItem) => sum + orderItem.totalPrice, 0)
-    const newGuests = [...orderData.guests]
-    newGuests[guestIndex] = {
+
+    // Пересчитываем скидку для гостя
+    let discountAmount = 0
+    if (guest.discount.type === DiscountType.Percentage) {
+      discountAmount = (newGuestTotal * guest.discount.value) / 100
+    } else if (guest.discount.type === DiscountType.Fixed) {
+      discountAmount = Math.min(guest.discount.value, newGuestTotal)
+    }
+
+    const newGuest: GuestOrder = {
       ...guest,
       items: newItems,
       totalAmount: newGuestTotal,
+      discount: { ...guest.discount, amount: discountAmount },
+      finalAmount: newGuestTotal - discountAmount,
     }
 
-    const newTotalAmount = newGuests.reduce((sum, g) => sum + g.totalAmount, 0)
+    const newGuests = [...orderData.guests]
+    newGuests[guestIndex] = newGuest
+
+    const newTotalAmount = newGuests.reduce((sum, g) => sum + g.finalAmount, 0)
+    const newTotalDiscount = newGuests.reduce((sum, g) => sum + g.discount.amount, 0)
 
     setOrderData({
       ...orderData,
       guests: newGuests,
       totalAmount: newTotalAmount,
+      totalDiscount: newTotalDiscount,
+      finalAmount: newTotalAmount,
     })
   }, [orderData])
 
@@ -379,6 +414,12 @@ export function useOrder(): UseOrderResult {
       guestNumber: newGuestNumber,
       items: [],
       totalAmount: 0,
+      discount: {
+        type: DiscountType.None,
+        value: 0,
+        amount: 0,
+      },
+      finalAmount: 0,
     }
 
     setOrderData({
@@ -407,17 +448,34 @@ export function useOrder(): UseOrderResult {
       // Remove item
       const newItems = guest.items.filter(i => i.id !== itemId)
       const newGuestTotal = newItems.reduce((sum, i) => sum + i.totalPrice, 0)
-      const newGuests = [...orderData.guests]
-      newGuests[guestIndex] = {
+
+      // Пересчитываем скидку
+      let discountAmount = 0
+      if (guest.discount.type === DiscountType.Percentage) {
+        discountAmount = (newGuestTotal * guest.discount.value) / 100
+      } else if (guest.discount.type === DiscountType.Fixed) {
+        discountAmount = Math.min(guest.discount.value, newGuestTotal)
+      }
+
+      const newGuest: GuestOrder = {
         ...guest,
         items: newItems,
         totalAmount: newGuestTotal,
+        discount: { ...guest.discount, amount: discountAmount },
+        finalAmount: newGuestTotal - discountAmount,
       }
-      const newTotalAmount = newGuests.reduce((sum, g) => sum + g.totalAmount, 0)
+
+      const newGuests = [...orderData.guests]
+      newGuests[guestIndex] = newGuest
+      const newTotalAmount = newGuests.reduce((sum, g) => sum + g.finalAmount, 0)
+      const newTotalDiscount = newGuests.reduce((sum, g) => sum + g.discount.amount, 0)
+
       setOrderData({
         ...orderData,
         guests: newGuests,
         totalAmount: newTotalAmount,
+        totalDiscount: newTotalDiscount,
+        finalAmount: newTotalAmount,
       })
     } else {
       // Update quantity
@@ -432,17 +490,34 @@ export function useOrder(): UseOrderResult {
         return i
       })
       const newGuestTotal = newItems.reduce((sum, i) => sum + i.totalPrice, 0)
-      const newGuests = [...orderData.guests]
-      newGuests[guestIndex] = {
+
+      // Пересчитываем скидку
+      let discountAmount = 0
+      if (guest.discount.type === DiscountType.Percentage) {
+        discountAmount = (newGuestTotal * guest.discount.value) / 100
+      } else if (guest.discount.type === DiscountType.Fixed) {
+        discountAmount = Math.min(guest.discount.value, newGuestTotal)
+      }
+
+      const newGuest: GuestOrder = {
         ...guest,
         items: newItems,
         totalAmount: newGuestTotal,
+        discount: { ...guest.discount, amount: discountAmount },
+        finalAmount: newGuestTotal - discountAmount,
       }
-      const newTotalAmount = newGuests.reduce((sum, g) => sum + g.totalAmount, 0)
+
+      const newGuests = [...orderData.guests]
+      newGuests[guestIndex] = newGuest
+      const newTotalAmount = newGuests.reduce((sum, g) => sum + g.finalAmount, 0)
+      const newTotalDiscount = newGuests.reduce((sum, g) => sum + g.discount.amount, 0)
+
       setOrderData({
         ...orderData,
         guests: newGuests,
         totalAmount: newTotalAmount,
+        totalDiscount: newTotalDiscount,
+        finalAmount: newTotalAmount,
       })
     }
   }, [orderData])
@@ -465,10 +540,57 @@ export function useOrder(): UseOrderResult {
 
   // Process payment - перенаправляет на страницу оплаты
   const handlePayment = useCallback(() => {
-    if (!orderData || orderData.totalAmount <= 0) return
+    if (!orderData || orderData.finalAmount <= 0) return
     // Перенаправляем на страницу выбора способа оплаты
     navigate(`/payment/${orderId}`)
   }, [orderData, orderId, navigate])
+
+  // Set discount for a guest
+  const handleSetGuestDiscount = useCallback((guestNumber: number, type: DiscountType, value: number) => {
+    if (!orderData) return
+
+    const guestIndex = orderData.guests.findIndex(g => g.guestNumber === guestNumber)
+    if (guestIndex === -1) return
+
+    const guest = orderData.guests[guestIndex]
+
+    // Вычисляем сумму скидки
+    let discountAmount = 0
+    if (type === DiscountType.Percentage) {
+      discountAmount = (guest.totalAmount * value) / 100
+    } else if (type === DiscountType.Fixed) {
+      discountAmount = Math.min(value, guest.totalAmount)
+    }
+
+    const newGuest: GuestOrder = {
+      ...guest,
+      discount: {
+        type,
+        value,
+        amount: discountAmount,
+      },
+      finalAmount: guest.totalAmount - discountAmount,
+    }
+
+    const newGuests = [...orderData.guests]
+    newGuests[guestIndex] = newGuest
+
+    const newTotalAmount = newGuests.reduce((sum, g) => sum + g.finalAmount, 0)
+    const newTotalDiscount = newGuests.reduce((sum, g) => sum + g.discount.amount, 0)
+
+    setOrderData({
+      ...orderData,
+      guests: newGuests,
+      totalAmount: newTotalAmount,
+      totalDiscount: newTotalDiscount,
+      finalAmount: newTotalAmount,
+    })
+  }, [orderData])
+
+  // Remove discount from a guest
+  const handleRemoveGuestDiscount = useCallback((guestNumber: number) => {
+    handleSetGuestDiscount(guestNumber, DiscountType.None, 0)
+  }, [handleSetGuestDiscount])
 
   return {
     // Data
@@ -498,6 +620,10 @@ export function useOrder(): UseOrderResult {
     handleTabChange,
     handleSubmitOrder,
     handlePayment,
+
+    // Discount actions
+    handleSetGuestDiscount,
+    handleRemoveGuestDiscount,
 
     // Computed
     selectedGuest,
