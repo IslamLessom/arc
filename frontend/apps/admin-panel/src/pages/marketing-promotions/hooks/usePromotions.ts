@@ -1,101 +1,68 @@
-import { useState, useMemo } from 'react'
+import { useMemo, useState } from 'react'
+import {
+  useMarketingPromotions,
+  type MarketingPromotion,
+  type MarketingPromotionType,
+} from '@restaurant-pos/api-client'
 import { PromotionTable, PromotionsSort } from '../model/types'
 import { SortDirection } from '../model/enums'
 
-// Mock data - replace with actual API calls when available
-const mockPromotions: PromotionTable[] = [
-  {
-    id: '1',
-    name: 'Скидка 20% на все напитки',
-    description: 'Скидка на все горячие и холодные напитки',
-    type: 'discount',
-    discount_percentage: 20,
-    buy_quantity: null,
-    get_quantity: null,
-    start_date: '2024-02-01',
-    end_date: '2024-02-28',
-    is_active: true,
-    usage_count: 156,
-    number: 1,
-    created_at: '2024-01-25',
-    updated_at: '2024-02-10'
-  },
-  {
-    id: '2',
-    name: '2+1 на пиццу',
-    description: 'Купите две пиццы, третья в подарок',
-    type: 'buy_x_get_y',
-    discount_percentage: null,
-    buy_quantity: 2,
-    get_quantity: 1,
-    start_date: '2024-02-05',
-    end_date: '2024-03-05',
-    is_active: true,
-    usage_count: 89,
-    number: 2,
-    created_at: '2024-01-28',
-    updated_at: '2024-02-08'
-  },
-  {
-    id: '3',
-    name: 'Бизнес ланч',
-    description: 'Комплексный обед по специальной цене',
-    type: 'bundle',
-    discount_percentage: null,
-    buy_quantity: null,
-    get_quantity: null,
-    start_date: '2024-01-01',
-    end_date: '2024-12-31',
-    is_active: true,
-    usage_count: 1245,
-    number: 3,
-    created_at: '2023-12-20',
-    updated_at: '2024-02-05'
-  },
-  {
-    id: '4',
-    name: 'Happy Hour',
-    description: 'Счастливые часы с 15:00 до 18:00',
-    type: 'happy_hour',
-    discount_percentage: 15,
-    buy_quantity: null,
-    get_quantity: null,
-    start_date: '2024-02-10',
-    end_date: '2024-04-10',
-    is_active: false,
-    usage_count: 0,
-    number: 4,
-    created_at: '2024-02-01',
-    updated_at: '2024-02-10'
-  }
-]
+const PROMOTION_TYPES: MarketingPromotionType[] = ['discount', 'buy_x_get_y', 'bundle', 'happy_hour']
+
+const toISODate = (date: Date) => date.toISOString().slice(0, 10)
+
+const addDays = (date: Date, days: number) => {
+  const next = new Date(date)
+  next.setDate(next.getDate() + days)
+  return next
+}
+
+const normalizePromotion = (promotion: MarketingPromotion, number: number): PromotionTable => ({
+  id: promotion.id,
+  name: promotion.name,
+  description: promotion.description ?? null,
+  type: promotion.type,
+  discount_percentage: promotion.discount_percentage ?? null,
+  buy_quantity: promotion.buy_quantity ?? null,
+  get_quantity: promotion.get_quantity ?? null,
+  start_date: promotion.start_date,
+  end_date: promotion.end_date,
+  is_active: promotion.active,
+  usage_count: promotion.usage_count ?? 0,
+  created_at: promotion.created_at,
+  updated_at: promotion.updated_at,
+  number,
+})
 
 export const usePromotions = () => {
+  const { promotions: apiPromotions, isLoading, error, createPromotion, updatePromotion } = useMarketingPromotions()
+
   const [searchQuery, setSearchQuery] = useState('')
   const [sort, setSort] = useState<PromotionsSort>({ field: 'name', direction: SortDirection.ASC })
-  const [isModalOpen, setIsModalOpen] = useState(false)
-  const [editingPromotionId, setEditingPromotionId] = useState<string | null>(null)
 
-  // TODO: Replace with actual API calls
-  // const { data: apiPromotions = [], isLoading, error } = useGetPromotions()
-  const promotions: PromotionTable[] = mockPromotions
-  const isLoading = false
-  const error = null
+  const promotions = useMemo(
+    () => apiPromotions.map((promotion, index) => normalizePromotion(promotion, index + 1)),
+    [apiPromotions]
+  )
 
   const filteredAndSortedPromotions = useMemo(() => {
-    if (!promotions || promotions.length === 0) return []
-    let filtered = promotions.filter(promotion => {
+    if (!promotions.length) return []
+
+    const filtered = promotions.filter((promotion) => {
       const searchLower = searchQuery.toLowerCase()
-      const matchesSearch =
+      return (
         promotion.name.toLowerCase().includes(searchLower) ||
         (promotion.description && promotion.description.toLowerCase().includes(searchLower))
-
-      return matchesSearch
+      )
     })
 
     filtered.sort((a, b) => {
-      let aValue: string | number | Date | boolean = a[sort.field]
-      let bValue: string | number | Date | boolean = b[sort.field]
+      const aValue: string | number | Date | boolean | null | undefined = a[sort.field]
+      const bValue: string | number | Date | boolean | null | undefined = b[sort.field]
+
+      if (aValue == null && bValue == null) return 0
+      if (aValue == null) return sort.direction === SortDirection.ASC ? -1 : 1
+      if (bValue == null) return sort.direction === SortDirection.ASC ? 1 : -1
 
       if (aValue < bValue) return sort.direction === SortDirection.ASC ? -1 : 1
       if (aValue > bValue) return sort.direction === SortDirection.ASC ? 1 : -1
@@ -104,20 +71,19 @@ export const usePromotions = () => {
 
     return filtered.map((promotion, index) => ({
       ...promotion,
-      number: index + 1
+      number: index + 1,
     }))
   }, [promotions, searchQuery, sort])
 
-  const handleSearchChange = (query: string) => {
-    setSearchQuery(query)
-  }
+  const handleSearchChange = (query: string) => setSearchQuery(query)
 
   const handleSort = (field: keyof PromotionTable) => {
-    setSort(prev => ({
+    setSort((prev) => ({
       field,
-      direction: prev.field === field && prev.direction === SortDirection.ASC
-        ? SortDirection.DESC
-        : SortDirection.ASC
+      direction:
+        prev.field === field && prev.direction === SortDirection.ASC
+          ? SortDirection.DESC
+          : SortDirection.ASC,
     }))
   }
 
@@ -125,24 +91,86 @@ export const usePromotions = () => {
     window.history.back()
   }
 
-  const handleEdit = (id: string) => {
-    setEditingPromotionId(id)
-    setIsModalOpen(true)
+  const handleEdit = async (id: string) => {
+    const current = apiPromotions.find((item) => item.id === id)
+    if (!current) return
+
+    const nextName = window.prompt('Название акции', current.name)
+    if (nextName === null) return
+
+    const nextDescription = window.prompt('Описание акции', current.description ?? '')
+    if (nextDescription === null) return
+
+    const nextActive = window.confirm('Сделать акцию активной? Нажмите Отмена, чтобы деактивировать.')
+
+    try {
+      await updatePromotion(id, {
+        name: nextName.trim() || current.name,
+        description: nextDescription.trim() || undefined,
+        type: current.type,
+        discount_percentage: current.discount_percentage ?? undefined,
+        buy_quantity: current.buy_quantity ?? undefined,
+        get_quantity: current.get_quantity ?? undefined,
+        start_date: current.start_date,
+        end_date: current.end_date,
+        active: nextActive,
+      })
+    } catch (updateError) {
+      alert(updateError instanceof Error ? updateError.message : 'Не удалось обновить акцию')
+    }
   }
 
-  const handleAdd = () => {
-    setEditingPromotionId(null)
-    setIsModalOpen(true)
+  const handleAdd = async () => {
+    const name = window.prompt('Название акции')
+    if (!name || !name.trim()) return
+
+    const typeInput = window.prompt(
+      'Тип акции: discount | buy_x_get_y | bundle | happy_hour',
+      'discount'
+    )
+    const type = (typeInput ?? 'discount') as MarketingPromotionType
+
+    if (!PROMOTION_TYPES.includes(type)) {
+      alert('Некорректный тип акции')
+      return
+    }
+
+    const description = window.prompt('Описание акции (необязательно)', '')
+    if (description === null) return
+
+    const today = new Date()
+    const startDate = window.prompt('Дата начала (YYYY-MM-DD)', toISODate(today))
+    if (!startDate) return
+
+    const endDate = window.prompt('Дата окончания (YYYY-MM-DD)', toISODate(addDays(today, 30)))
+    if (!endDate) return
+
+    const discountInput =
+      type === 'discount' || type === 'happy_hour'
+        ? window.prompt('Скидка (%)', '10')
+        : null
+
+    const buyInput = type === 'buy_x_get_y' ? window.prompt('Количество купить (X)', '2') : null
+    const getInput = type === 'buy_x_get_y' ? window.prompt('Количество получить (Y)', '1') : null
+
+    try {
+      await createPromotion({
+        name: name.trim(),
+        description: description.trim() || undefined,
+        type,
+        discount_percentage: discountInput ? Number(discountInput) : undefined,
+        buy_quantity: buyInput ? Number(buyInput) : undefined,
+        get_quantity: getInput ? Number(getInput) : undefined,
+        start_date: startDate,
+        end_date: endDate,
+      })
+    } catch (createError) {
+      alert(createError instanceof Error ? createError.message : 'Не удалось создать акцию')
+    }
   }
 
-  const handleCloseModal = () => {
-    setIsModalOpen(false)
-    setEditingPromotionId(null)
-  }
-
-  const handleSuccess = () => {
-    handleCloseModal()
-  }
+  const handleCloseModal = () => undefined
+  const handleSuccess = () => undefined
 
   const handleExport = () => {
     console.log('Export promotions')
@@ -163,8 +191,8 @@ export const usePromotions = () => {
     error,
     searchQuery,
     sort,
-    isModalOpen,
-    editingPromotionId,
+    isModalOpen: false,
+    editingPromotionId: null,
     handleSearchChange,
     handleSort,
     handleBack,

@@ -213,6 +213,33 @@ export { useCustomers } from './useCustomers'
 export type { Customer, CreateCustomerRequest, UpdateCustomerRequest } from './useCustomers'
 export { useCustomerGroups } from './useCustomerGroups'
 export type { CustomerGroup, CreateCustomerGroupRequest, UpdateCustomerGroupRequest } from './useCustomerGroups'
+export {
+  useMarketingLoyaltyPrograms,
+} from './useMarketingLoyaltyPrograms'
+export type {
+  LoyaltyProgram as MarketingLoyaltyProgram,
+  LoyaltyProgramType as MarketingLoyaltyProgramType,
+  CreateLoyaltyProgramRequest,
+  UpdateLoyaltyProgramRequest,
+} from './useMarketingLoyaltyPrograms'
+export {
+  useMarketingPromotions,
+} from './useMarketingPromotions'
+export type {
+  Promotion as MarketingPromotion,
+  PromotionType as MarketingPromotionType,
+  CreatePromotionRequest,
+  UpdatePromotionRequest,
+} from './useMarketingPromotions'
+export {
+  useMarketingExclusions,
+} from './useMarketingExclusions'
+export type {
+  Exclusion as MarketingExclusion,
+  ExclusionType as MarketingExclusionType,
+  CreateExclusionRequest,
+  UpdateExclusionRequest,
+} from './useMarketingExclusions'
 
 // Types
 export * from '../types'

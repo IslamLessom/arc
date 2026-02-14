@@ -1,74 +1,57 @@
-import { useState, useMemo } from 'react'
+import { useMemo, useState } from 'react'
+import {
+  useMarketingExclusions,
+  type MarketingExclusion,
+  type MarketingExclusionType,
+} from '@restaurant-pos/api-client'
 import { ExclusionTable, ExclusionsSort } from '../model/types'
 import { SortDirection } from '../model/enums'
 
-// Mock data - replace with actual API calls when available
-const mockExclusions: ExclusionTable[] = [
-  {
-    id: '1',
-    name: 'Алкоголь по акции',
-    description: 'Исключить алкогольные напитки из всех акций',
-    type: 'category',
-    entity_id: 'cat_123',
-    entity_name: 'Алкогольные напитки',
-    is_active: true,
-    number: 1,
-    created_at: '2024-01-15',
-    updated_at: '2024-02-10'
-  },
-  {
-    id: '2',
-    name: 'VIP клиенты',
-    description: 'Исключить VIP клиентов из скидочных программ',
-    type: 'customer_group',
-    entity_id: 'group_1',
-    entity_name: 'VIP',
-    is_active: true,
-    number: 2,
-    created_at: '2024-01-20',
-    updated_at: '2024-02-08'
-  },
-  {
-    id: '3',
-    name: 'Премиум товары',
-    description: 'Исключить премиум товары из бонусной программы',
-    type: 'product',
-    entity_id: 'prod_456',
-    entity_name: 'Премиум сет',
-    is_active: false,
-    number: 3,
-    created_at: '2024-01-25',
-    updated_at: '2024-02-05'
-  }
-]
+const EXCLUSION_TYPES: MarketingExclusionType[] = ['product', 'category', 'customer', 'customer_group']
+
+const normalizeExclusion = (exclusion: MarketingExclusion, number: number): ExclusionTable => ({
+  id: exclusion.id,
+  name: exclusion.name,
+  description: exclusion.description ?? null,
+  type: exclusion.type,
+  entity_id: exclusion.entity_id,
+  entity_name: exclusion.entity_name,
+  is_active: exclusion.active,
+  created_at: exclusion.created_at,
+  updated_at: exclusion.updated_at,
+  number,
+})
 
 export const useExclusions = () => {
+  const { exclusions: apiExclusions, isLoading, error, createExclusion, updateExclusion } = useMarketingExclusions()
+
   const [searchQuery, setSearchQuery] = useState('')
   const [sort, setSort] = useState<ExclusionsSort>({ field: 'name', direction: SortDirection.ASC })
-  const [isModalOpen, setIsModalOpen] = useState(false)
-  const [editingExclusionId, setEditingExclusionId] = useState<string | null>(null)
 
-  // TODO: Replace with actual API calls
-  // const { data: apiExclusions = [], isLoading, error } = useGetExclusions()
-  const exclusions: ExclusionTable[] = mockExclusions
-  const isLoading = false
-  const error = null
+  const exclusions = useMemo(
+    () => apiExclusions.map((exclusion, index) => normalizeExclusion(exclusion, index + 1)),
+    [apiExclusions]
+  )
 
   const filteredAndSortedExclusions = useMemo(() => {
-    if (!exclusions || exclusions.length === 0) return []
-    let filtered = exclusions.filter(exclusion => {
+    if (!exclusions.length) return []
+
+    const filtered = exclusions.filter((exclusion) => {
       const searchLower = searchQuery.toLowerCase()
-      const matchesSearch =
+      return (
         exclusion.name.toLowerCase().includes(searchLower) ||
         (exclusion.description && exclusion.description.toLowerCase().includes(searchLower)) ||
         (exclusion.entity_name && exclusion.entity_name.toLowerCase().includes(searchLower))
-
-      return matchesSearch
+      )
     })
 
     filtered.sort((a, b) => {
-      let aValue: string | number | Date | boolean = a[sort.field]
-      let bValue: string | number | Date | boolean = b[sort.field]
+      const aValue: string | number | Date | boolean | null | undefined = a[sort.field]
+      const bValue: string | number | Date | boolean | null | undefined = b[sort.field]
+
+      if (aValue == null && bValue == null) return 0
+      if (aValue == null) return sort.direction === SortDirection.ASC ? -1 : 1
+      if (bValue == null) return sort.direction === SortDirection.ASC ? 1 : -1
 
       if (aValue < bValue) return sort.direction === SortDirection.ASC ? -1 : 1
       if (aValue > bValue) return sort.direction === SortDirection.ASC ? 1 : -1
@@ -77,20 +60,19 @@ export const useExclusions = () => {
 
     return filtered.map((exclusion, index) => ({
       ...exclusion,
-      number: index + 1
+      number: index + 1,
     }))
   }, [exclusions, searchQuery, sort])
 
-  const handleSearchChange = (query: string) => {
-    setSearchQuery(query)
-  }
+  const handleSearchChange = (query: string) => setSearchQuery(query)
 
   const handleSort = (field: keyof ExclusionTable) => {
-    setSort(prev => ({
+    setSort((prev) => ({
       field,
-      direction: prev.field === field && prev.direction === SortDirection.ASC
-        ? SortDirection.DESC
-        : SortDirection.ASC
+      direction:
+        prev.field === field && prev.direction === SortDirection.ASC
+          ? SortDirection.DESC
+          : SortDirection.ASC,
     }))
   }
 
@@ -98,24 +80,70 @@ export const useExclusions = () => {
     window.history.back()
   }
 
-  const handleEdit = (id: string) => {
-    setEditingExclusionId(id)
-    setIsModalOpen(true)
+  const handleEdit = async (id: string) => {
+    const current = apiExclusions.find((item) => item.id === id)
+    if (!current) return
+
+    const nextName = window.prompt('Название исключения', current.name)
+    if (nextName === null) return
+
+    const nextDescription = window.prompt('Описание исключения', current.description ?? '')
+    if (nextDescription === null) return
+
+    const nextEntityName = window.prompt('Название объекта исключения', current.entity_name ?? '')
+    if (nextEntityName === null) return
+
+    const nextActive = window.confirm('Сделать исключение активным? Нажмите Отмена, чтобы деактивировать.')
+
+    try {
+      await updateExclusion(id, {
+        name: nextName.trim() || current.name,
+        description: nextDescription.trim() || undefined,
+        type: current.type,
+        entity_id: current.entity_id,
+        entity_name: nextEntityName.trim() || undefined,
+        active: nextActive,
+      })
+    } catch (updateError) {
+      alert(updateError instanceof Error ? updateError.message : 'Не удалось обновить исключение')
+    }
   }
 
-  const handleAdd = () => {
-    setEditingExclusionId(null)
-    setIsModalOpen(true)
+  const handleAdd = async () => {
+    const name = window.prompt('Название исключения')
+    if (!name || !name.trim()) return
+
+    const typeInput = window.prompt(
+      'Тип исключения: product | category | customer | customer_group',
+      'category'
+    )
+    const type = (typeInput ?? 'category') as MarketingExclusionType
+
+    if (!EXCLUSION_TYPES.includes(type)) {
+      alert('Некорректный тип исключения')
+      return
+    }
+
+    const description = window.prompt('Описание исключения (необязательно)', '')
+    if (description === null) return
+
+    const entityName = window.prompt('Название объекта (необязательно)', '')
+    if (entityName === null) return
+
+    try {
+      await createExclusion({
+        name: name.trim(),
+        description: description.trim() || undefined,
+        type,
+        entity_name: entityName.trim() || undefined,
+      })
+    } catch (createError) {
+      alert(createError instanceof Error ? createError.message : 'Не удалось создать исключение')
+    }
   }
 
-  const handleCloseModal = () => {
-    setIsModalOpen(false)
-    setEditingExclusionId(null)
-  }
-
-  const handleSuccess = () => {
-    handleCloseModal()
-  }
+  const handleCloseModal = () => undefined
+  const handleSuccess = () => undefined
 
   const handleExport = () => {
     console.log('Export exclusions')
@@ -136,8 +164,8 @@ export const useExclusions = () => {
     error,
     searchQuery,
     sort,
-    isModalOpen,
-    editingExclusionId,
+    isModalOpen: false,
+    editingExclusionId: null,
     handleSearchChange,
     handleSort,
     handleBack,
