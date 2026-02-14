@@ -379,12 +379,12 @@ export function useOrder(): UseOrderResult {
 
     const newGuestTotal = newItems.reduce((sum, orderItem) => sum + orderItem.totalPrice, 0)
 
-    // Пересчитываем скидку для гостя
+    // Пересчитываем скидку для гостя с учётом исключений
     let discountAmount = 0
-    if (guest.discount?.type === DiscountType.Percentage) {
-      discountAmount = (newGuestTotal * guest.discount.value) / 100
-    } else if (guest.discount?.type === DiscountType.Fixed) {
-      discountAmount = Math.min(guest.discount.value, newGuestTotal)
+    if (guest.discount?.type && guest.discount.value > 0) {
+      const discountType = guest.discount.type === DiscountType.Percentage ? 'percentage' : 'fixed'
+      const result = calculateDiscountWithExclusions(newItems.map(i => ({...i})), discountType, guest.discount.value)
+      discountAmount = result.discountAmount
     }
 
     const newGuest: GuestOrder = {
@@ -475,12 +475,12 @@ export function useOrder(): UseOrderResult {
       const newItems = guest.items.filter(i => i.id !== itemId)
       const newGuestTotal = newItems.reduce((sum, i) => sum + i.totalPrice, 0)
 
-      // Пересчитываем скидку
+      // Пересчитываем скидку с учётом исключений
       let discountAmount = 0
-      if (guest.discount?.type === DiscountType.Percentage) {
-        discountAmount = (newGuestTotal * guest.discount.value) / 100
-      } else if (guest.discount?.type === DiscountType.Fixed) {
-        discountAmount = Math.min(guest.discount.value, newGuestTotal)
+      if (guest.discount?.type && guest.discount.value > 0) {
+        const discountType = guest.discount.type === DiscountType.Percentage ? 'percentage' : 'fixed'
+        const result = calculateDiscountWithExclusions(newItems.map(i => ({...i})), discountType, guest.discount.value)
+        discountAmount = result.discountAmount
       }
 
       const newGuest: GuestOrder = {
@@ -516,12 +516,12 @@ export function useOrder(): UseOrderResult {
       })
       const newGuestTotal = newItems.reduce((sum, i) => sum + i.totalPrice, 0)
 
-      // Пересчитываем скидку
+      // Пересчитываем скидку с учётом исключений
       let discountAmount = 0
-      if (guest.discount?.type === DiscountType.Percentage) {
-        discountAmount = (newGuestTotal * guest.discount.value) / 100
-      } else if (guest.discount?.type === DiscountType.Fixed) {
-        discountAmount = Math.min(guest.discount.value, newGuestTotal)
+      if (guest.discount?.type && guest.discount.value > 0) {
+        const discountType = guest.discount.type === DiscountType.Percentage ? 'percentage' : 'fixed'
+        const result = calculateDiscountWithExclusions(newItems.map(i => ({...i})), discountType, guest.discount.value)
+        discountAmount = result.discountAmount
       }
 
       const newGuest: GuestOrder = {
