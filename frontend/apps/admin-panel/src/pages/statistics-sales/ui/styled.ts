@@ -168,7 +168,22 @@ export const SectionTitle = styled.h2({
   margin: '0 0 16px 0',
   fontSize: '18px',
   fontWeight: '600',
-  color: '#1e293b'
+  color: '#1e293b',
+  display: 'flex',
+  alignItems: 'center',
+  gap: '8px'
+})
+
+export const DemoBadge = styled.span({
+  display: 'inline-flex',
+  alignItems: 'center',
+  padding: '2px 8px',
+  fontSize: '11px',
+  fontWeight: '500',
+  color: '#f59e0b',
+  backgroundColor: '#fef3c7',
+  borderRadius: '4px',
+  border: '1px solid #fbbf24'
 })
 
 export const ChartPlaceholder = styled.div({

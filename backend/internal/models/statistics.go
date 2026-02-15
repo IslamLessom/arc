@@ -6,11 +6,29 @@ import (
 
 // SalesStatistics представляет статистику продаж
 type SalesStatistics struct {
-	TotalRevenue    float64   `json:"total_revenue"`
-	TotalOrders     int        `json:"total_orders"`
-	AverageOrder    float64   `json:"average_order"`
-	TotalGuests     int        `json:"total_guests"`
-	DailyData       []DailySalesData `json:"daily_data,omitempty"`
+	TotalRevenue             float64                     `json:"total_revenue"`
+	TotalOrders              int                         `json:"total_orders"`
+	AverageOrder             float64                     `json:"average_order"`
+	TotalGuests              int                         `json:"total_guests"`
+	DailyData                []DailySalesData            `json:"daily_data,omitempty"`
+	RevenueByCategory        []CategoryRevenueData       `json:"revenue_by_category,omitempty"`
+	RevenueByPaymentMethod   *PaymentMethodStats         `json:"revenue_by_payment_method,omitempty"`
+}
+
+// CategoryRevenueData представляет данные о выручке по категории
+type CategoryRevenueData struct {
+	CategoryID   string  `json:"category_id"`
+	CategoryName string  `json:"category_name"`
+	Revenue      float64 `json:"revenue"`
+	OrdersCount  int     `json:"orders_count"`
+	Percentage   float64 `json:"percentage"`
+}
+
+// PaymentMethodStats представляет статистику по методам оплаты
+type PaymentMethodStats struct {
+	Cash  float64 `json:"cash"`
+	Card  float64 `json:"card"`
+	Online float64 `json:"online"`
 }
 
 // DailySalesData представляет данные продаж за день

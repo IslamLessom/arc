@@ -68,17 +68,44 @@ func (uc *StatisticsUseCase) GetSalesStatistics(ctx context.Context, establishme
 	var totalRevenue float64
 	var totalGuests int
 
+	// Для расчета по категориям
+	categoryRevenueMap := make(map[string]*CategoryRevenueData)
+	categoryOrdersMap := make(map[string]int)
+
+	// Для расчета по методам оплаты
+	paymentStats := &PaymentStats{}
+
 	for _, order := range orders {
 		// Считаем только оплаченные заказы
 		if order.Status == "paid" {
 			totalRevenue += order.TotalAmount
 			stats.TotalOrders++
+
+			// Собираем статистику по методам оплаты
+			paymentStats.CardAmount += order.CardAmount
+			paymentStats.CashAmount += order.CashAmount
 		}
+
 		// Считаем количество гостей (берем максимальный номер гостя из всех заказов)
 		for _, item := range order.Items {
 			if item.GuestNumber != nil {
 				if *item.GuestNumber > totalGuests {
 					totalGuests = *item.GuestNumber
+				}
+			}
+
+			// Собираем статистику по категориям
+			if item.Product != nil {
+				categoryID := item.Product.CategoryID.String()
+				if categoryRevenueMap[categoryID] == nil {
+					categoryRevenueMap[categoryID] = &CategoryRevenueData{
+						CategoryID:   categoryID,
+						CategoryName: item.Product.Category.Name,
+					}
+				}
+				categoryRevenueMap[categoryID].Revenue += item.TotalPrice
+				if order.Status == "paid" {
+					categoryOrdersMap[categoryID]++
 				}
 			}
 		}
@@ -113,7 +140,44 @@ func (uc *StatisticsUseCase) GetSalesStatistics(ctx context.Context, establishme
 		stats.DailyData = append(stats.DailyData, *data)
 	}
 
+	// Формируем данные по категориям
+	totalRevenueForPercent := totalRevenue
+	if totalRevenueForPercent > 0 {
+		for _, catData := range categoryRevenueMap {
+			percentage := (catData.Revenue / totalRevenueForPercent) * 100
+			stats.RevenueByCategory = append(stats.RevenueByCategory, models.CategoryRevenueData{
+				CategoryID:   catData.CategoryID,
+				CategoryName: catData.CategoryName,
+				Revenue:      catData.Revenue,
+				OrdersCount:  categoryOrdersMap[catData.CategoryID],
+				Percentage:   percentage,
+			})
+		}
+	}
+
+	// Формируем данные по методам оплаты
+	if paymentStats.CardAmount > 0 || paymentStats.CashAmount > 0 {
+		stats.RevenueByPaymentMethod = &models.PaymentMethodStats{
+			Card:   paymentStats.CardAmount,
+			Cash:   paymentStats.CashAmount,
+			Online: 0, // TODO: добавить когда будет электронная оплата
+		}
+	}
+
 	return stats, nil
+}
+
+// CategoryRevenueData временная структура для расчета
+type CategoryRevenueData struct {
+	CategoryID   string
+	CategoryName string
+	Revenue      float64
+}
+
+// PaymentStats временная структура для расчета
+type PaymentStats struct {
+	CardAmount float64
+	CashAmount float64
 }
 
 // GetCustomerStatistics возвращает статистику клиентов

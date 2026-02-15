@@ -33,13 +33,13 @@ func NewOrderRepository(db *gorm.DB) OrderRepository {
 
 func (r *orderRepository) GetByID(ctx context.Context, id uuid.UUID) (*models.Order, error) {
 	var order models.Order
-	err := r.db.WithContext(ctx).Preload("Items.Product").Preload("Items.TechCard").Preload("Table").First(&order, "id = ?", id).Error
+	err := r.db.WithContext(ctx).Preload("Items.Product").Preload("Items.Product.Category").Preload("Items.TechCard").Preload("Table").First(&order, "id = ?", id).Error
 	return &order, err
 }
 
 func (r *orderRepository) List(ctx context.Context, establishmentID uuid.UUID, startDate, endDate time.Time, status string) ([]*models.Order, error) {
 	var orders []*models.Order
-	query := r.db.WithContext(ctx).Preload("Items.Product").Preload("Items.TechCard").Preload("Table").Where("establishment_id = ?", establishmentID)
+	query := r.db.WithContext(ctx).Preload("Items.Product").Preload("Items.Product.Category").Preload("Items.TechCard").Preload("Table").Where("establishment_id = ?", establishmentID)
 
 	if !startDate.IsZero() {
 		query = query.Where("created_at >= ?", startDate)
@@ -57,7 +57,7 @@ func (r *orderRepository) List(ctx context.Context, establishmentID uuid.UUID, s
 
 func (r *orderRepository) ListActiveByEstablishmentID(ctx context.Context, establishmentID uuid.UUID) ([]*models.Order, error) {
 	var orders []*models.Order
-	err := r.db.WithContext(ctx).Preload("Items.Product").Preload("Items.TechCard").Preload("Table").Where("establishment_id = ? AND status IN (?, ?, ?)", establishmentID, "draft", "confirmed", "preparing").Find(&orders).Error
+	err := r.db.WithContext(ctx).Preload("Items.Product").Preload("Items.Product.Category").Preload("Items.TechCard").Preload("Table").Where("establishment_id = ? AND status IN (?, ?, ?)", establishmentID, "draft", "confirmed", "preparing").Find(&orders).Error
 	return orders, err
 }
 
@@ -79,7 +79,7 @@ func (r *orderRepository) UpdateOrderItem(ctx context.Context, item *models.Orde
 
 func (r *orderRepository) ListByShiftIDAndEstablishmentIDAndDateRange(ctx context.Context, shiftID, establishmentID uuid.UUID, startDate, endDate time.Time) ([]*models.Order, error) {
 	var orders []*models.Order
-	query := r.db.WithContext(ctx).Preload("Items.Product").Preload("Items.TechCard").Preload("Table").Where("shift_id = ? AND establishment_id = ?", shiftID, establishmentID)
+	query := r.db.WithContext(ctx).Preload("Items.Product").Preload("Items.Product.Category").Preload("Items.TechCard").Preload("Table").Where("shift_id = ? AND establishment_id = ?", shiftID, establishmentID)
 
 	if !startDate.IsZero() {
 		query = query.Where("created_at >= ?", startDate)
@@ -112,7 +112,12 @@ func (r *orderRepository) GetTotalSalesByUserIDAndDateRange(ctx context.Context,
 // ListByEstablishmentIDAndDateRange возвращает заказы по заведению и диапазону дат
 func (r *orderRepository) ListByEstablishmentIDAndDateRange(ctx context.Context, establishmentID uuid.UUID, startDate, endDate time.Time) ([]*models.Order, error) {
 	var orders []*models.Order
-	query := r.db.WithContext(ctx).Preload("Items.Product").Preload("Items.TechCard").Preload("Table").Where("establishment_id = ?", establishmentID)
+	query := r.db.WithContext(ctx).
+		Preload("Items.Product").
+		Preload("Items.Product.Category").
+		Preload("Items.TechCard").
+		Preload("Table").
+		Where("establishment_id = ?", establishmentID)
 
 	if !startDate.IsZero() {
 		query = query.Where("created_at >= ?", startDate)
