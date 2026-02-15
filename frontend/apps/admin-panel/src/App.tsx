@@ -44,6 +44,18 @@ import { CustomerGroups } from './pages/marketing-customer-groups'
 import { LoyaltyPrograms } from './pages/marketing-loyalty-programs'
 import { Exclusions } from './pages/marketing-exclusions'
 import { Promotions } from './pages/marketing-promotions'
+import { StatisticsSales } from './pages/statistics-sales'
+import { StatisticsCustomers } from './pages/statistics-customers'
+import { StatisticsEmployees } from './pages/statistics-employees'
+import { StatisticsWorkshops } from './pages/statistics-workshops'
+import { StatisticsTables } from './pages/statistics-tables'
+import { StatisticsCategories } from './pages/statistics-categories'
+import { StatisticsProducts } from './pages/statistics-products'
+import { StatisticsAbc } from './pages/statistics-abc'
+import { StatisticsChecks } from './pages/statistics-checks'
+import { StatisticsReviews } from './pages/statistics-reviews'
+import { StatisticsPayments } from './pages/statistics-payments'
+import { StatisticsTaxes } from './pages/statistics-taxes'
 
 export function App() {
   const location = useLocation()
@@ -114,6 +126,18 @@ export function App() {
           <Route path="/marketing/loyalty-programs" element={<LoyaltyPrograms />} />
           <Route path="/marketing/exclusions" element={<Exclusions />} />
           <Route path="/marketing/promotions" element={<Promotions />} />
+          <Route path="/statistics/sales" element={<StatisticsSales />} />
+          <Route path="/statistics/customers" element={<StatisticsCustomers />} />
+          <Route path="/statistics/employees" element={<StatisticsEmployees />} />
+          <Route path="/statistics/workshops" element={<StatisticsWorkshops />} />
+          <Route path="/statistics/tables" element={<StatisticsTables />} />
+          <Route path="/statistics/categories" element={<StatisticsCategories />} />
+          <Route path="/statistics/products" element={<StatisticsProducts />} />
+          <Route path="/statistics/abc" element={<StatisticsAbc />} />
+          <Route path="/statistics/checks" element={<StatisticsChecks />} />
+          <Route path="/statistics/reviews" element={<StatisticsReviews />} />
+          <Route path="/statistics/payments" element={<StatisticsPayments />} />
+          <Route path="/statistics/taxes" element={<StatisticsTaxes />} />
           <Route path="/settings/tables" element={<HallMap />} />
           <Route path="/" element={<Home />} />
           <Route path="*" element={<NotFound />} />
