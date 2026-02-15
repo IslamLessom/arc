@@ -279,6 +279,15 @@ export const useInventoryDetail = (): UseInventoryDetailResult => {
     }
 
     try {
+      // First, transition to in_progress if currently in draft
+      if (formData.status === 'draft') {
+        await updateStatusMutation.mutateAsync({
+          id: formData.inventory_id,
+          status: 'in_progress',
+        })
+      }
+
+      // Then, transition to completed
       await updateStatusMutation.mutateAsync({
         id: formData.inventory_id,
         status: 'completed',
@@ -286,7 +295,7 @@ export const useInventoryDetail = (): UseInventoryDetailResult => {
     } catch (err) {
       console.error('Failed to complete inventory:', err)
     }
-  }, [formData.inventory_id, formData.items, editedItems, updateStatusMutation])
+  }, [formData.inventory_id, formData.status, formData.items, editedItems, updateStatusMutation])
 
   const handleReopen = useCallback(async () => {
     if (!formData.inventory_id) return
