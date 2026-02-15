@@ -95,22 +95,21 @@ export const FilterLabel = styled.span({
   color: '#64748b'
 })
 
-export const DateSelect = styled.button({
+export const DateSelect = styled.button<{ active?: boolean }>(({ active = false }) => ({
   padding: '8px 16px',
   border: '1px solid #e2e8f0',
-  backgroundColor: '#ffffff',
+  backgroundColor: active ? '#3b82f6' : '#ffffff',
   borderRadius: '6px',
   cursor: 'pointer',
   fontSize: '14px',
-  color: '#475569',
+  color: active ? '#ffffff' : '#475569',
   transition: 'all 0.2s ease',
 
   '&:hover': {
-    backgroundColor: '#3b82f6',
-    borderColor: '#3b82f6',
-    color: '#ffffff'
+    backgroundColor: active ? '#2563eb' : '#f8fafc',
+    borderColor: active ? '#2563eb' : '#cbd5e1'
   }
-})
+}))
 
 export const CardsGrid = styled.div({
   display: 'grid',
@@ -249,4 +248,48 @@ export const DetailsIcon = styled.div({
 export const DetailsText = styled.div({
   fontSize: '14px',
   color: '#64748b'
+})
+
+export const TableContainer = styled.div({
+  overflowX: 'auto',
+  borderRadius: '8px',
+  border: '1px solid #e2e8f0'
+})
+
+export const Table = styled.table({
+  width: '100%',
+  borderCollapse: 'collapse',
+  backgroundColor: '#ffffff'
+})
+
+export const TableHead = styled.thead({
+  backgroundColor: '#f8fafc'
+})
+
+export const TableBody = styled.tbody({})
+
+export const TableRow = styled.tr({
+  '&:nth-child(even)': {
+    backgroundColor: '#f8fafc'
+  },
+  '&:hover': {
+    backgroundColor: '#f1f5f9'
+  }
+})
+
+export const TableHeaderCell = styled.th({
+  padding: '12px 16px',
+  textAlign: 'left',
+  fontSize: '14px',
+  fontWeight: '600',
+  color: '#475569',
+  borderBottom: '1px solid #e2e8f0',
+  whiteSpace: 'nowrap'
+})
+
+export const TableCell = styled.td({
+  padding: '12px 16px',
+  fontSize: '14px',
+  color: '#1e293b',
+  borderBottom: '1px solid #e2e8f0'
 })

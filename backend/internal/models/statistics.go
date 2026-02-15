@@ -41,11 +41,12 @@ type DailySalesData struct {
 
 // CustomerStatistics представляет статистику клиентов
 type CustomerStatistics struct {
-	TotalCustomers      int                `json:"total_customers"`
-	NewCustomers       int                `json:"new_customers"`
-	ReturningCustomers int                `json:"returning_customers"`
-	VipCustomers       int                `json:"vip_customers"`
-	DailyData          []DailyCustomerData `json:"daily_data,omitempty"`
+	TotalCustomers      int                    `json:"total_customers"`
+	NewCustomers       int                    `json:"new_customers"`
+	ReturningCustomers int                    `json:"returning_customers"`
+	VipCustomers       int                    `json:"vip_customers"`
+	DailyData          []DailyCustomerData    `json:"daily_data,omitempty"`
+	TopCustomers       []CustomerPerformanceData `json:"top_customers,omitempty"`
 }
 
 // DailyCustomerData представляет данные клиентов за день
@@ -53,6 +54,16 @@ type DailyCustomerData struct {
 	Date           string `json:"date"`
 	NewCustomers   int    `json:"new_customers"`
 	ReturningCount int    `json:"returning_count"`
+}
+
+// CustomerPerformanceData представляет данные эффективности клиента
+type CustomerPerformanceData struct {
+	CustomerID    string  `json:"customer_id"`
+	CustomerName  string  `json:"customer_name"`
+	TotalOrders   int     `json:"total_orders"`
+	TotalRevenue  float64 `json:"total_revenue"`
+	AverageCheck  float64 `json:"average_check"`
+	LastVisit     string  `json:"last_visit"`
 }
 
 // EmployeeStatistics представляет статистику сотрудников

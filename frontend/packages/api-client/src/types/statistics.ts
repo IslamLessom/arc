@@ -35,13 +35,18 @@ export interface CustomerStatistics {
   total_customers: number
   new_customers: number
   returning_customers: number
-  average_orders_per_customer: number
-  average_revenue_per_customer: number
+  vip_customers: number
+  daily_data?: Array<{
+    date: string
+    new_customers: number
+    returning_count: number
+  }>
   top_customers?: Array<{
     customer_id: string
     customer_name: string
     total_orders: number
     total_revenue: number
+    average_check: number
     last_visit: string
   }>
 }

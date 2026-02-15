@@ -199,14 +199,27 @@ func (uc *StatisticsUseCase) GetCustomerStatistics(ctx context.Context, establis
 		TotalCustomers: len(clients),
 	}
 
-	// Создаем мапу для отслеживания новых и постоянных клиентов
+	// Создаем мапы для отслеживания статистики по клиентам
 	clientOrderCount := make(map[uuid.UUID]int)
+	clientRevenue := make(map[uuid.UUID]float64)
+	clientLastVisit := make(map[uuid.UUID]time.Time)
 	newClientsSet := make(map[uuid.UUID]bool)
+	dailyNewClients := make(map[string]int)
 
 	// Считаем количество заказов на клиента
 	for _, order := range orders {
 		if order.ClientID != nil {
 			clientOrderCount[*order.ClientID]++
+
+			// Считаем выручку
+			if order.Status == "paid" {
+				clientRevenue[*order.ClientID] += order.TotalAmount
+			}
+
+			// Запоминаем последний визит
+			if order.CreatedAt.After(clientLastVisit[*order.ClientID]) {
+				clientLastVisit[*order.ClientID] = order.CreatedAt
+			}
 
 			// Если клиент создан в периоде - новый
 			for _, client := range clients {
@@ -214,6 +227,8 @@ func (uc *StatisticsUseCase) GetCustomerStatistics(ctx context.Context, establis
 					if (client.CreatedAt.After(startDate) || client.CreatedAt.Equal(startDate)) &&
 						client.CreatedAt.Before(endDate) {
 						newClientsSet[*order.ClientID] = true
+						dateKey := client.CreatedAt.Format("2006-01-02")
+						dailyNewClients[dateKey]++
 					}
 					break
 				}
@@ -224,9 +239,11 @@ func (uc *StatisticsUseCase) GetCustomerStatistics(ctx context.Context, establis
 	stats.NewCustomers = len(newClientsSet)
 
 	// Постоянные клиенты (более 5 заказов)
-	for _, count := range clientOrderCount {
+	returningSet := make(map[uuid.UUID]bool)
+	for clientID, count := range clientOrderCount {
 		if count >= 5 {
 			stats.ReturningCustomers++
+			returningSet[clientID] = true
 		}
 	}
 
@@ -235,6 +252,99 @@ func (uc *StatisticsUseCase) GetCustomerStatistics(ctx context.Context, establis
 		if count >= 20 {
 			stats.VipCustomers++
 		}
+	}
+
+	// Группируем по дням для новых и постоянных клиентов
+	dailyMap := make(map[string]*models.DailyCustomerData)
+	for _, order := range orders {
+		if order.ClientID == nil {
+			continue
+		}
+
+		dateKey := order.CreatedAt.Format("2006-01-02")
+		if dailyMap[dateKey] == nil {
+			dailyMap[dateKey] = &models.DailyCustomerData{
+				Date: dateKey,
+			}
+		}
+
+		// Проверяем, является ли клиент постоянным
+		if returningSet[*order.ClientID] {
+			dailyMap[dateKey].ReturningCount++
+		}
+	}
+
+	// Добавляем данные о новых клиентах
+	for date, count := range dailyNewClients {
+		if dailyMap[date] == nil {
+			dailyMap[date] = &models.DailyCustomerData{
+				Date:           date,
+				NewCustomers:   count,
+				ReturningCount: 0,
+			}
+		} else {
+			dailyMap[date].NewCustomers = count
+		}
+	}
+
+	// Преобразуем мапу в слайс
+	for _, data := range dailyMap {
+		stats.DailyData = append(stats.DailyData, *data)
+	}
+
+	// Топ-10 клиентов по выручке
+	type ClientRevenue struct {
+		ClientID uuid.UUID
+		Revenue  float64
+		Orders   int
+	}
+	var sortedClients []ClientRevenue
+	for clientID := range clientRevenue {
+		sortedClients = append(sortedClients, ClientRevenue{
+			ClientID: clientID,
+			Revenue:  clientRevenue[clientID],
+			Orders:   clientOrderCount[clientID],
+		})
+	}
+
+	// Сортировка по выручке (пузырьком для простоты)
+	for i := 0; i < len(sortedClients); i++ {
+		for j := i + 1; j < len(sortedClients); j++ {
+			if sortedClients[j].Revenue > sortedClients[i].Revenue {
+				sortedClients[i], sortedClients[j] = sortedClients[j], sortedClients[i]
+			}
+		}
+	}
+
+	// Берем топ-10
+	maxClients := 10
+	if len(sortedClients) < maxClients {
+		maxClients = len(sortedClients)
+	}
+
+	for i := 0; i < maxClients; i++ {
+		customerID := sortedClients[i].ClientID
+		var customerName string
+		for _, client := range clients {
+			if client.ID == customerID {
+				customerName = client.Name
+				break
+			}
+		}
+
+		avgCheck := 0.0
+		if clientOrderCount[customerID] > 0 {
+			avgCheck = clientRevenue[customerID] / float64(clientOrderCount[customerID])
+		}
+
+		stats.TopCustomers = append(stats.TopCustomers, models.CustomerPerformanceData{
+			CustomerID:   customerID.String(),
+			CustomerName: customerName,
+			TotalOrders:  clientOrderCount[customerID],
+			TotalRevenue: clientRevenue[customerID],
+			AverageCheck: avgCheck,
+			LastVisit:    clientLastVisit[customerID].Format("2006-01-02"),
+		})
 	}
 
 	return stats, nil
