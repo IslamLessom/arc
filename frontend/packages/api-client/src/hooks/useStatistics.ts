@@ -3,7 +3,6 @@ import { apiClient } from '../client'
 import type {
   SalesStatistics,
   CustomerStatistics,
-  EmployeesSalesStatistics,
   EmployeeStatistics,
   WorkshopStatistics,
   TableStatistics,

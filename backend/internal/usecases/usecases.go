@@ -62,7 +62,7 @@ func NewUseCases(repos *repositories.Repositories, cfg *config.Config, logger *z
 		Warehouse:           warehouseUseCase,
 		Workshop:            NewWorkshopUseCase(repos.Workshop),
 		Finance:             financeUseCase,
-		Statistics:          NewStatisticsUseCase(repos.Order, repos.Product, repos.Category, repos.Client, repos.User, repos.Workshop, repos.Table, logger),
+		Statistics:          NewStatisticsUseCase(repos.Order, repos.Product, repos.Category, repos.Client, repos.User, repos.Workshop, repos.Table, repos.Shift, logger),
 		Order:               NewOrderUseCase(repos.Order, repos.Warehouse, repos.Transaction, accountUseCase),
 		Shift:               shiftUseCase,
 		Onboarding:          NewOnboardingUseCase(repos.Onboarding, repos.Establishment, repos.Table, repos.Room, repos.User, accountUseCase),

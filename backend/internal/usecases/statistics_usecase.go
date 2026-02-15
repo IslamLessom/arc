@@ -20,6 +20,7 @@ type StatisticsUseCase struct {
 	userRepo        repositories.UserRepository
 	workshopRepo    repositories.WorkshopRepository
 	tableRepo       repositories.TableRepository
+	shiftRepo       repositories.ShiftRepository
 	logger          *zap.Logger
 }
 
@@ -31,6 +32,7 @@ func NewStatisticsUseCase(
 	userRepo repositories.UserRepository,
 	workshopRepo repositories.WorkshopRepository,
 	tableRepo repositories.TableRepository,
+	shiftRepo repositories.ShiftRepository,
 	logger *zap.Logger,
 ) *StatisticsUseCase {
 	return &StatisticsUseCase{
@@ -41,6 +43,7 @@ func NewStatisticsUseCase(
 		userRepo:       userRepo,
 		workshopRepo:   workshopRepo,
 		tableRepo:      tableRepo,
+		shiftRepo:      shiftRepo,
 		logger:         logger,
 	}
 }
@@ -364,18 +367,57 @@ func (uc *StatisticsUseCase) GetEmployeeStatistics(ctx context.Context, establis
 		return nil, fmt.Errorf("failed to get orders: %w", err)
 	}
 
+	// Получаем смены для расчета отработанных часов
+	shifts, err := uc.shiftRepo.ListByFilter(ctx, &repositories.ShiftFilter{
+		EstablishmentID: &establishmentID,
+		StartDate:       &startDate,
+		EndDate:         &endDate,
+	})
+	if err != nil {
+		uc.logger.Warn("Failed to get shifts for hours calculation", zap.Error(err))
+		// Продолжаем без данных о сменах
+		shifts = nil
+	}
+
 	stats := &models.EmployeeStatistics{
 		TotalEmployees: len(users),
 	}
 
+	// Вычисляем общее количество отработанных часов
+	var totalHoursWorked float64
+	if shifts != nil {
+		for _, shift := range shifts {
+			if shift.EndTime != nil {
+				duration := shift.EndTime.Sub(shift.StartTime)
+				totalHoursWorked += duration.Hours()
+			}
+		}
+	}
+	stats.TotalHoursWorked = totalHoursWorked
+
+	// TODO: Добавить расчет зарплаты когда будет поле hourly_rate
+	stats.TotalSalaryPaid = 0
+
 	// Статистика по сотрудникам
 	employeeOrders := make(map[uuid.UUID]int)
 	employeeRevenue := make(map[uuid.UUID]float64)
+	employeeHours := make(map[uuid.UUID]float64)
 	activeEmployeesSet := make(map[string]bool)
 
-	// Группируем по дням
+	// Группируем часы по сотрудникам
+	if shifts != nil {
+		for _, shift := range shifts {
+			if shift.EndTime != nil {
+				duration := shift.EndTime.Sub(shift.StartTime)
+				employeeHours[shift.UserID] += duration.Hours()
+			}
+		}
+	}
+
+	// Группируем по дням - сначала создаем структуру для всех дней в периоде
 	dailyMap := make(map[string]*models.DailyEmployeeData)
 
+	// Заполняем данные по дням из заказов
 	for _, order := range orders {
 		// Считаем только оплаченные заказы
 		if order.Status != "paid" {
@@ -414,10 +456,20 @@ func (uc *StatisticsUseCase) GetEmployeeStatistics(ctx context.Context, establis
 		data.ActiveEmployees = len(dateActiveEmployees)
 	}
 
-	// Преобразуем мапу в слайс
+	// Преобразуем мапу в слайс и сортируем по дате
+	var dailySlice []models.DailyEmployeeData
 	for _, data := range dailyMap {
-		stats.DailyData = append(stats.DailyData, *data)
+		dailySlice = append(dailySlice, *data)
 	}
+	// Сортировка по дате
+	for i := 0; i < len(dailySlice); i++ {
+		for j := i + 1; j < len(dailySlice); j++ {
+			if dailySlice[j].Date < dailySlice[i].Date {
+				dailySlice[i], dailySlice[j] = dailySlice[j], dailySlice[i]
+			}
+		}
+	}
+	stats.DailyData = dailySlice
 
 	stats.ActiveOnShift = len(activeEmployeesSet)
 
@@ -466,12 +518,14 @@ func (uc *StatisticsUseCase) GetEmployeeStatistics(ctx context.Context, establis
 			avgCheck = employeeRevenue[employeeID] / float64(employeeOrders[employeeID])
 		}
 
+		hoursWorked := employeeHours[employeeID]
+
 		stats.TopEmployees = append(stats.TopEmployees, models.EmployeePerformanceData{
 			EmployeeID:    employeeID.String(),
 			EmployeeName:  employeeName,
 			OrdersHandled: employeeOrders[employeeID],
 			Revenue:       employeeRevenue[employeeID],
-			HoursWorked:   0, // TODO: добавить расчет часов
+			HoursWorked:   hoursWorked,
 			AverageCheck:  avgCheck,
 		})
 	}
