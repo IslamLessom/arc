@@ -103,30 +103,6 @@ export const StatisticsSales = () => {
     { name: 'Онлайн', value: statistics.data.revenue_by_payment_method.online }
   ].filter(item => item.value > 0) : []
 
-  // Проверяем наличие реальных данных
-  const hasCategoryData = categoryData.length > 0
-  const hasPaymentData = paymentData.length > 0
-
-  // Если данных нет, создаем демо-данные на основе общей статистики
-  const demoCategoryData = statistics?.data?.total_revenue ? [
-    { name: 'Основные блюда', value: Math.round(statistics.data.total_revenue * 0.35), orders: Math.round((statistics.data.total_orders || 0) * 0.35), percentage: 35 },
-    { name: 'Напитки', value: Math.round(statistics.data.total_revenue * 0.25), orders: Math.round((statistics.data.total_orders || 0) * 0.25), percentage: 25 },
-    { name: 'Салаты', value: Math.round(statistics.data.total_revenue * 0.20), orders: Math.round((statistics.data.total_orders || 0) * 0.20), percentage: 20 },
-    { name: 'Десерты', value: Math.round(statistics.data.total_revenue * 0.12), orders: Math.round((statistics.data.total_orders || 0) * 0.12), percentage: 12 },
-    { name: 'Закуски', value: Math.round(statistics.data.total_revenue * 0.08), orders: Math.round((statistics.data.total_orders || 0) * 0.08), percentage: 8 }
-  ] : []
-
-  // Демо-данные для методов оплаты (на основе реальной выручки)
-  const demoPaymentData = statistics?.data?.total_revenue ? [
-    { name: 'Карта', value: Math.round(statistics.data.total_revenue * 0.55) },
-    { name: 'Наличные', value: Math.round(statistics.data.total_revenue * 0.35) },
-    { name: 'Онлайн', value: Math.round(statistics.data.total_revenue * 0.10) }
-  ].filter(item => item.value > 0) : []
-
-  // Используем реальные данные или демо-данные
-  const finalCategoryData = hasCategoryData ? categoryData : demoCategoryData
-  const finalPaymentData = hasPaymentData ? paymentData : demoPaymentData
-
   if (isLoading) {
     return (
       <Styled.PageContainer>
@@ -315,15 +291,10 @@ export const StatisticsSales = () => {
         </Styled.ChartSection>
 
         <Styled.TableSection>
-          <Styled.SectionTitle>
-            Продажи по категориям
-            {!hasCategoryData && stats?.total_revenue && (
-              <Styled.DemoBadge>Демо-данные</Styled.DemoBadge>
-            )}
-          </Styled.SectionTitle>
-          {finalCategoryData.length > 0 ? (
+          <Styled.SectionTitle>Продажи по категориям</Styled.SectionTitle>
+          {categoryData.length > 0 ? (
             <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={finalCategoryData} layout="vertical">
+              <BarChart data={categoryData} layout="vertical">
                 <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
                 <XAxis
                   type="number"
@@ -369,22 +340,17 @@ export const StatisticsSales = () => {
 
       <Styled.ContentGrid>
         <Styled.ChartSection>
-          <Styled.SectionTitle>
-            Распределение по методам оплаты
-            {!hasPaymentData && stats?.total_revenue && (
-              <Styled.DemoBadge>Демо-данные</Styled.DemoBadge>
-            )}
-          </Styled.SectionTitle>
-          {finalPaymentData.length > 0 ? (
+          <Styled.SectionTitle>Распределение по методам оплаты</Styled.SectionTitle>
+          {paymentData.length > 0 ? (
             <ResponsiveContainer width="100%" height={300}>
               <PieChart>
                 <Pie
-                  data={finalPaymentData}
+                  data={paymentData}
                   cx="50%"
                   cy="50%"
                   labelLine={false}
                   label={({ name, payload }) => {
-                    const total = finalPaymentData.reduce((acc, item) => acc + item.value, 0)
+                    const total = paymentData.reduce((acc, item) => acc + item.value, 0)
                     const percent = total > 0 ? ((payload?.value || 0) / total * 100).toFixed(1) : '0'
                     return `${name}: ${percent}%`
                   }}
@@ -392,7 +358,7 @@ export const StatisticsSales = () => {
                   fill="#8884d8"
                   dataKey="value"
                 >
-                  {finalPaymentData.map((_entry, index) => (
+                  {paymentData.map((_entry, index) => (
                     <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                   ))}
                 </Pie>
