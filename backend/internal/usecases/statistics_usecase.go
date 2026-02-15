@@ -812,14 +812,20 @@ func (uc *StatisticsUseCase) GetABCAnalysis(ctx context.Context, establishmentID
 		totalRevenue += pr.Revenue
 	}
 
+	uc.logger.Info("ABC Analysis",
+		zap.Float64("total_revenue", totalRevenue),
+		zap.Int("total_products", len(sortedProducts)))
+
 	// Распределяем по группам A (80%), B (15%), C (5%)
+	// Используем нарастающий итог для определения групп
 	var currentRevenue float64
 	aThreshold := totalRevenue * 0.8
 	bThreshold := totalRevenue * 0.95
 
-	for _, pr := range sortedProducts {
+	for i, pr := range sortedProducts {
 		currentRevenue += pr.Revenue
 		group := "C"
+
 		if currentRevenue <= aThreshold {
 			group = "A"
 			stats.GroupAProducts++
@@ -829,9 +835,17 @@ func (uc *StatisticsUseCase) GetABCAnalysis(ctx context.Context, establishmentID
 			stats.GroupBProducts++
 			stats.GroupBRevenue += pr.Revenue
 		} else {
+			group = "C"
 			stats.GroupCProducts++
 			stats.GroupCRevenue += pr.Revenue
 		}
+
+		uc.logger.Debug("ABC Product assignment",
+			zap.Int("index", i),
+			zap.Float64("revenue", pr.Revenue),
+			zap.Float64("current_revenue", currentRevenue),
+			zap.Float64("a_threshold", aThreshold),
+			zap.String("group", group))
 
 		// Находим название товара
 		var productName string
