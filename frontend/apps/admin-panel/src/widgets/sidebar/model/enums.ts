@@ -49,5 +49,18 @@ export enum MenuItemId {
   FinanceProfitAndLoss = 'finance-profit-and-loss',
   // Settings sub-items
   SettingsTables = 'settings-tables',
+  // Statistics sub-items
+  StatisticsSales = 'statistics-sales',
+  StatisticsCustomers = 'statistics-customers',
+  StatisticsEmployees = 'statistics-employees',
+  StatisticsWorkshops = 'statistics-workshops',
+  StatisticsTables = 'statistics-tables',
+  StatisticsCategories = 'statistics-categories',
+  StatisticsProducts = 'statistics-products',
+  StatisticsAbc = 'statistics-abc',
+  StatisticsChecks = 'statistics-checks',
+  StatisticsReviews = 'statistics-reviews',
+  StatisticsPayments = 'statistics-payments',
+  StatisticsTaxes = 'statistics-taxes',
 }
 
