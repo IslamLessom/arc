@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"fmt"
 	"net/http"
 	"time"
 
@@ -31,8 +30,8 @@ func NewStatisticsHandler(usecase *usecases.StatisticsUseCase, logger *zap.Logge
 // @Produce json
 // @Security Bearer
 // @Param establishment_id query string false "ID заведения"
-// @Param start_date query string true "Начальная дата (format: 2006-01-02)"
-// @Param end_date query string true "Конечная дата (format: 2006-01-02)"
+// @Param start_date query string false "Начальная дата (format: 2006-01-02), опционально"
+// @Param end_date query string false "Конечная дата (format: 2006-01-02), опционально"
 // @Success 200 {object} models.SalesStatistics
 // @Router /statistics/sales [get]
 func (h *StatisticsHandler) GetSales(c *gin.Context) {
@@ -59,8 +58,8 @@ func (h *StatisticsHandler) GetSales(c *gin.Context) {
 // @Produce json
 // @Security Bearer
 // @Param establishment_id query string false "ID заведения"
-// @Param start_date query string true "Начальная дата (format: 2006-01-02)"
-// @Param end_date query string true "Конечная дата (format: 2006-01-02)"
+// @Param start_date query string false "Начальная дата (format: 2006-01-02), опционально"
+// @Param end_date query string false "Конечная дата (format: 2006-01-02), опционально"
 // @Success 200 {object} models.CustomerStatistics
 // @Router /statistics/customers [get]
 func (h *StatisticsHandler) GetCustomers(c *gin.Context) {
@@ -87,8 +86,8 @@ func (h *StatisticsHandler) GetCustomers(c *gin.Context) {
 // @Produce json
 // @Security Bearer
 // @Param establishment_id query string false "ID заведения"
-// @Param start_date query string true "Начальная дата (format: 2006-01-02)"
-// @Param end_date query string true "Конечная дата (format: 2006-01-02)"
+// @Param start_date query string false "Начальная дата (format: 2006-01-02), опционально"
+// @Param end_date query string false "Конечная дата (format: 2006-01-02), опционально"
 // @Success 200 {object} models.EmployeeStatistics
 // @Router /statistics/employees [get]
 func (h *StatisticsHandler) GetEmployees(c *gin.Context) {
@@ -115,8 +114,8 @@ func (h *StatisticsHandler) GetEmployees(c *gin.Context) {
 // @Produce json
 // @Security Bearer
 // @Param establishment_id query string false "ID заведения"
-// @Param start_date query string true "Начальная дата (format: 2006-01-02)"
-// @Param end_date query string true "Конечная дата (format: 2006-01-02)"
+// @Param start_date query string false "Начальная дата (format: 2006-01-02), опционально"
+// @Param end_date query string false "Конечная дата (format: 2006-01-02), опционально"
 // @Success 200 {object} models.WorkshopStatistics
 // @Router /statistics/workshops [get]
 func (h *StatisticsHandler) GetWorkshops(c *gin.Context) {
@@ -143,8 +142,8 @@ func (h *StatisticsHandler) GetWorkshops(c *gin.Context) {
 // @Produce json
 // @Security Bearer
 // @Param establishment_id query string false "ID заведения"
-// @Param start_date query string true "Начальная дата (format: 2006-01-02)"
-// @Param end_date query string true "Конечная дата (format: 2006-01-02)"
+// @Param start_date query string false "Начальная дата (format: 2006-01-02), опционально"
+// @Param end_date query string false "Конечная дата (format: 2006-01-02), опционально"
 // @Success 200 {object} models.TableStatistics
 // @Router /statistics/tables [get]
 func (h *StatisticsHandler) GetTables(c *gin.Context) {
@@ -171,8 +170,8 @@ func (h *StatisticsHandler) GetTables(c *gin.Context) {
 // @Produce json
 // @Security Bearer
 // @Param establishment_id query string false "ID заведения"
-// @Param start_date query string true "Начальная дата (format: 2006-01-02)"
-// @Param end_date query string true "Конечная дата (format: 2006-01-02)"
+// @Param start_date query string false "Начальная дата (format: 2006-01-02), опционально"
+// @Param end_date query string false "Конечная дата (format: 2006-01-02), опционально"
 // @Success 200 {object} models.CategoryStatistics
 // @Router /statistics/categories [get]
 func (h *StatisticsHandler) GetCategories(c *gin.Context) {
@@ -199,8 +198,8 @@ func (h *StatisticsHandler) GetCategories(c *gin.Context) {
 // @Produce json
 // @Security Bearer
 // @Param establishment_id query string false "ID заведения"
-// @Param start_date query string true "Начальная дата (format: 2006-01-02)"
-// @Param end_date query string true "Конечная дата (format: 2006-01-02)"
+// @Param start_date query string false "Начальная дата (format: 2006-01-02), опционально"
+// @Param end_date query string false "Конечная дата (format: 2006-01-02), опционально"
 // @Success 200 {object} models.ProductStatistics
 // @Router /statistics/products [get]
 func (h *StatisticsHandler) GetProducts(c *gin.Context) {
@@ -227,8 +226,8 @@ func (h *StatisticsHandler) GetProducts(c *gin.Context) {
 // @Produce json
 // @Security Bearer
 // @Param establishment_id query string false "ID заведения"
-// @Param start_date query string true "Начальная дата (format: 2006-01-02)"
-// @Param end_date query string true "Конечная дата (format: 2006-01-02)"
+// @Param start_date query string false "Начальная дата (format: 2006-01-02), опционально"
+// @Param end_date query string false "Конечная дата (format: 2006-01-02), опционально"
 // @Success 200 {object} models.ABCAnalysisData
 // @Router /statistics/abc [get]
 func (h *StatisticsHandler) GetABCAnalysis(c *gin.Context) {
@@ -255,8 +254,8 @@ func (h *StatisticsHandler) GetABCAnalysis(c *gin.Context) {
 // @Produce json
 // @Security Bearer
 // @Param establishment_id query string false "ID заведения"
-// @Param start_date query string true "Начальная дата (format: 2006-01-02)"
-// @Param end_date query string true "Конечная дата (format: 2006-01-02)"
+// @Param start_date query string false "Начальная дата (format: 2006-01-02), опционально"
+// @Param end_date query string false "Конечная дата (format: 2006-01-02), опционально"
 // @Success 200 {object} models.CheckStatistics
 // @Router /statistics/checks [get]
 func (h *StatisticsHandler) GetChecks(c *gin.Context) {
@@ -283,8 +282,8 @@ func (h *StatisticsHandler) GetChecks(c *gin.Context) {
 // @Produce json
 // @Security Bearer
 // @Param establishment_id query string false "ID заведения"
-// @Param start_date query string true "Начальная дата (format: 2006-01-02)"
-// @Param end_date query string true "Конечная дата (format: 2006-01-02)"
+// @Param start_date query string false "Начальная дата (format: 2006-01-02), опционально"
+// @Param end_date query string false "Конечная дата (format: 2006-01-02), опционально"
 // @Success 200 {object} models.ReviewStatistics
 // @Router /statistics/reviews [get]
 func (h *StatisticsHandler) GetReviews(c *gin.Context) {
@@ -311,8 +310,8 @@ func (h *StatisticsHandler) GetReviews(c *gin.Context) {
 // @Produce json
 // @Security Bearer
 // @Param establishment_id query string false "ID заведения"
-// @Param start_date query string true "Начальная дата (format: 2006-01-02)"
-// @Param end_date query string true "Конечная дата (format: 2006-01-02)"
+// @Param start_date query string false "Начальная дата (format: 2006-01-02), опционально"
+// @Param end_date query string false "Конечная дата (format: 2006-01-02), опционально"
 // @Success 200 {object} models.PaymentStatistics
 // @Router /statistics/payments [get]
 func (h *StatisticsHandler) GetPayments(c *gin.Context) {
@@ -339,8 +338,8 @@ func (h *StatisticsHandler) GetPayments(c *gin.Context) {
 // @Produce json
 // @Security Bearer
 // @Param establishment_id query string false "ID заведения"
-// @Param start_date query string true "Начальная дата (format: 2006-01-02)"
-// @Param end_date query string true "Конечная дата (format: 2006-01-02)"
+// @Param start_date query string false "Начальная дата (format: 2006-01-02), опционально"
+// @Param end_date query string false "Конечная дата (format: 2006-01-02), опционально"
 // @Success 200 {object} models.TaxStatistics
 // @Router /statistics/taxes [get]
 func (h *StatisticsHandler) GetTaxes(c *gin.Context) {
@@ -384,18 +383,23 @@ func (h *StatisticsHandler) parseStatisticsParams(c *gin.Context) (uuid.UUID, ti
 	startDateStr := c.Query("start_date")
 	endDateStr := c.Query("end_date")
 
+	var startDate time.Time
+	var endDate time.Time
+	var err error
+
+	// Если даты не указаны, использум текущий месяц
 	if startDateStr == "" || endDateStr == "" {
-		return uuid.Nil, time.Time{}, time.Time{}, fmt.Errorf("start_date and end_date are required")
-	}
+		startDate, endDate = h.GetDefaultDateRange()
+	} else {
+		startDate, err = time.Parse("2006-01-02", startDateStr)
+		if err != nil {
+			return uuid.Nil, time.Time{}, time.Time{}, err
+		}
 
-	startDate, err := time.Parse("2006-01-02", startDateStr)
-	if err != nil {
-		return uuid.Nil, time.Time{}, time.Time{}, err
-	}
-
-	endDate, err := time.Parse("2006-01-02", endDateStr)
-	if err != nil {
-		return uuid.Nil, time.Time{}, time.Time{}, err
+		endDate, err = time.Parse("2006-01-02", endDateStr)
+		if err != nil {
+			return uuid.Nil, time.Time{}, time.Time{}, err
+		}
 	}
 
 	// Добавляем время к датам
