@@ -14,6 +14,7 @@ type OrderRepository interface {
 	GetByID(ctx context.Context, id uuid.UUID) (*models.Order, error)
     List(ctx context.Context, establishmentID uuid.UUID, startDate, endDate time.Time, status string) ([]*models.Order, error)
 	ListActiveByEstablishmentID(ctx context.Context, establishmentID uuid.UUID) ([]*models.Order, error)
+	ListByEstablishmentIDAndDateRange(ctx context.Context, establishmentID uuid.UUID, startDate, endDate time.Time) ([]*models.Order, error)
 	Create(ctx context.Context, order *models.Order) error
 	Update(ctx context.Context, order *models.Order) error
 	CreateOrderItem(ctx context.Context, item *models.OrderItem) error
@@ -106,4 +107,20 @@ func (r *orderRepository) GetTotalSalesByUserIDAndDateRange(ctx context.Context,
 
 	err := query.Scan(&total).Error
 	return total, err
+}
+
+// ListByEstablishmentIDAndDateRange возвращает заказы по заведению и диапазону дат
+func (r *orderRepository) ListByEstablishmentIDAndDateRange(ctx context.Context, establishmentID uuid.UUID, startDate, endDate time.Time) ([]*models.Order, error) {
+	var orders []*models.Order
+	query := r.db.WithContext(ctx).Preload("Items.Product").Preload("Items.TechCard").Preload("Table").Where("establishment_id = ?", establishmentID)
+
+	if !startDate.IsZero() {
+		query = query.Where("created_at >= ?", startDate)
+	}
+	if !endDate.IsZero() {
+		query = query.Where("created_at <= ?", endDate)
+	}
+
+	err := query.Find(&orders).Error
+	return orders, err
 }

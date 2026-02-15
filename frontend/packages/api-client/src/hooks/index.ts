@@ -240,6 +240,34 @@ export type {
   CreateExclusionRequest,
   UpdateExclusionRequest,
 } from './useMarketingExclusions'
+export {
+  useSalesStatistics,
+  useCustomerStatistics,
+  useEmployeesStatistics,
+  useWorkshopStatistics,
+  useTableStatistics,
+  useCategoryStatistics,
+  useProductStatistics,
+  useABCAnalysis,
+  useCheckStatistics,
+  useReviewStatistics,
+  usePaymentStatistics,
+  useTaxStatistics,
+} from './useStatistics'
+export type {
+  SalesStatistics,
+  CustomerStatistics,
+  EmployeesSalesStatistics,
+  WorkshopStatistics,
+  TableStatistics,
+  CategoryStatistics,
+  ProductStatistics,
+  ABCAnalysisData,
+  CheckStatistics,
+  ReviewStatistics,
+  PaymentStatistics,
+  TaxStatistics,
+} from '../types'
 
 // Types
 export * from '../types'

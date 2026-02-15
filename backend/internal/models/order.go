@@ -17,6 +17,8 @@ type Order struct {
 	TableNumber     *int           `json:"table_number,omitempty" gorm:"-"` // Вычисляемое поле для фронтенда
 	Status        string         `json:"status" gorm:"not null;index"` // draft, confirmed, preparing, ready, paid, cancelled
 	PaymentStatus string         `json:"payment_status" gorm:"default:'pending'"` // pending, partial, paid, cancelled
+	WaiterID        *uuid.UUID      `json:"waiter_id,omitempty" gorm:"type:uuid;index"` // Официант, оформивший заказ
+	ClientID         *uuid.UUID      `json:"client_id,omitempty" gorm:"type:uuid;index"` // Клиент, сделавший заказ
 	CashAmount    float64        `json:"cash_amount" gorm:"default:0"`
 	CardAmount    float64        `json:"card_amount" gorm:"default:0"`
 	ChangeAmount  float64        `json:"change_amount" gorm:"default:0"`

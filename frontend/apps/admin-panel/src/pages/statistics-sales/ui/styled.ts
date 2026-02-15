@@ -95,22 +95,21 @@ export const FilterLabel = styled.span({
   color: '#64748b'
 })
 
-export const DateSelect = styled.button({
+export const DateSelect = styled.button<{ active?: boolean }>(({ active = false }) => ({
   padding: '8px 16px',
   border: '1px solid #e2e8f0',
-  backgroundColor: '#ffffff',
+  backgroundColor: active ? '#3b82f6' : '#ffffff',
   borderRadius: '6px',
   cursor: 'pointer',
   fontSize: '14px',
-  color: '#475569',
+  color: active ? '#ffffff' : '#475569',
   transition: 'all 0.2s ease',
 
   '&:hover': {
-    backgroundColor: '#3b82f6',
-    borderColor: '#3b82f6',
-    color: '#ffffff'
+    backgroundColor: active ? '#2563eb' : '#f8fafc',
+    borderColor: active ? '#2563eb' : '#cbd5e1'
   }
-})
+}))
 
 export const CardsGrid = styled.div({
   display: 'grid',

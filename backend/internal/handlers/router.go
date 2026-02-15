@@ -71,6 +71,7 @@ func NewRouter(usecases *usecases.UseCases, cfg *config.Config, logger *zap.Logg
 			shiftHandler := NewShiftHandler(usecases.Shift, logger)
 			userHandler := NewUserHandler(usecases.User, usecases.EmployeeStatistics, logger)
 			roleHandler := NewRoleHandler(usecases.Role, logger)
+			statisticsHandler := NewStatisticsHandler(usecases.Statistics, logger)
 			upload := protected.Group("/upload")
 			{
 				upload.POST("/image", uploadHandler.UploadImage)
@@ -84,6 +85,22 @@ func NewRouter(usecases *usecases.UseCases, cfg *config.Config, logger *zap.Logg
 				shifts.GET("/me/active", shiftHandler.GetCurrentActiveShift)
 				shifts.POST("/start", shiftHandler.StartShift)
 				shifts.POST("/end", shiftHandler.EndShift)
+			}
+			// Statistics routes
+			statistics := protected.Group("/statistics")
+			{
+				statistics.GET("/sales", statisticsHandler.GetSales)
+				statistics.GET("/customers", statisticsHandler.GetCustomers)
+				statistics.GET("/employees", statisticsHandler.GetEmployees)
+				statistics.GET("/workshops", statisticsHandler.GetWorkshops)
+				statistics.GET("/tables", statisticsHandler.GetTables)
+				statistics.GET("/categories", statisticsHandler.GetCategories)
+				statistics.GET("/products", statisticsHandler.GetProducts)
+				statistics.GET("/abc", statisticsHandler.GetABCAnalysis)
+				statistics.GET("/checks", statisticsHandler.GetChecks)
+				statistics.GET("/reviews", statisticsHandler.GetReviews)
+				statistics.GET("/payments", statisticsHandler.GetPayments)
+				statistics.GET("/taxes", statisticsHandler.GetTaxes)
 			}
 
 			// User routes (для управления сотрудниками)
