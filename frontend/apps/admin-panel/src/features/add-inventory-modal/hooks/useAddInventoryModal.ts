@@ -17,6 +17,8 @@ import {
   type Inventory,
 } from '@restaurant-pos/api-client'
 
+import { generateUUID } from '../../../shared/utils/uuid'
+
 import type {
   AddInventoryModalProps,
   UseAddInventoryModalResult,
@@ -60,7 +62,7 @@ const stockItemToFormItem = (
         : 'ingredient'
 
   return {
-    id: crypto.randomUUID(),
+    id: generateUUID(),
     type,
     stock_id: stockItem.id,
     item_id: itemId,
@@ -81,7 +83,7 @@ const createFormItemFromItem = (
   pricePerUnit: number
 ): InventoryFormItem => {
   return {
-    id: crypto.randomUUID(),
+    id: generateUUID(),
     type,
     stock_id: itemId, // Use itemId as stock_id for non-stock items
     item_id: itemId,
@@ -139,7 +141,7 @@ export const useAddInventoryModal = (
         const date = scheduledDate || actualDate || new Date()
 
         const items: InventoryFormItem[] = (existingInventory.items || []).map((item) => ({
-          id: crypto.randomUUID(),
+          id: generateUUID(),
           type: item.type,
           stock_id: item.ingredient_id?.toString() || item.product_id?.toString() || '',
           item_id:

@@ -16,6 +16,7 @@ import {
   type Ingredient,
   type Product,
 } from '@restaurant-pos/api-client'
+import { generateUUID } from '../../../shared/utils/uuid'
 import type {
   InventoryDetailItem,
   InventoryDetailFormData,
@@ -159,7 +160,7 @@ export const useInventoryDetail = (): UseInventoryDetailResult => {
           }
 
           return {
-            id: crypto.randomUUID(),
+            id: generateUUID(),
             inventory_item_id: undefined,
             type,
             ingredient_id: stockItem.ingredient_id || undefined,
