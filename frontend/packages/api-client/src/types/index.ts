@@ -9,6 +9,7 @@ export type {
   SalesStatistics,
   CustomerStatistics,
   EmployeesSalesStatistics,
+  EmployeeStatistics,
   WorkshopStatistics,
   TableStatistics,
   CategoryStatistics,

@@ -50,7 +50,7 @@ export function useEmployeesStatistics(params?: { start_date?: string; end_date?
   const query = useQuery({
     queryKey: ['employee-statistics', params],
     queryFn: async () => {
-      const response = await apiClient.get<{ data: EmployeeStatistics }>('/statistics/employee', { params })
+      const response = await apiClient.get<{ data: EmployeeStatistics }>('/statistics/employees', { params })
       return response.data
     },
     enabled: !!localStorage.getItem('auth_token')
