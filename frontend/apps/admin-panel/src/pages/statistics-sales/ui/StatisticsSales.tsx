@@ -1,6 +1,23 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import {
+  AreaChart,
+  Area,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  Legend,
+  BarChart,
+  Bar,
+  PieChart,
+  Pie,
+  Cell
+} from 'recharts'
 import { useSalesStatistics } from '@restaurant-pos/api-client'
 import * as Styled from './styled'
+
+const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899']
 
 export const StatisticsSales = () => {
   const [period, setPeriod] = useState<string>('today')
@@ -11,6 +28,23 @@ export const StatisticsSales = () => {
     start_date: startDate,
     end_date: endDate
   })
+
+  // Форматирование даты для отображения
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString)
+    return date.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' })
+  }
+
+  // Форматирование валюты
+  const formatCurrency = (value?: number) => {
+    if (value === undefined || value === null) return '0 ₽'
+    return new Intl.NumberFormat('ru-RU', {
+      style: 'currency',
+      currency: 'RUB',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0
+    }).format(value)
+  }
 
   const handlePeriodChange = (newPeriod: string) => {
     setPeriod(newPeriod)
@@ -35,9 +69,39 @@ export const StatisticsSales = () => {
         break
     }
 
-    setStartDate(start.toISOString().split('T')[0])
-    setEndDate(new Date().toISOString().split('T')[0])
+    const formattedStartDate = start.toISOString().split('T')[0]
+    const formattedEndDate = new Date().toISOString().split('T')[0]
+    setStartDate(formattedStartDate)
+    setEndDate(formattedEndDate)
   }
+
+  // Инициализация периода при первом рендере
+  useEffect(() => {
+    handlePeriodChange('today')
+  }, [])
+
+  // Подготовка данных для графика динамики продаж
+  const chartData = statistics?.data?.daily_revenue?.map((item) => ({
+    date: formatDate(item.date),
+    revenue: item.revenue,
+    orders: item.orders_count,
+    fullDate: item.date
+  })) || []
+
+  // Подготовка данных для графика по категориям
+  const categoryData = statistics?.data?.revenue_by_category?.map((item) => ({
+    name: item.category_name,
+    value: item.revenue,
+    orders: item.orders_count,
+    percentage: item.percentage
+  })) || []
+
+  // Подготовка данных для графика по методам оплаты
+  const paymentData = statistics?.data?.revenue_by_payment_method ? [
+    { name: 'Наличные', value: statistics.data.revenue_by_payment_method.cash },
+    { name: 'Карта', value: statistics.data.revenue_by_payment_method.card },
+    { name: 'Онлайн', value: statistics.data.revenue_by_payment_method.online }
+  ].filter(item => item.value > 0) : []
 
   if (isLoading) {
     return (
@@ -169,28 +233,207 @@ export const StatisticsSales = () => {
       <Styled.ContentGrid>
         <Styled.ChartSection>
           <Styled.SectionTitle>Динамика продаж</Styled.SectionTitle>
-          <Styled.ChartPlaceholder>
-            <Styled.ChartIcon>📊</Styled.ChartIcon>
-            <Styled.ChartText>График динамики продаж</Styled.ChartText>
-          </Styled.ChartPlaceholder>
+          {chartData.length > 0 ? (
+            <ResponsiveContainer width="100%" height={300}>
+              <AreaChart data={chartData}>
+                <defs>
+                  <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.8}/>
+                    <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                <XAxis
+                  dataKey="date"
+                  stroke="#64748b"
+                  fontSize={12}
+                  tickLine={false}
+                  axisLine={false}
+                />
+                <YAxis
+                  stroke="#64748b"
+                  fontSize={12}
+                  tickLine={false}
+                  axisLine={false}
+                  tickFormatter={(value) => `${value.toLocaleString('ru-RU')} ₽`}
+                />
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: '#ffffff',
+                    border: '1px solid #e2e8f0',
+                    borderRadius: '8px',
+                    boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)'
+                  }}
+                  formatter={(value?: number) => formatCurrency(value)}
+                  labelFormatter={(label) => `Дата: ${label}`}
+                />
+                <Legend
+                  wrapperStyle={{ paddingTop: '16px' }}
+                  iconType="circle"
+                />
+                <Area
+                  type="monotone"
+                  dataKey="revenue"
+                  name="Выручка"
+                  stroke="#3b82f6"
+                  fillOpacity={1}
+                  fill="url(#colorRevenue)"
+                  strokeWidth={2}
+                />
+              </AreaChart>
+            </ResponsiveContainer>
+          ) : (
+            <Styled.ChartPlaceholder>
+              <Styled.ChartIcon>📊</Styled.ChartIcon>
+              <Styled.ChartText>Нет данных за выбранный период</Styled.ChartText>
+            </Styled.ChartPlaceholder>
+          )}
         </Styled.ChartSection>
 
         <Styled.TableSection>
           <Styled.SectionTitle>Продажи по категориям</Styled.SectionTitle>
-          <Styled.TablePlaceholder>
-            <Styled.TableIcon>📋</Styled.TableIcon>
-            <Styled.TableText>Таблица продаж по категориям</Styled.TableText>
-          </Styled.TablePlaceholder>
+          {categoryData.length > 0 ? (
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart data={categoryData} layout="vertical">
+                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                <XAxis
+                  type="number"
+                  stroke="#64748b"
+                  fontSize={12}
+                  tickLine={false}
+                  axisLine={false}
+                  tickFormatter={(value) => `${value.toLocaleString('ru-RU')} ₽`}
+                />
+                <YAxis
+                  type="category"
+                  dataKey="name"
+                  stroke="#64748b"
+                  fontSize={12}
+                  tickLine={false}
+                  axisLine={false}
+                  width={100}
+                />
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: '#ffffff',
+                    border: '1px solid #e2e8f0',
+                    borderRadius: '8px',
+                    boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)'
+                  }}
+                  formatter={(value?: number) => formatCurrency(value)}
+                />
+                <Bar
+                  dataKey="value"
+                  fill="#3b82f6"
+                  radius={[0, 8, 8, 0]}
+                />
+              </BarChart>
+            </ResponsiveContainer>
+          ) : (
+            <Styled.TablePlaceholder>
+              <Styled.TableIcon>📋</Styled.TableIcon>
+              <Styled.TableText>Нет данных по категориям</Styled.TableText>
+            </Styled.TablePlaceholder>
+          )}
         </Styled.TableSection>
       </Styled.ContentGrid>
 
-      <Styled.DetailsSection>
-        <Styled.SectionTitle>Детализация продаж</Styled.SectionTitle>
-        <Styled.DetailsPlaceholder>
-          <Styled.DetailsIcon>📊</Styled.DetailsIcon>
-          <Styled.DetailsText>Детальная информация о продажах</Styled.DetailsText>
-        </Styled.DetailsPlaceholder>
-      </Styled.DetailsSection>
+      <Styled.ContentGrid>
+        <Styled.ChartSection>
+          <Styled.SectionTitle>Распределение по методам оплаты</Styled.SectionTitle>
+          {paymentData.length > 0 ? (
+            <ResponsiveContainer width="100%" height={300}>
+              <PieChart>
+                <Pie
+                  data={paymentData}
+                  cx="50%"
+                  cy="50%"
+                  labelLine={false}
+                  label={({ name, payload }) => {
+                    const total = paymentData.reduce((acc, item) => acc + item.value, 0)
+                    const percent = total > 0 ? ((payload?.value || 0) / total * 100).toFixed(1) : '0'
+                    return `${name}: ${percent}%`
+                  }}
+                  outerRadius={80}
+                  fill="#8884d8"
+                  dataKey="value"
+                >
+                  {paymentData.map((_entry, index) => (
+                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                  ))}
+                </Pie>
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: '#ffffff',
+                    border: '1px solid #e2e8f0',
+                    borderRadius: '8px',
+                    boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)'
+                  }}
+                  formatter={(value?: number) => formatCurrency(value)}
+                />
+                <Legend
+                  wrapperStyle={{ paddingTop: '16px' }}
+                  iconType="circle"
+                />
+              </PieChart>
+            </ResponsiveContainer>
+          ) : (
+            <Styled.ChartPlaceholder>
+              <Styled.ChartIcon>💳</Styled.ChartIcon>
+              <Styled.ChartText>Нет данных по методам оплаты</Styled.ChartText>
+            </Styled.ChartPlaceholder>
+          )}
+        </Styled.ChartSection>
+
+        <Styled.TableSection>
+          <Styled.SectionTitle>Количество заказов по дням</Styled.SectionTitle>
+          {chartData.length > 0 ? (
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart data={chartData}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                <XAxis
+                  dataKey="date"
+                  stroke="#64748b"
+                  fontSize={12}
+                  tickLine={false}
+                  axisLine={false}
+                />
+                <YAxis
+                  stroke="#64748b"
+                  fontSize={12}
+                  tickLine={false}
+                  axisLine={false}
+                />
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: '#ffffff',
+                    border: '1px solid #e2e8f0',
+                    borderRadius: '8px',
+                    boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)'
+                  }}
+                  formatter={(value?: number) => [value, 'Заказы']}
+                  labelFormatter={(label) => `Дата: ${label}`}
+                />
+                <Legend
+                  wrapperStyle={{ paddingTop: '16px' }}
+                  iconType="circle"
+                />
+                <Bar
+                  dataKey="orders"
+                  name="Заказы"
+                  fill="#10b981"
+                  radius={[8, 8, 0, 0]}
+                />
+              </BarChart>
+            </ResponsiveContainer>
+          ) : (
+            <Styled.TablePlaceholder>
+              <Styled.TableIcon>📋</Styled.TableIcon>
+              <Styled.ChartText>Нет данных о заказах</Styled.ChartText>
+            </Styled.TablePlaceholder>
+          )}
+        </Styled.TableSection>
+      </Styled.ContentGrid>
     </Styled.PageContainer>
   )
 }
