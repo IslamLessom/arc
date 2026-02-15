@@ -2,7 +2,8 @@
 export interface SalesStatistics {
   total_revenue: number
   total_orders: number
-  average_order_value: number
+  average_order: number
+  average_order_value?: number
   total_guests: number
   revenue_by_payment_method?: {
     cash: number
@@ -15,6 +16,12 @@ export interface SalesStatistics {
     revenue: number
     orders_count: number
     percentage: number
+  }>
+  daily_data?: Array<{
+    date: string
+    revenue: number
+    orders: number
+    guests: number
   }>
   daily_revenue?: Array<{
     date: string

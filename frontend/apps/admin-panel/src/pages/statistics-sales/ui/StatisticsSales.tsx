@@ -81,10 +81,10 @@ export const StatisticsSales = () => {
   }, [])
 
   // Подготовка данных для графика динамики продаж
-  const chartData = statistics?.data?.daily_revenue?.map((item) => ({
+  const chartData = statistics?.data?.daily_data?.map((item) => ({
     date: formatDate(item.date),
     revenue: item.revenue,
-    orders: item.orders_count,
+    orders: item.orders,
     fullDate: item.date
   })) || []
 
@@ -216,7 +216,7 @@ export const StatisticsSales = () => {
           <Styled.CardContent>
             <Styled.CardLabel>Средний чек</Styled.CardLabel>
             <Styled.CardValue>
-              {stats?.average_order_value?.toLocaleString('ru-RU', { style: 'currency', currency: 'RUB' }) || '0 ₽'}
+              {(stats?.average_order_value || stats?.average_order)?.toLocaleString('ru-RU', { style: 'currency', currency: 'RUB' }) || '0 ₽'}
             </Styled.CardValue>
           </Styled.CardContent>
         </Styled.StatCard>
