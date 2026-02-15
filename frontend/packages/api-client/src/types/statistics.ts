@@ -65,6 +65,28 @@ export interface EmployeesSalesStatistics {
   }>
 }
 
+// Employee Statistics
+export interface EmployeeStatistics {
+  total_employees: number
+  active_on_shift: number
+  total_hours_worked: number
+  total_salary_paid: number
+  daily_data?: Array<{
+    date: string
+    orders_handled: number
+    revenue: number
+    active_employees: number
+  }>
+  top_employees?: Array<{
+    employee_id: string
+    employee_name: string
+    orders_handled: number
+    revenue: number
+    hours_worked: number
+    average_check: number
+  }>
+}
+
 // Workshop Statistics
 export interface WorkshopStatistics {
   total_workshops: number

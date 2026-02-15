@@ -358,36 +358,122 @@ func (uc *StatisticsUseCase) GetEmployeeStatistics(ctx context.Context, establis
 		return nil, fmt.Errorf("failed to get users: %w", err)
 	}
 
-	stats := &models.EmployeeStatistics{
-		TotalEmployees: len(users),
-	}
-
 	// Получаем заказы для расчета эффективности
 	orders, err := uc.orderRepo.ListByEstablishmentIDAndDateRange(ctx, establishmentID, startDate, endDate)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get orders: %w", err)
 	}
 
-	// Топ сотрудники по количеству заказов
-	employeeOrders := make(map[string]int)
+	stats := &models.EmployeeStatistics{
+		TotalEmployees: len(users),
+	}
+
+	// Статистика по сотрудникам
+	employeeOrders := make(map[uuid.UUID]int)
+	employeeRevenue := make(map[uuid.UUID]float64)
+	activeEmployeesSet := make(map[string]bool)
+
+	// Группируем по дням
+	dailyMap := make(map[string]*models.DailyEmployeeData)
+
 	for _, order := range orders {
+		// Считаем только оплаченные заказы
+		if order.Status != "paid" {
+			continue
+		}
+
 		if order.WaiterID != nil {
-			employeeOrders[order.WaiterID.String()]++
+			employeeOrders[*order.WaiterID]++
+			employeeRevenue[*order.WaiterID] += order.TotalAmount
+			activeEmployeesSet[order.WaiterID.String()] = true
+
+			// Группируем по дням
+			dateKey := order.CreatedAt.Format("2006-01-02")
+			if dailyMap[dateKey] == nil {
+				dailyMap[dateKey] = &models.DailyEmployeeData{
+					Date: dateKey,
+				}
+			}
+			dailyMap[dateKey].OrdersHandled++
+			dailyMap[dateKey].Revenue += order.TotalAmount
 		}
 	}
 
-	// Преобразуем в топ-10
-	for empID, count := range employeeOrders {
+	// Количество активных сотрудников каждый день
+	for date, data := range dailyMap {
+		dateActiveEmployees := make(map[string]bool)
+		for _, order := range orders {
+			if order.Status != "paid" || order.WaiterID == nil {
+				continue
+			}
+			orderDateKey := order.CreatedAt.Format("2006-01-02")
+			if orderDateKey == date {
+				dateActiveEmployees[order.WaiterID.String()] = true
+			}
+		}
+		data.ActiveEmployees = len(dateActiveEmployees)
+	}
+
+	// Преобразуем мапу в слайс
+	for _, data := range dailyMap {
+		stats.DailyData = append(stats.DailyData, *data)
+	}
+
+	stats.ActiveOnShift = len(activeEmployeesSet)
+
+	// Сортировка сотрудников по выручке
+	type EmployeeRevenue struct {
+		EmployeeID uuid.UUID
+		Revenue    float64
+		Orders     int
+	}
+	var sortedEmployees []EmployeeRevenue
+	for employeeID := range employeeRevenue {
+		sortedEmployees = append(sortedEmployees, EmployeeRevenue{
+			EmployeeID: employeeID,
+			Revenue:    employeeRevenue[employeeID],
+			Orders:     employeeOrders[employeeID],
+		})
+	}
+
+	// Сортировка по выручке
+	for i := 0; i < len(sortedEmployees); i++ {
+		for j := i + 1; j < len(sortedEmployees); j++ {
+			if sortedEmployees[j].Revenue > sortedEmployees[i].Revenue {
+				sortedEmployees[i], sortedEmployees[j] = sortedEmployees[j], sortedEmployees[i]
+			}
+		}
+	}
+
+	// Берем топ-10
+	maxEmployees := 10
+	if len(sortedEmployees) < maxEmployees {
+		maxEmployees = len(sortedEmployees)
+	}
+
+	for i := 0; i < maxEmployees; i++ {
+		employeeID := sortedEmployees[i].EmployeeID
+		var employeeName string
 		for _, user := range users {
-			if user.ID.String() == empID {
-				stats.TopEmployees = append(stats.TopEmployees, models.EmployeePerformanceData{
-					EmployeeID:    empID,
-					EmployeeName:  user.Name,
-					OrdersHandled: count,
-				})
+			if user.ID == employeeID {
+				employeeName = user.Name
 				break
 			}
 		}
+
+		avgCheck := 0.0
+		if employeeOrders[employeeID] > 0 {
+			avgCheck = employeeRevenue[employeeID] / float64(employeeOrders[employeeID])
+		}
+
+		stats.TopEmployees = append(stats.TopEmployees, models.EmployeePerformanceData{
+			EmployeeID:    employeeID.String(),
+			EmployeeName:  employeeName,
+			OrdersHandled: employeeOrders[employeeID],
+			Revenue:       employeeRevenue[employeeID],
+			HoursWorked:   0, // TODO: добавить расчет часов
+			AverageCheck:  avgCheck,
+		})
 	}
 
 	return stats, nil

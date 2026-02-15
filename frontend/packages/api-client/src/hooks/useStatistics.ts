@@ -4,6 +4,7 @@ import type {
   SalesStatistics,
   CustomerStatistics,
   EmployeesSalesStatistics,
+  EmployeeStatistics,
   WorkshopStatistics,
   TableStatistics,
   CategoryStatistics,
@@ -47,9 +48,9 @@ export function useCustomerStatistics(params?: { start_date?: string; end_date?:
 
 export function useEmployeesStatistics(params?: { start_date?: string; end_date?: string }) {
   const query = useQuery({
-    queryKey: ['employees-statistics', params],
+    queryKey: ['employee-statistics', params],
     queryFn: async () => {
-      const response = await apiClient.get<{ data: EmployeesSalesStatistics }>('/statistics/employees', { params })
+      const response = await apiClient.get<{ data: EmployeeStatistics }>('/statistics/employee', { params })
       return response.data
     },
     enabled: !!localStorage.getItem('auth_token')

@@ -72,7 +72,16 @@ type EmployeeStatistics struct {
 	ActiveOnShift       int                     `json:"active_on_shift"`
 	TotalHoursWorked    float64                  `json:"total_hours_worked"`
 	TotalSalaryPaid     float64                  `json:"total_salary_paid"`
+	DailyData           []DailyEmployeeData     `json:"daily_data,omitempty"`
 	TopEmployees        []EmployeePerformanceData `json:"top_employees,omitempty"`
+}
+
+// DailyEmployeeData представляет данные сотрудников за день
+type DailyEmployeeData struct {
+	Date           string  `json:"date"`
+	OrdersHandled  int     `json:"orders_handled"`
+	Revenue        float64 `json:"revenue"`
+	ActiveEmployees int    `json:"active_employees"`
 }
 
 // EmployeePerformanceData представляет данные эффективности сотрудника
@@ -82,6 +91,7 @@ type EmployeePerformanceData struct {
 	OrdersHandled int     `json:"orders_handled"`
 	Revenue       float64 `json:"revenue"`
 	HoursWorked   float64 `json:"hours_worked"`
+	AverageCheck  float64 `json:"average_check"`
 }
 
 // WorkshopStatistics представляет статистику цехов
