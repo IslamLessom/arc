@@ -1,15 +1,14 @@
 package handlers
 
 import (
+	"fmt"
 	"net/http"
-	"strconv"
 	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"go.uber.org/zap"
 
-	"github.com/yourusername/arc/backend/internal/models"
 	"github.com/yourusername/arc/backend/internal/usecases"
 )
 
@@ -386,7 +385,7 @@ func (h *StatisticsHandler) parseStatisticsParams(c *gin.Context) (uuid.UUID, ti
 	endDateStr := c.Query("end_date")
 
 	if startDateStr == "" || endDateStr == "" {
-		return uuid.Nil, time.Time{}, time.Time{}, err
+		return uuid.Nil, time.Time{}, time.Time{}, fmt.Errorf("start_date and end_date are required")
 	}
 
 	startDate, err := time.Parse("2006-01-02", startDateStr)

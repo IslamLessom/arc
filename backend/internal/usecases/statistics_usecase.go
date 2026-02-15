@@ -109,10 +109,7 @@ func (uc *StatisticsUseCase) GetSalesStatistics(ctx context.Context, establishme
 // GetCustomerStatistics возвращает статистику клиентов
 func (uc *StatisticsUseCase) GetCustomerStatistics(ctx context.Context, establishmentID uuid.UUID, startDate, endDate time.Time) (*models.CustomerStatistics, error) {
 	// Получаем всех клиентов
-	filter := &repositories.ProductFilter{
-		EstablishmentID: &establishmentID,
-	}
-	clients, err := uc.clientRepo.List(ctx, establishmentID)
+	clients, err := uc.clientRepo.GetAllByEstablishmentID(ctx, establishmentID)
 	if err != nil {
 		uc.logger.Error("Failed to get clients for statistics", zap.Error(err))
 		return nil, fmt.Errorf("failed to get clients: %w", err)
@@ -172,7 +169,7 @@ func (uc *StatisticsUseCase) GetCustomerStatistics(ctx context.Context, establis
 // GetEmployeeStatistics возвращает статистику сотрудников
 func (uc *StatisticsUseCase) GetEmployeeStatistics(ctx context.Context, establishmentID uuid.UUID, startDate, endDate time.Time) (*models.EmployeeStatistics, error) {
 	// Получаем всех сотрудников
-	users, err := uc.userRepo.List(ctx, establishmentID)
+	users, err := uc.userRepo.GetAllByEstablishmentID(ctx, establishmentID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get users: %w", err)
 	}
@@ -201,7 +198,7 @@ func (uc *StatisticsUseCase) GetEmployeeStatistics(ctx context.Context, establis
 			if user.ID.String() == empID {
 				stats.TopEmployees = append(stats.TopEmployees, models.EmployeePerformanceData{
 					EmployeeID:    empID,
-					EmployeeName:  user.FirstName + " " + user.LastName,
+					EmployeeName:  user.Name,
 					OrdersHandled: count,
 				})
 				break
@@ -214,7 +211,7 @@ func (uc *StatisticsUseCase) GetEmployeeStatistics(ctx context.Context, establis
 
 // GetWorkshopStatistics возвращает статистику цехов
 func (uc *StatisticsUseCase) GetWorkshopStatistics(ctx context.Context, establishmentID uuid.UUID, startDate, endDate time.Time) (*models.WorkshopStatistics, error) {
-	workshops, err := uc.workshopRepo.List(ctx, establishmentID)
+	workshops, err := uc.workshopRepo.ListWorkshops(ctx, establishmentID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get workshops: %w", err)
 	}
@@ -235,26 +232,10 @@ func (uc *StatisticsUseCase) GetWorkshopStatistics(ctx context.Context, establis
 
 // GetTableStatistics возвращает статистику столов
 func (uc *StatisticsUseCase) GetTableStatistics(ctx context.Context, establishmentID uuid.UUID, startDate, endDate time.Time) (*models.TableStatistics, error) {
-	tables, err := uc.tableRepo.List(ctx, establishmentID)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get tables: %w", err)
-	}
-
 	// Получаем активные заказы
 	activeOrders, err := uc.orderRepo.ListActiveByEstablishmentID(ctx, establishmentID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get active orders: %w", err)
-	}
-
-	stats := &models.TableStatistics{
-		TotalTables:    len(tables),
-		OccupiedTables: len(activeOrders),
-	}
-
-	stats.AvailableTables = stats.TotalTables - stats.OccupiedTables
-
-	if stats.TotalTables > 0 {
-		stats.OccupancyRate = float64(stats.OccupiedTables) / float64(stats.TotalTables) * 100
 	}
 
 	// Получаем заказы за период для статистики по столам
@@ -263,7 +244,26 @@ func (uc *StatisticsUseCase) GetTableStatistics(ctx context.Context, establishme
 		return nil, fmt.Errorf("failed to get orders: %w", err)
 	}
 
-	// Группируем по столам
+	stats := &models.TableStatistics{
+		OccupiedTables: len(activeOrders),
+	}
+
+	// Группируем по столам и считаем общее количество
+	tableSet := make(map[int]bool)
+	for _, order := range orders {
+		if order.TableNumber != nil {
+			tableSet[*order.TableNumber] = true
+		}
+	}
+	stats.TotalTables = len(tableSet)
+
+	stats.AvailableTables = stats.TotalTables - stats.OccupiedTables
+
+	if stats.TotalTables > 0 {
+		stats.OccupancyRate = float64(stats.OccupiedTables) / float64(stats.TotalTables) * 100
+	}
+
+	// Группируем выручку по столам
 	tableStats := make(map[int]*models.TableData)
 	for _, order := range orders {
 		if order.TableID != nil && order.TableNumber != nil {
@@ -323,11 +323,11 @@ func (uc *StatisticsUseCase) GetCategoryStatistics(ctx context.Context, establis
 
 	for _, order := range orders {
 		for _, item := range order.Items {
-			if item.Product != nil && item.Product.CategoryID != nil {
-				categoryRevenue[*item.Product.CategoryID] += item.TotalPrice
-				if categoryRevenue[*item.Product.CategoryID] > maxRevenue {
-					maxRevenue = categoryRevenue[*item.Product.CategoryID]
-					topCategoryUUID = *item.Product.CategoryID
+			if item.Product != nil {
+				categoryRevenue[item.Product.CategoryID] += item.TotalPrice
+				if categoryRevenue[item.Product.CategoryID] > maxRevenue {
+					maxRevenue = categoryRevenue[item.Product.CategoryID]
+					topCategoryUUID = item.Product.CategoryID
 				}
 			}
 		}

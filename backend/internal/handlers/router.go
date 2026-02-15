@@ -355,15 +355,6 @@ func NewRouter(usecases *usecases.UseCases, cfg *config.Config, logger *zap.Logg
 				finance.GET("/salary", salaryHandler.GetSalaryReport)
 			}
 
-			// Statistics
-			statisticsHandler := NewStatisticsHandler(usecases.Statistics, logger)
-			statistics := protected.Group("/statistics")
-			{
-				statistics.GET("/sales", statisticsHandler.GetSales)
-				statistics.GET("/products", statisticsHandler.GetProducts)
-				statistics.GET("/abc-analysis", statisticsHandler.GetABCAnalysis)
-			}
-
 			// Orders
 			orderHandler := NewOrderHandler(usecases.Order, logger)
 			orders := protected.Group("/orders")
