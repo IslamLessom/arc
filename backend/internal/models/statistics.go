@@ -183,6 +183,7 @@ type ABCProductData struct {
 	ProductID      string  `json:"product_id"`
 	ProductName    string  `json:"product_name"`
 	Revenue        float64 `json:"revenue"`
+	QuantitySold   int     `json:"quantity_sold"`
 	Contribution   float64 `json:"contribution"` // Процент вклада в общую выручку
 	Group          string  `json:"group"`     // A, B, или C
 }

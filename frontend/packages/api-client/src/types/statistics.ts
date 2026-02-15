@@ -145,27 +145,20 @@ export interface ProductStatistics {
 
 // ABC Analysis Data
 export interface ABCAnalysisData {
+  group_a_products: number
+  group_b_products: number
+  group_c_products: number
   total_products: number
-  group_a: Array<{
+  group_a_revenue: number
+  group_b_revenue: number
+  group_c_revenue: number
+  products?: Array<{
     product_id: string
     product_name: string
     revenue: number
     quantity_sold: number
-    percentage: number
-  }>
-  group_b: Array<{
-    product_id: string
-    product_name: string
-    revenue: number
-    quantity_sold: number
-    percentage: number
-  }>
-  group_c: Array<{
-    product_id: string
-    product_name: string
-    revenue: number
-    quantity_sold: number
-    percentage: number
+    contribution: number // Процент вклада в общую выручку
+    group: string // A, B, или C
   }>
 }
 

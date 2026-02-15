@@ -765,26 +765,35 @@ func (uc *StatisticsUseCase) GetABCAnalysis(ctx context.Context, establishmentID
 		TotalProducts: len(products),
 	}
 
-	// Группируем выручку по товарам
-	productRevenue := make(map[uuid.UUID]float64)
+	// Группируем выручку и количество по товарам
+	type ProductStats struct {
+		Revenue      float64
+		QuantitySold int
+	}
+	productStats := make(map[uuid.UUID]ProductStats)
 	for _, order := range orders {
 		for _, item := range order.Items {
 			if item.ProductID != nil {
-				productRevenue[*item.ProductID] += item.TotalPrice
+				stats := productStats[*item.ProductID]
+				stats.Revenue += item.TotalPrice
+				stats.QuantitySold += int(item.Quantity)
+				productStats[*item.ProductID] = stats
 			}
 		}
 	}
 
 	// Сортируем товары по выручке
 	type ProductRevenue struct {
-		ProductID uuid.UUID
-		Revenue   float64
+		ProductID    uuid.UUID
+		Revenue      float64
+		QuantitySold int
 	}
 	var sortedProducts []ProductRevenue
-	for productID, revenue := range productRevenue {
+	for productID, stats := range productStats {
 		sortedProducts = append(sortedProducts, ProductRevenue{
-			ProductID: productID,
-			Revenue:   revenue,
+			ProductID:    productID,
+			Revenue:      stats.Revenue,
+			QuantitySold: stats.QuantitySold,
 		})
 	}
 
@@ -839,6 +848,7 @@ func (uc *StatisticsUseCase) GetABCAnalysis(ctx context.Context, establishmentID
 			ProductID:    pr.ProductID.String(),
 			ProductName:  productName,
 			Revenue:      pr.Revenue,
+			QuantitySold: pr.QuantitySold,
 			Contribution: contribution,
 			Group:        group,
 		})

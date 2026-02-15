@@ -95,22 +95,22 @@ export const FilterLabel = styled.span({
   color: '#64748b'
 })
 
-export const DateSelect = styled.button({
+export const DateSelect = styled.button<{ active?: boolean }>(props => ({
   padding: '8px 16px',
   border: '1px solid #e2e8f0',
-  backgroundColor: '#ffffff',
+  backgroundColor: props.active ? '#3b82f6' : '#ffffff',
   borderRadius: '6px',
   cursor: 'pointer',
   fontSize: '14px',
-  color: '#475569',
+  color: props.active ? '#ffffff' : '#475569',
   transition: 'all 0.2s ease',
 
   '&:hover': {
-    backgroundColor: '#3b82f6',
+    backgroundColor: props.active ? '#2563eb' : '#3b82f6',
     borderColor: '#3b82f6',
     color: '#ffffff'
   }
-})
+}))
 
 export const CardsGrid = styled.div({
   display: 'grid',
@@ -250,3 +250,56 @@ export const DetailsText = styled.div({
   fontSize: '14px',
   color: '#64748b'
 })
+
+export const TableContainer = styled.div({
+  overflowX: 'auto'
+})
+
+export const Table = styled.table({
+  width: '100%',
+  borderCollapse: 'collapse'
+})
+
+export const TableHead = styled.thead({
+  backgroundColor: '#f8fafc'
+})
+
+export const TableBody = styled.tbody({})
+
+export const TableRow = styled.tr({
+  borderBottom: '1px solid #e2e8f0',
+  transition: 'background-color 0.2s ease',
+
+  '&:hover': {
+    backgroundColor: '#f8fafc'
+  },
+
+  '&:last-child': {
+    borderBottom: 'none'
+  }
+})
+
+export const TableHeaderCell = styled.th({
+  padding: '12px 16px',
+  textAlign: 'left',
+  fontSize: '14px',
+  fontWeight: '600',
+  color: '#64748b',
+  borderBottom: '2px solid #e2e8f0'
+})
+
+export const TableCell = styled.td({
+  padding: '12px 16px',
+  fontSize: '14px',
+  color: '#1e293b'
+})
+
+export const GroupBadge = styled.span<{ $group: string }>(({ $group }) => ({
+  display: 'inline-block',
+  padding: '4px 12px',
+  borderRadius: '12px',
+  fontSize: '12px',
+  fontWeight: '600',
+  backgroundColor: $group === 'A' ? '#d1fae5' : $group === 'B' ? '#fef3c7' : '#fee2e2',
+  color: $group === 'A' ? '#065f46' : $group === 'B' ? '#92400e' : '#991b1b'
+}))
