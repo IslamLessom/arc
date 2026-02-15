@@ -88,6 +88,7 @@ func NewRouter(usecases *usecases.UseCases, cfg *config.Config, logger *zap.Logg
 			}
 			// Statistics routes
 			statistics := protected.Group("/statistics")
+			statistics.Use(middleware.RequireEstablishment(usecases.Auth))
 			{
 				statistics.GET("/sales", statisticsHandler.GetSales)
 				statistics.GET("/customers", statisticsHandler.GetCustomers)

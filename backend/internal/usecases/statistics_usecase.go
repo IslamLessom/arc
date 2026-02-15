@@ -50,21 +50,31 @@ func (uc *StatisticsUseCase) GetSalesStatistics(ctx context.Context, establishme
 	// Получаем заказы за период
 	orders, err := uc.orderRepo.ListByEstablishmentIDAndDateRange(ctx, establishmentID, startDate, endDate)
 	if err != nil {
-		uc.logger.Error("Failed to get orders for sales statistics", zap.Error(err))
+		uc.logger.Error("Failed to get orders for sales statistics",
+			zap.String("establishment_id", establishmentID.String()),
+			zap.String("start_date", startDate.Format(time.RFC3339)),
+			zap.String("end_date", endDate.Format(time.RFC3339)),
+			zap.Error(err))
 		return nil, fmt.Errorf("failed to get orders: %w", err)
 	}
 
+	uc.logger.Info("Retrieved orders for sales statistics",
+		zap.String("establishment_id", establishmentID.String()),
+		zap.Int("order_count", len(orders)))
+
 	stats := &models.SalesStatistics{}
 
-	// Считаем общие метрики
+	// Считаем общие метрики - только оплаченные заказы
 	var totalRevenue float64
 	var totalGuests int
 
 	for _, order := range orders {
-		if order.Status == "paid" || order.Status == "completed" {
+		// Считаем только оплаченные заказы
+		if order.Status == "paid" {
 			totalRevenue += order.TotalAmount
 			stats.TotalOrders++
 		}
+		// Считаем количество гостей (берем максимальный номер гостя из всех заказов)
 		for _, item := range order.Items {
 			if item.GuestNumber != nil {
 				if *item.GuestNumber > totalGuests {
@@ -84,7 +94,7 @@ func (uc *StatisticsUseCase) GetSalesStatistics(ctx context.Context, establishme
 	// Группируем по дням
 	dailyMap := make(map[string]*models.DailySalesData)
 	for _, order := range orders {
-		if order.Status != "paid" && order.Status != "completed" {
+		if order.Status != "paid" {
 			continue
 		}
 

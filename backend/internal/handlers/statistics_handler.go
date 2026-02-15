@@ -37,9 +37,15 @@ func NewStatisticsHandler(usecase *usecases.StatisticsUseCase, logger *zap.Logge
 func (h *StatisticsHandler) GetSales(c *gin.Context) {
 	establishmentID, startDate, endDate, err := h.parseStatisticsParams(c)
 	if err != nil {
+		h.logger.Error("Failed to parse statistics params", zap.Error(err))
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
+
+	h.logger.Info("Getting sales statistics",
+		zap.String("establishment_id", establishmentID.String()),
+		zap.String("start_date", startDate.Format(time.RFC3339)),
+		zap.String("end_date", endDate.Format(time.RFC3339)))
 
 	stats, err := h.usecase.GetSalesStatistics(c.Request.Context(), establishmentID, startDate, endDate)
 	if err != nil {
