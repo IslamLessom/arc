@@ -21,11 +21,11 @@ export const useEmployees = () => {
   const { data: statistics = [] } = useAllEmployeeStatistics({
     startDate: dateRange.startOfMonth,
     endDate: dateRange.endOfMonth,
-    enabled: !isLoading && apiEmployees.length > 0,
+    enabled: !isLoading && (apiEmployees?.length ?? 0) > 0,
   })
 
   const employees = useMemo(() => {
-    if (!apiEmployees) return []
+    if (!apiEmployees || apiEmployees.length === 0) return []
     return apiEmployees.map((employee): EmployeeTable => {
       // Find statistics for this employee
       const empStats = statistics.find(s => s.user_id === employee.id)
@@ -43,7 +43,7 @@ export const useEmployees = () => {
 
   const filteredAndSortedEmployees = useMemo(() => {
     if (!employees || employees.length === 0) return []
-    let filtered = employees.filter(employee => {
+    let filtered = employees.filter((employee) => {
       const searchLower = searchQuery.toLowerCase()
       const matchesSearch =
         employee.name.toLowerCase().includes(searchLower) ||

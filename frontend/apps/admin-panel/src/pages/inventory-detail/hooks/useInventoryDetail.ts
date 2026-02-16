@@ -279,12 +279,14 @@ export const useInventoryDetail = (): UseInventoryDetailResult => {
     }
 
     try {
-      // First, transition to in_progress if currently in draft
+      // If currently in draft, first transition to in_progress
       if (formData.status === 'draft') {
         await updateStatusMutation.mutateAsync({
           id: formData.inventory_id,
           status: 'in_progress',
         })
+        // Wait a bit for the state to update
+        await new Promise(resolve => setTimeout(resolve, 100))
       }
 
       // Then, transition to completed
