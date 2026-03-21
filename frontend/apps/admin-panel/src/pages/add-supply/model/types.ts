@@ -12,7 +12,7 @@ export interface SupplyItemFormData {
 
 export interface PaymentFormData {
   id: string
-  account_type: string
+  account_id: string
   payment_date: string
   payment_time_hours: string
   payment_time_minutes: string

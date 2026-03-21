@@ -1,25 +1,26 @@
 import { Warehouse } from '../model/types'
+import { TableAlign, TableColumn } from '@restaurant-pos/ui'
 
 interface WarehouseTableProps {
   onEdit: (id: string) => void
   onDelete: (id: string) => void
 }
 
-export const getWarehousesTableColumns = ({ onEdit, onDelete }: WarehouseTableProps) => [
+export const getWarehousesTableColumns = ({ onEdit, onDelete }: WarehouseTableProps): TableColumn<Warehouse>[] => [
   {
     title: '#',
     dataIndex: 'id',
     key: 'id',
     sorter: true,
     width: 60,
-    render: (_: string, _record: Warehouse, index: number) => <span>{index + 1}</span>
+    render: (_: unknown, _record: Warehouse, index: number) => <span>{index + 1}</span>
   },
   {
     title: 'Название',
     dataIndex: 'name',
     key: 'name',
     sorter: true,
-    render: (text: string) => <span style={{ fontWeight: '500' }}>{text}</span>
+    render: (text: unknown) => <span style={{ fontWeight: '500' }}>{String(text ?? '')}</span>
   },
   {
     title: 'Адрес',
@@ -31,14 +32,17 @@ export const getWarehousesTableColumns = ({ onEdit, onDelete }: WarehouseTablePr
     title: 'Сумма',
     dataIndex: 'amount',
     key: 'amount',
-    align: 'right' as const,
-    render: (amount: number) => <span>{amount.toFixed(2)} ₽</span>
+    align: TableAlign.Right,
+    render: (amount: unknown) => {
+      const numericAmount = typeof amount === 'number' ? amount : Number(amount || 0)
+      return <span>{numericAmount.toFixed(2)} ₽</span>
+    }
   },
   {
     title: 'Действия',
     dataIndex: 'actions',
     key: 'actions',
-    align: 'center' as const,
+    align: TableAlign.Center,
     width: 150,
     render: (_: unknown, record: Warehouse) => (
       <div style={{ display: 'flex', gap: '8px', justifyContent: 'center', alignItems: 'center' }}>

@@ -43,16 +43,8 @@ go test -v -short=false -run TestEstablishmentCreationE2E ./e2e_test.go
 ```bash
 cd backend
 
-# Скрипты автоматически используют настройки по умолчанию:
-# - DB_HOST=localhost
-# - DB_PORT=15432 (настроено в config.go для docker-compose)
-# - DB_USER=arc_user
-# - DB_PASSWORD=arc_password
-# - DB_NAME=arc_db
-
-# Если нужно изменить настройки, установите переменные окружения:
-# export DB_PORT=5432  # для другого порта
-# export DB_PASSWORD=your_password  # для другого пароля
+# Скрипты используют настройки из .env файла в корне проекта.
+# Убедитесь что .env файл создан: cp .env.example .env
 
 # Запустите скрипт
 go run internal/scripts/seed_roles_and_subscriptions.go
@@ -91,20 +83,14 @@ go run internal/scripts/seed_onboarding_questions.go
 
 ### Альтернатива: Создание .env файла
 
-Если нужно использовать другие настройки, вы можете создать файл `.env` в корне проекта (`/Users/ad/Desktop/arc/.env`) со следующим содержимым:
+Если нужно использовать другие настройки, вы можете создать файл `.env` в корне проекта:
 
-```env
-DB_HOST=localhost
-DB_PORT=15432
-DB_USER=arc_user
-DB_PASSWORD=arc_password
-DB_NAME=arc_db
-DB_SSLMODE=disable
+```bash
+cp .env.example .env
+# Отредактируйте .env файл со своими настройками
 ```
 
 Скрипты автоматически загрузят эти настройки через `godotenv.Load()`.
-
-**Примечание:** По умолчанию скрипты уже настроены на работу с docker-compose (порт 15432), поэтому .env файл не обязателен, если вы используете стандартные настройки.
 
 ## Запуск тестов
 

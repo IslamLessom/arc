@@ -30,9 +30,12 @@ export const ProductTreeSelector = ({
   }
 
   // Count selected items
-  const countSelectedItems = (nodes: ProductTreeNode[]): { ingredients: number; products: number } => {
+  const countSelectedItems = (
+    nodes: ProductTreeNode[]
+  ): { ingredients: number; products: number; semiFinished: number } => {
     let ingredients = 0
     let products = 0
+    let semiFinished = 0
 
     nodes.forEach((node) => {
       if (node.type === 'ingredients') {
@@ -41,14 +44,18 @@ export const ProductTreeSelector = ({
       } else if (node.type === 'products') {
         const items = collectAllItems(node)
         products += items.filter((i) => i.checked).length
+      } else if (node.type === 'semi_finished') {
+        const items = collectAllItems(node)
+        semiFinished += items.filter((i) => i.checked).length
       } else if (node.children) {
         const counts = countSelectedItems(node.children)
         ingredients += counts.ingredients
         products += counts.products
+        semiFinished += counts.semiFinished
       }
     })
 
-    return { ingredients, products }
+    return { ingredients, products, semiFinished }
   }
 
   const collectAllItems = (node: ProductTreeNode): ProductTreeNode[] => {
@@ -168,6 +175,17 @@ export const ProductTreeSelector = ({
       const suffix =
         selectedCounts.products % 10 === 1 && selectedCounts.products % 100 !== 11 ? '' : 'а'
       parts.push(`${selectedCounts.products} товар${suffix}`)
+    }
+    if (selectedCounts.semiFinished > 0) {
+      const suffix =
+        selectedCounts.semiFinished % 10 === 1 && selectedCounts.semiFinished % 100 !== 11
+          ? ''
+          : selectedCounts.semiFinished % 10 >= 2 &&
+              selectedCounts.semiFinished % 10 <= 4 &&
+              (selectedCounts.semiFinished % 100 < 10 || selectedCounts.semiFinished % 100 >= 20)
+            ? 'а'
+            : 'ов'
+      parts.push(`${selectedCounts.semiFinished} полуфабрикат${suffix}`)
     }
     if (parts.length === 0) return 'Выберите продукты или категории, чтобы проверить их остаток на складе'
     return `Выбрано: ${parts.join(', ')}`

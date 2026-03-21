@@ -1,5 +1,4 @@
 import { useAddSupply } from '../hooks/useAddSupply'
-import { AccountType, AccountTypeLabel } from '../model/enums'
 import { translateUnit } from '../../technical-cards/lib/unitTranslator'
 import { ImportIcon } from '@restaurant-pos/assets'
 import * as Styled from './styled'
@@ -13,6 +12,7 @@ export const AddSupply = () => {
     isFormValid,
     warehouses,
     suppliers,
+    accounts,
     availableItems,
     totalAmount,
     totalPayments,
@@ -25,9 +25,12 @@ export const AddSupply = () => {
     removePayment,
     updatePayment,
     handleSubmit,
+    handleDebtSubmit,
     handleBack,
     isEditMode,
-    isLoadingSupply
+    isLoadingSupply,
+    showInsufficientFundsModal,
+    setShowInsufficientFundsModal
   } = useAddSupply()
 
   if (isLoadingSupply) {
@@ -134,35 +137,42 @@ export const AddSupply = () => {
           <Styled.FormField>
             <Styled.Label>Оплата</Styled.Label>
             {formData.payments.length === 0 ? (
-              <Styled.AddPaymentButton onClick={addPayment}>
-                + Добавить платеж
-              </Styled.AddPaymentButton>
+              <div style={{ display: 'flex', gap: '12px' }}>
+                <Styled.AddPaymentButton onClick={addPayment}>
+                  + Добавить платеж
+                </Styled.AddPaymentButton>
+                <Styled.AddPaymentButton 
+                  onClick={handleDebtSubmit}
+                  style={{ backgroundColor: '#f59e0b', borderColor: '#f59e0b' }}
+                  disabled={!isFormValid || isSubmitting}
+                >
+                  В долг
+                </Styled.AddPaymentButton>
+              </div>
             ) : (
               <Styled.PaymentsContainer>
                 <Styled.PaymentsHeader>
                   <Styled.PaymentHeaderLabel>Счёт</Styled.PaymentHeaderLabel>
                   <Styled.PaymentHeaderLabel>Дата оплаты</Styled.PaymentHeaderLabel>
                   <Styled.PaymentHeaderLabel>Время</Styled.PaymentHeaderLabel>
-                  <Styled.PaymentHeaderLabel>Сумма, ₸</Styled.PaymentHeaderLabel>
+                  <Styled.PaymentHeaderLabel>Сумма, ₽</Styled.PaymentHeaderLabel>
                   <div></div>
                 </Styled.PaymentsHeader>
                 {formData.payments.map((payment) => (
                   <Styled.PaymentRow key={payment.id}>
                     <Styled.PaymentField>
                       <Styled.PaymentSelect
-                        value={payment.account_type}
-                        onChange={(e) => updatePayment(payment.id, { account_type: e.target.value })}
+                        value={payment.account_id}
+                        onChange={(e) => updatePayment(payment.id, { account_id: e.target.value })}
                       >
                         <option value="">Выберите счёт</option>
-                        <option value={AccountType.CurrentAccount}>
-                          {AccountTypeLabel.CurrentAccount}
-                        </option>
-                        <option value={AccountType.Safe}>
-                          {AccountTypeLabel.Safe}
-                        </option>
-                        <option value={AccountType.CashBox}>
-                          {AccountTypeLabel.CashBox}
-                        </option>
+                        {accounts
+                          .filter(acc => acc.active)
+                          .map((account) => (
+                            <option key={account.id} value={account.id}>
+                              {account.name} ({account.balance.toLocaleString()} ₽)
+                            </option>
+                          ))}
                       </Styled.PaymentSelect>
                     </Styled.PaymentField>
                     <Styled.PaymentField>
@@ -386,6 +396,72 @@ export const AddSupply = () => {
       {error && (
         <div style={{ padding: '12px', backgroundColor: '#fee2e2', color: '#991b1b', borderRadius: '8px', marginTop: '16px' }}>
           {error}
+        </div>
+      )}
+
+      {showInsufficientFundsModal && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.5)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1000
+        }}>
+          <div style={{
+            backgroundColor: 'white',
+            padding: '24px',
+            borderRadius: '8px',
+            maxWidth: '500px',
+            width: '90%'
+          }}>
+            <h3 style={{ marginTop: 0, marginBottom: '16px', fontSize: '18px', fontWeight: 600 }}>
+              Недостаточно средств
+            </h3>
+            <p style={{ marginBottom: '24px', color: '#6b7280' }}>
+              На выбранных счетах недостаточно средств для оплаты поставки. 
+              Вы можете оформить поставку в долг или изменить сумму платежа.
+            </p>
+            <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
+              <button
+                onClick={() => setShowInsufficientFundsModal(false)}
+                style={{
+                  padding: '8px 16px',
+                  borderRadius: '6px',
+                  border: '1px solid #d1d5db',
+                  backgroundColor: 'white',
+                  color: '#374151',
+                  cursor: 'pointer',
+                  fontSize: '14px',
+                  fontWeight: 500
+                }}
+              >
+                Отмена
+              </button>
+              <button
+                onClick={() => {
+                  setShowInsufficientFundsModal(false)
+                  handleDebtSubmit()
+                }}
+                style={{
+                  padding: '8px 16px',
+                  borderRadius: '6px',
+                  border: 'none',
+                  backgroundColor: '#f59e0b',
+                  color: 'white',
+                  cursor: 'pointer',
+                  fontSize: '14px',
+                  fontWeight: 500
+                }}
+              >
+                Оформить в долг
+              </button>
+            </div>
+          </div>
         </div>
       )}
 

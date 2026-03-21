@@ -12,9 +12,10 @@ import (
 
 type OrderRepository interface {
 	GetByID(ctx context.Context, id uuid.UUID) (*models.Order, error)
-    List(ctx context.Context, establishmentID uuid.UUID, startDate, endDate time.Time, status string) ([]*models.Order, error)
+	List(ctx context.Context, establishmentID uuid.UUID, startDate, endDate time.Time, status string) ([]*models.Order, error)
 	ListActiveByEstablishmentID(ctx context.Context, establishmentID uuid.UUID) ([]*models.Order, error)
 	ListByEstablishmentIDAndDateRange(ctx context.Context, establishmentID uuid.UUID, startDate, endDate time.Time) ([]*models.Order, error)
+	ListByShiftID(ctx context.Context, shiftID uuid.UUID, establishmentID uuid.UUID) ([]*models.Order, error)
 	Create(ctx context.Context, order *models.Order) error
 	Update(ctx context.Context, order *models.Order) error
 	CreateOrderItem(ctx context.Context, item *models.OrderItem) error
@@ -57,7 +58,7 @@ func (r *orderRepository) List(ctx context.Context, establishmentID uuid.UUID, s
 
 func (r *orderRepository) ListActiveByEstablishmentID(ctx context.Context, establishmentID uuid.UUID) ([]*models.Order, error) {
 	var orders []*models.Order
-	err := r.db.WithContext(ctx).Preload("Items.Product").Preload("Items.Product.Category").Preload("Items.TechCard").Preload("Table").Where("establishment_id = ? AND status IN (?, ?, ?)", establishmentID, "draft", "confirmed", "preparing").Find(&orders).Error
+	err := r.db.WithContext(ctx).Preload("Items.Product").Preload("Items.Product.Category").Preload("Items.TechCard").Preload("Table").Where("establishment_id = ? AND status IN (?, ?, ?, ?)", establishmentID, "draft", "confirmed", "preparing", "ready").Find(&orders).Error
 	return orders, err
 }
 
@@ -75,6 +76,18 @@ func (r *orderRepository) CreateOrderItem(ctx context.Context, item *models.Orde
 
 func (r *orderRepository) UpdateOrderItem(ctx context.Context, item *models.OrderItem) error {
 	return r.db.WithContext(ctx).Save(item).Error
+}
+
+func (r *orderRepository) ListByShiftID(ctx context.Context, shiftID uuid.UUID, establishmentID uuid.UUID) ([]*models.Order, error) {
+	var orders []*models.Order
+	err := r.db.WithContext(ctx).
+		Preload("Items.Product").
+		Preload("Items.Product.Category").
+		Preload("Items.TechCard").
+		Preload("Table").
+		Where("shift_id = ? AND establishment_id = ?", shiftID, establishmentID).
+		Find(&orders).Error
+	return orders, err
 }
 
 func (r *orderRepository) ListByShiftIDAndEstablishmentIDAndDateRange(ctx context.Context, shiftID, establishmentID uuid.UUID, startDate, endDate time.Time) ([]*models.Order, error) {

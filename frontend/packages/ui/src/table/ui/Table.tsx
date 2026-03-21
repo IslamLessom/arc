@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import type { ReactNode } from 'react';
 import type { TableProps } from '../model/types';
 import { useTable } from '../hooks/useTable';
 import { TableSize, TableSortOrder } from '../model/enums';
@@ -53,6 +54,24 @@ export const Table = <T extends Record<string, unknown>>({
       return record[column.dataIndex as keyof T];
     }
     return null;
+  };
+
+  const toRenderableValue = (value: unknown): ReactNode => {
+    if (
+      value === null ||
+      value === undefined ||
+      typeof value === 'string' ||
+      typeof value === 'number' ||
+      typeof value === 'boolean'
+    ) {
+      return value as ReactNode;
+    }
+
+    if (React.isValidElement(value)) {
+      return value;
+    }
+
+    return String(value);
   };
 
   const totalPages = pagination === false
@@ -237,7 +256,7 @@ export const Table = <T extends Record<string, unknown>>({
                         const cellValue = getCellValue(column, record);
                         const renderedValue = column.render
                           ? column.render(cellValue, record, index)
-                          : cellValue;
+                          : toRenderableValue(cellValue);
 
                         return (
                           <Styled.TableCell
@@ -248,7 +267,7 @@ export const Table = <T extends Record<string, unknown>>({
                             $ellipsis={column.ellipsis}
                             $size={size}
                           >
-                            {renderedValue}
+                            {toRenderableValue(renderedValue)}
                           </Styled.TableCell>
                         );
                       })}

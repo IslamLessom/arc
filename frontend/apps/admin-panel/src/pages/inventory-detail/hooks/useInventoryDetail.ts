@@ -10,11 +10,7 @@ import {
   useGetSemiFinishedProducts,
   useGetWarehouses,
   useGetStock,
-  type Inventory,
-  type InventoryItem,
   type Stock,
-  type Ingredient,
-  type Product,
 } from '@restaurant-pos/api-client'
 import { generateUUID } from '../../../shared/utils/uuid'
 import type {
@@ -119,23 +115,38 @@ export const useInventoryDetail = (): UseInventoryDetailResult => {
           if (item.ingredient_id) {
             const ing = ingredients.find((i) => i.id === item.ingredient_id)
             name = ing?.name || ''
-            pricePerUnit = item.price_per_unit
+            if (!pricePerUnit || pricePerUnit === 0) {
+              const stockItem = stock.find((s) => s.ingredient_id === item.ingredient_id)
+              pricePerUnit = stockItem?.price_per_unit || 0
+            }
           } else if (item.product_id) {
             const prod = products.find((p) => p.id === item.product_id)
             name = prod?.name || ''
-            pricePerUnit = item.price_per_unit
+            if (!pricePerUnit || pricePerUnit === 0) {
+              const stockItem = stock.find((s) => s.product_id === item.product_id)
+              pricePerUnit = stockItem?.price_per_unit || 0
+            }
           } else if (item.tech_card_id) {
             const tc = techCards.find((t) => t.id === item.tech_card_id)
             name = tc?.name || ''
           } else if (item.semi_finished_id) {
             const sf = semiFinished.find((s) => s.id === item.semi_finished_id)
             name = sf?.name || ''
+            if (!pricePerUnit || pricePerUnit === 0) {
+              const stockItem = stock.find((s) => s.product_id === item.semi_finished_id)
+              pricePerUnit = stockItem?.price_per_unit || 0
+            }
           }
+
+          const difference = item.actual_quantity - item.expected_quantity
+          const differenceValue = difference * pricePerUnit
 
           return {
             ...inventoryItemToDetailItem(item),
             name,
             price_per_unit: pricePerUnit,
+            difference,
+            difference_value: differenceValue,
           }
         })
       } else if (inventory.type === 'full' && stock && stock.length > 0) {
@@ -186,7 +197,7 @@ export const useInventoryDetail = (): UseInventoryDetailResult => {
         warehouse_name: warehouse?.name,
         type: inventory.type,
         status: inventory.status,
-        scheduled_date: inventory.scheduled_date,
+        scheduled_date: inventory.scheduled_date || inventory.created_at,
         actual_date: inventory.actual_date,
         comment: inventory.comment || '',
         items,
@@ -202,6 +213,50 @@ export const useInventoryDetail = (): UseInventoryDetailResult => {
     }
   }, [inventory, ingredients, products, techCards, semiFinished, warehouses, stock])
 
+  // Backfill missing prices from stock and recalculate difference values without resetting user input
+  useEffect(() => {
+    if (!stock || stock.length === 0 || !formData.items || formData.items.length === 0) return
+
+    let hasChanges = false
+    const updatedItems = formData.items.map((item) => {
+      if ((item.type !== 'ingredient' && item.type !== 'product' && item.type !== 'semi_finished') || (item.price_per_unit && item.price_per_unit > 0)) {
+        return item
+      }
+
+      const stockItem = stock.find((s) => {
+        if (item.type === 'ingredient' && item.ingredient_id) {
+          return s.ingredient_id === item.ingredient_id
+        }
+        if ((item.type === 'product' || item.type === 'semi_finished') && (item.product_id || item.semi_finished_id)) {
+          const productId = item.product_id || item.semi_finished_id
+          return s.product_id === productId
+        }
+        return false
+      })
+
+      const pricePerUnit = stockItem?.price_per_unit || 0
+      if (pricePerUnit === 0) return item
+
+      const difference = item.actual_quantity - item.planned_quantity
+      const differenceValue = difference * pricePerUnit
+      hasChanges = true
+
+      return {
+        ...item,
+        price_per_unit: pricePerUnit,
+        difference,
+        difference_value: differenceValue,
+      }
+    })
+
+    if (hasChanges) {
+      setFormData((prev) => ({
+        ...prev,
+        items: updatedItems,
+      }))
+    }
+  }, [stock, formData.items])
+
   const isReadOnly = !canEditInventory(formData.status)
   const canComplete = canCompleteInventory(formData.status)
   const canReopen = canReopenInventory(formData.status)
@@ -210,20 +265,9 @@ export const useInventoryDetail = (): UseInventoryDetailResult => {
 
   // Filter items by tab type and search query
   const filteredItems = useMemo(() => {
-    let items = formData.items || []
-
-    // Filter by tab
-    if (activeTab === 'ingredients') {
-      items = items.filter((item) => item.type === 'ingredient' || item.type === 'product')
-    } else {
-      items = items.filter((item) => item.type === 'tech_card' || item.type === 'semi_finished')
-    }
-
-    // Filter by search query
-    items = filterItemsBySearch(items, searchQuery)
-
-    return items
-  }, [formData.items, activeTab, searchQuery])
+    const items = formData.items || []
+    return filterItemsBySearch(items, searchQuery)
+  }, [formData.items, searchQuery])
 
   // Calculate statistics
   const stats = useMemo(() => {
@@ -278,39 +322,82 @@ export const useInventoryDetail = (): UseInventoryDetailResult => {
       return
     }
 
+    const previousStatus = formData.status
+
     try {
-      // If currently in draft, first transition to in_progress
+      // Optimistic update: change status immediately in UI
       if (formData.status === 'draft') {
+        // First optimistically go to in_progress
+        setFormData((prev) => ({ ...prev, status: 'in_progress' }))
+        // Then immediately to completed
+        setTimeout(() => {
+          setFormData((prev) => ({ ...prev, status: 'completed' }))
+        }, 50)
+      } else if (formData.status === 'in_progress') {
+        setFormData((prev) => ({ ...prev, status: 'completed' }))
+      }
+
+      // First save items to ensure stock will be calculated correctly
+      const items = formData.items.map((item) => ({
+        type: item.type,
+        ingredient_id: item.ingredient_id,
+        product_id: item.product_id,
+        tech_card_id: item.tech_card_id,
+        semi_finished_id: item.semi_finished_id,
+        actual_quantity: item.actual_quantity,
+      }))
+
+      await updateInventoryMutation.mutateAsync({
+        id: formData.inventory_id,
+        data: {
+          warehouse_id: formData.warehouse_id,
+          type: formData.type,
+          scheduled_date: formData.scheduled_date,
+          comment: formData.comment,
+          items,
+        },
+      })
+
+      // Then send status update
+      if (previousStatus === 'draft') {
         await updateStatusMutation.mutateAsync({
           id: formData.inventory_id,
           status: 'in_progress',
         })
-        // Wait a bit for the state to update
         await new Promise(resolve => setTimeout(resolve, 100))
       }
 
-      // Then, transition to completed
       await updateStatusMutation.mutateAsync({
         id: formData.inventory_id,
         status: 'completed',
       })
     } catch (err) {
       console.error('Failed to complete inventory:', err)
+      // Revert to previous status on error
+      setFormData((prev) => ({ ...prev, status: previousStatus }))
     }
-  }, [formData.inventory_id, formData.status, formData.items, editedItems, updateStatusMutation])
+  }, [formData.inventory_id, formData.status, formData.items, formData.warehouse_id, formData.type, formData.scheduled_date, formData.comment, editedItems, updateStatusMutation, updateInventoryMutation])
 
   const handleReopen = useCallback(async () => {
     if (!formData.inventory_id) return
 
+    const previousStatus = formData.status
+
     try {
+      // Optimistic update: change status immediately in UI
+      setFormData((prev) => ({ ...prev, status: 'in_progress' }))
+
+      // Then send to server
       await updateStatusMutation.mutateAsync({
         id: formData.inventory_id,
         status: 'in_progress',
       })
     } catch (err) {
       console.error('Failed to reopen inventory:', err)
+      // Revert to previous status on error
+      setFormData((prev) => ({ ...prev, status: previousStatus }))
     }
-  }, [formData.inventory_id, updateStatusMutation])
+  }, [formData.inventory_id, formData.status, updateStatusMutation])
 
   const handleSave = useCallback(async () => {
     if (!formData.inventory_id) return

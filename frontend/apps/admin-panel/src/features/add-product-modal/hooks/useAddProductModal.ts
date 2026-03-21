@@ -180,8 +180,8 @@ export const useAddProductModal = (props: AddProductModalProps) => {
   )
 
   const handleSubmit = useCallback(
-    async (e: React.FormEvent, shouldCreateAnother = false) => {
-      e.preventDefault()
+    async (e?: React.FormEvent, shouldCreateAnother = false) => {
+      e?.preventDefault()
       setError(null)
 
       if (!validateForm()) {

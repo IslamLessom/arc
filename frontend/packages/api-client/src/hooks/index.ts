@@ -16,6 +16,8 @@ export type { PinLoginRequest, PinLoginResponse, PinAuthUser } from './usePinLog
 export { useOnboarding, useOnboardingQuestions } from './useOnboarding'
 export { useCurrentUser } from './useCurrentUser'
 export type { CurrentUserResponse } from './useCurrentUser'
+export { useSubscription } from './useSubscription'
+export type { UserSubscriptionResponse } from './useSubscription'
 export { useGetStock, useUpdateStockLimit } from './useStock'
 export type { Stock } from './useStock'
 export {
@@ -68,7 +70,7 @@ export {
   useCreateSupply,
   useUpdateSupply,
 } from './useSupplies'
-export type { Supply, SupplyItem, CreateSupplyRequest } from './useSupplies'
+export type { Supply, SupplyItem, CreateSupplyRequest, SupplyPaymentRequest } from './useSupplies'
 export {
   useGetWriteOffs,
   useGetWriteOff,
@@ -179,6 +181,7 @@ export {
   useCreateTable,
   useUpdateTable,
   useDeleteTable,
+  useGenerateTableQRToken,
 } from './useTables'
 export type { Table, CreateTableRequest, UpdateTableRequest } from './useTables'
 export {
@@ -202,8 +205,16 @@ export type {
   CreateEstablishmentRequest,
   UpdateEstablishmentRequest,
 } from './useEstablishments'
-export { useSalaryReport } from './useSalary'
-export type { SalaryEntry, SalaryReport } from './useSalary'
+export { useSalaryReport, usePaySalary } from './useSalary'
+export type { SalaryEntry, SalaryReport, PaySalaryRequest, SalaryPayment } from './useSalary'
+export {
+  useAdvances,
+  usePendingAdvances,
+  useAdvanceByID,
+  useCreateAdvance,
+  useDeleteAdvance,
+} from './useAdvances'
+export type { Advance } from './useAdvances'
 export { useEmployeeStatistics, useAllEmployeeStatistics } from './useEmployeeStatistics'
 export type { EmployeeStatistics } from './useEmployeeStatistics'
 export { useProfitAndLossReport } from './useProfitAndLoss'
@@ -268,6 +279,28 @@ export type {
   PaymentStatistics,
   TaxStatistics,
 } from '../types'
+
+export { useSubscriptionReadOnly } from './useSubscriptionReadOnly'
+
+// QR Menu (public — no employee auth required)
+export {
+  useQRTableInfo,
+  useQRMenu,
+  useCreateGuestSession,
+  useRegisterGuest,
+  useLoginGuest,
+  useCreateQROrder,
+  useMyQROrders,
+} from './useQRMenu'
+export type {
+  QRTableInfo,
+  QRMenuCategory,
+  QRProduct,
+  GuestSession,
+  GuestSessionResponse,
+  QROrderItem,
+  QROrder,
+} from './useQRMenu'
 
 // Types
 export * from '../types'

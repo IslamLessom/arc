@@ -11,84 +11,94 @@ export const getTechnicalCardsTableColumns = ({ onEdit, onDelete }: TechnicalCar
     dataIndex: 'name',
     key: 'name',
     sorter: true,
-    render: (text: string) => <span style={{ fontWeight: '500' }}>{text}</span>
+    render: (value: unknown) => <span style={{ fontWeight: '500' }}>{value as string}</span>
   },
   {
     title: 'Категория',
     dataIndex: 'category',
     key: 'category',
     sorter: true,
-    render: (category: { name: string } | string) => {
-      console.log(category)
-      if (typeof category === 'string') return category
-      return category?.name || '-'
-    }
+    render: (value: unknown) => <span>{(value as string) || '-'}</span>
   },
   {
     title: 'Ингредиенты',
     dataIndex: 'ingredients',
     key: 'ingredients',
     align: 'center' as const,
-    render: (count: number) => <span>{count} шт.</span>
+    render: (value: unknown) => <span>{value as number} шт.</span>
   },
   {
     title: 'Выход, г',
     dataIndex: 'weight',
     key: 'weight',
     align: 'center' as const,
-    render: (weight: number) => <span>{weight}</span>
+    sorter: true,
+    render: (value: unknown) => {
+      const weight = value as number
+      return (
+        <span style={{ fontWeight: '500' }}>
+          {weight > 0 ? `${weight} г` : '-'}
+        </span>
+      )
+    }
   },
   {
     title: 'Себестоимость, ₽',
     dataIndex: 'cost',
     key: 'cost',
     align: 'right' as const,
-    render: (cost: number) => <span>{cost.toFixed(2)}</span>
+    render: (value: unknown) => <span>{(value as number).toFixed(2)}</span>
   },
   {
     title: 'Цена, ₽',
     dataIndex: 'price',
     key: 'price',
     align: 'right' as const,
-    render: (price: number) => <span>{price.toFixed(2)}</span>
+    render: (value: unknown) => <span>{(value as number).toFixed(2)}</span>
   },
   {
     title: 'Наценка, %',
     dataIndex: 'margin',
     key: 'margin',
     align: 'right' as const,
-    render: (margin: number) => (
-      <span style={{ color: margin > 50 ? '#10b981' : '#f59e0b' }}>
-        {margin.toFixed(1)}
-      </span>
-    )
+    render: (value: unknown) => {
+      const margin = value as number
+      return (
+        <span style={{ color: margin > 50 ? '#10b981' : '#f59e0b' }}>
+          {margin.toFixed(1)}
+        </span>
+      )
+    }
   },
   {
     title: 'Статус',
     dataIndex: 'status',
     key: 'status',
     align: 'center' as const,
-    render: (status: string) => (
-      <span
-        style={{
-          padding: '4px 8px',
-          borderRadius: '4px',
-          fontSize: '12px',
-          fontWeight: '500',
-          backgroundColor: status === 'active' ? '#dcfce7' : '#fee2e2',
-          color: status === 'active' ? '#166534' : '#991b1b'
-        }}
-      >
-        {status === 'active' ? 'Активна' : 'Неактивна'}
-      </span>
-    )
+    render: (value: unknown) => {
+      const status = value as string
+      return (
+        <span
+          style={{
+            padding: '4px 8px',
+            borderRadius: '4px',
+            fontSize: '12px',
+            fontWeight: '500',
+            backgroundColor: status === 'active' ? '#dcfce7' : '#fee2e2',
+            color: status === 'active' ? '#166534' : '#991b1b'
+          }}
+        >
+          {status === 'active' ? 'Активна' : 'Неактивна'}
+        </span>
+      )
+    }
   },
   {
     title: 'Изменено',
     dataIndex: 'lastModified',
     key: 'lastModified',
     align: 'center' as const,
-    render: (date: string) => <span>{date}</span>
+    render: (value: unknown) => <span>{value as string}</span>
   },
   {
     title: 'Действия',
@@ -96,7 +106,7 @@ export const getTechnicalCardsTableColumns = ({ onEdit, onDelete }: TechnicalCar
     key: 'actions',
     align: 'center' as const,
     width: 150,
-    render: (_: any, record: TechnicalCard) => (
+    render: (_: unknown, record: TechnicalCard) => (
       <div style={{ display: 'flex', gap: '8px', justifyContent: 'center', alignItems: 'center' }}>
         <button
           onClick={(e) => {

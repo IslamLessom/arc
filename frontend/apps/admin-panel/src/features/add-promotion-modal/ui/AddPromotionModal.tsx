@@ -52,6 +52,9 @@ export const AddPromotionModal = (props: AddPromotionModalProps) => {
 
         <Styled.ModalBody>
           {error && <Alert type="error" message="Ошибка" description={error} style={{ marginBottom: 12 }} />}
+          {fieldErrors.general && (
+            <Alert type="warning" message="Проверка правил" description={fieldErrors.general} style={{ marginBottom: 12 }} />
+          )}
 
           <Styled.Form onSubmit={handleSubmit}>
             <Styled.FormRows>

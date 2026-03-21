@@ -60,6 +60,12 @@ export function Order() {
     handleCustomerSelect,
     handleCustomerRemove,
     checkAllItemsExcluded,
+    getItemPromotionBadge,
+    getItemIneligibilityReason,
+    isPromotionsModalOpen,
+    openPromotionsModal,
+    closePromotionsModal,
+    activePromotions,
   } = useOrder()
 
   const userName = currentUser?.name || 'Maki'
@@ -182,13 +188,19 @@ export function Order() {
                 <>
                   {selectedGuest?.items.map(item => {
                     const isExcluded = item.product?.exclude_from_discounts || item.techCard?.exclude_from_discounts || false
+                    const reason = item.product
+                      ? getItemIneligibilityReason(item.product as any)
+                      : item.techCard
+                        ? getItemIneligibilityReason(item.techCard as any)
+                        : null
                     return (
                       <Styled.OrderItemCard key={item.id} $excluded={isExcluded}>
                         <Styled.ItemInfo>
                           <Styled.ItemName>
                             {item.product?.name || item.techCard?.name || 'Товар'}
-                            {isExcluded && <Styled.ExcludedBadge>Без скидки</Styled.ExcludedBadge>}
+                            {isExcluded && <Styled.ExcludedBadge title={reason || 'Без скидки'}>Без скидки</Styled.ExcludedBadge>}
                           </Styled.ItemName>
+                          {reason && <Styled.ItemMetaReason>{reason}</Styled.ItemMetaReason>}
                           <Styled.ItemPrice>{formatPrice(item.price)} / шт</Styled.ItemPrice>
                         </Styled.ItemInfo>
                         <Styled.ItemQuantity>
@@ -225,18 +237,32 @@ export function Order() {
                 </Styled.ExcludedInfo>
               )}
 
-              <Styled.CheckoutRow>
-                <Styled.CheckoutLabel>К оплате</Styled.CheckoutLabel>
-                <Styled.CheckoutAmount>
-                  {formatPrice(orderData?.totalAmount || 0)}
-                </Styled.CheckoutAmount>
-              </Styled.CheckoutRow>
-
-              {selectedGuest && selectedGuest.discount.type !== DiscountType.None && selectedGuest.discount.amount > 0 && (
-                <Styled.CheckoutRow $discount>
-                  <Styled.CheckoutLabel>Скидка: {selectedGuest.discount.type === DiscountType.Percentage ? `${selectedGuest.discount.value}%` : formatPrice(selectedGuest.discount.value)}</Styled.CheckoutLabel>
-                  <Styled.CheckoutAmount $discount>
-                    - {formatPrice(selectedGuest.discount.amount)}
+              {selectedGuest && selectedGuest.discount.type !== DiscountType.None && selectedGuest.discount.amount > 0 ? (
+                <>
+                  <Styled.CheckoutRow>
+                    <Styled.CheckoutLabel>Сумма</Styled.CheckoutLabel>
+                    <Styled.CheckoutAmount>
+                      {formatPrice(selectedGuest.totalAmount || 0)}
+                    </Styled.CheckoutAmount>
+                  </Styled.CheckoutRow>
+                  <Styled.CheckoutRow $discount>
+                    <Styled.CheckoutLabel>Скидка: {selectedGuest.discount.type === DiscountType.Percentage ? `${selectedGuest.discount.value}%` : formatPrice(selectedGuest.discount.value)}</Styled.CheckoutLabel>
+                    <Styled.CheckoutAmount $discount>
+                      - {formatPrice(selectedGuest.discount.amount)}
+                    </Styled.CheckoutAmount>
+                  </Styled.CheckoutRow>
+                  <Styled.CheckoutRow>
+                    <Styled.CheckoutLabel>К оплате</Styled.CheckoutLabel>
+                    <Styled.CheckoutAmount style={{ fontWeight: 600, fontSize: '1.2em' }}>
+                      {formatPrice(selectedGuest.finalAmount || 0)}
+                    </Styled.CheckoutAmount>
+                  </Styled.CheckoutRow>
+                </>
+              ) : (
+                <Styled.CheckoutRow>
+                  <Styled.CheckoutLabel>К оплате</Styled.CheckoutLabel>
+                  <Styled.CheckoutAmount>
+                    {formatPrice(selectedGuest?.totalAmount || 0)}
                   </Styled.CheckoutAmount>
                 </Styled.CheckoutRow>
               )}
@@ -251,7 +277,7 @@ export function Order() {
                 <Styled.CheckoutButton
                   $variant="primary"
                   onClick={handlePayment}
-                  disabled={!orderData?.totalAmount}
+                  disabled={!orderData?.finalAmount}
                 >
                   Оплатить
                 </Styled.CheckoutButton>
@@ -287,7 +313,7 @@ export function Order() {
               <Styled.ActionButton>
                 <Styled.BarcodeIcon />
               </Styled.ActionButton>
-              <Styled.ActionButton>Акции</Styled.ActionButton>
+              <Styled.ActionButton onClick={openPromotionsModal}>Акции</Styled.ActionButton>
             </Styled.ProductsActions>
           </Styled.ProductsHeader>
 
@@ -314,31 +340,78 @@ export function Order() {
                   </Styled.EmptyItemsText>
                 </Styled.EmptyItems>
               ) : (
-                selectedCategoryItems.map(item => (
-                  <Styled.ProductCard
-                    key={item.id}
-                    onClick={() => handleItemClick(item)}
-                  >
-                    <Styled.ProductImage>
-                      {item.cover_image ? (
-                        <img
-                          src={item.cover_image}
-                          alt={item.name}
-                          style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '8px' }}
-                        />
-                      ) : (
-                        <span>🍽️</span>
-                      )}
-                    </Styled.ProductImage>
-                    <Styled.ProductName>{item.name}</Styled.ProductName>
-                    <Styled.ProductPrice>{formatPrice(item.price)}</Styled.ProductPrice>
-                  </Styled.ProductCard>
-                ))
+                selectedCategoryItems.map(item => {
+                  const promotionBadge = getItemPromotionBadge(item)
+                  const reason = getItemIneligibilityReason(item)
+
+                  return (
+                    <Styled.ProductCard
+                      key={item.id}
+                      onClick={() => handleItemClick(item)}
+                    >
+                      <Styled.ProductBadges>
+                        {item.exclude_from_discounts && (
+                          <Styled.ProductBadge $variant="excluded" title={reason || 'Без скидки'}>Без скидки</Styled.ProductBadge>
+                        )}
+                        {!item.exclude_from_discounts && promotionBadge && (
+                          <Styled.ProductBadge $variant="promo">
+                            {promotionBadge}
+                          </Styled.ProductBadge>
+                        )}
+                      </Styled.ProductBadges>
+                      <Styled.ProductImage>
+                        {item.cover_image ? (
+                          <img
+                            src={item.cover_image}
+                            alt={item.name}
+                            style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '8px' }}
+                          />
+                        ) : (
+                          <span>🍽️</span>
+                        )}
+                      </Styled.ProductImage>
+                      <Styled.ProductName>{item.name}</Styled.ProductName>
+                      {reason && <Styled.ItemMetaReason title={reason}>{reason}</Styled.ItemMetaReason>}
+                      <Styled.ProductPrice>{formatPrice(item.price)}</Styled.ProductPrice>
+                    </Styled.ProductCard>
+                  )
+                })
               )}
             </Styled.ProductsGrid>
           )}
         </Styled.RightPanel>
       </Styled.MainContent>
+
+      {isPromotionsModalOpen && (
+        <>
+          <Styled.Overlay onClick={closePromotionsModal} />
+          <Styled.PromotionsModal>
+            <Styled.PromotionsModalHeader>
+              <Styled.PromotionsTitle>Акции заведения</Styled.PromotionsTitle>
+              <Styled.CloseModalButton onClick={closePromotionsModal}>×</Styled.CloseModalButton>
+            </Styled.PromotionsModalHeader>
+            <Styled.PromotionsList>
+              {activePromotions.length === 0 && (
+                <Styled.PromotionsEmpty>Сейчас нет активных акций</Styled.PromotionsEmpty>
+              )}
+              {activePromotions.map((promotion) => (
+                <Styled.PromotionCard key={promotion.id}>
+                  <Styled.PromotionName>{promotion.name}</Styled.PromotionName>
+                  {promotion.description && (
+                    <Styled.PromotionDescription>{promotion.description}</Styled.PromotionDescription>
+                  )}
+                  <Styled.PromotionMeta>
+                    Тип: {promotion.type}
+                  </Styled.PromotionMeta>
+                  <Styled.PromotionMeta>
+                    Условия: {promotion.discount_percentage ? `${promotion.discount_percentage}%` : 'по правилам акции'}
+                  </Styled.PromotionMeta>
+                </Styled.PromotionCard>
+              ))}
+            </Styled.PromotionsList>
+          </Styled.PromotionsModal>
+        </>
+      )}
     </Styled.Container>
   )
 }

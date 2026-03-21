@@ -48,8 +48,8 @@ export interface CreateIngredientRequest {
   loss_stewing?: number
   loss_baking?: number
   warehouse_id?: string
-  quantity?: number
-  price_per_unit?: number
+  quantity: number
+  price_per_unit: number
 }
 
 export interface UpdateIngredientRequest {

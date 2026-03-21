@@ -262,7 +262,7 @@ export const Currency = styled.span({
 })
 
 export const ActionCell = styled.td({
-  width: '120px',
+  width: '164px',
   padding: '12px 16px',
   textAlign: 'right',
   color: '#334155'
@@ -454,4 +454,78 @@ export const DeleteConfirmButton = styled.button({
   '&:hover': {
     backgroundColor: '#dc2626'
   }
+})
+
+export const SuccessButton = styled.button({
+  padding: '10px 20px',
+  border: 'none',
+  backgroundColor: '#16a34a',
+  color: '#ffffff',
+  borderRadius: '8px',
+  fontSize: '14px',
+  fontWeight: '500',
+  cursor: 'pointer',
+  transition: 'all 0.2s ease',
+
+  '&:hover': {
+    backgroundColor: '#15803d'
+  },
+
+  '&:disabled': {
+    opacity: 0.6,
+    cursor: 'not-allowed'
+  }
+})
+
+export const CompactActionButton = styled(ActionButton)({
+  padding: '8px 12px'
+})
+
+export const FormGrid = styled.div({
+  display: 'grid',
+  gap: '14px'
+})
+
+export const FormField = styled.label({
+  display: 'grid',
+  gap: '6px',
+  fontSize: '13px',
+  color: '#475569'
+})
+
+export const FormLabel = styled.span({
+  fontWeight: '500'
+})
+
+export const FormInput = styled.input({
+  width: '100%',
+  padding: '10px 12px',
+  border: '1px solid #cbd5e1',
+  borderRadius: '8px',
+  fontSize: '14px',
+  outline: 'none',
+
+  '&:focus': {
+    borderColor: '#3b82f6'
+  }
+})
+
+export const FormSelect = styled.select({
+  width: '100%',
+  padding: '10px 12px',
+  border: '1px solid #cbd5e1',
+  borderRadius: '8px',
+  fontSize: '14px',
+  outline: 'none',
+  backgroundColor: '#ffffff',
+
+  '&:focus': {
+    borderColor: '#3b82f6'
+  }
+})
+
+export const HintText = styled.p({
+  margin: 0,
+  fontSize: '12px',
+  color: '#64748b'
 })

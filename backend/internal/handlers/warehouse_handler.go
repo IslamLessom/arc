@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"fmt"
 	"net/http"
 	"time"
 
@@ -36,6 +37,24 @@ type UpdateWarehouseRequest struct {
 	Name    *string `json:"name,omitempty"`
 	Address *string `json:"address,omitempty"`
 	Active  *bool   `json:"active,omitempty"`
+}
+
+// ——— Transfers (Перемещения между складами) ———
+
+type TransferItem struct {
+	IngredientID *uuid.UUID `json:"ingredient_id,omitempty"`
+	ProductID    *uuid.UUID `json:"product_id,omitempty"`
+	Quantity     float64    `json:"quantity" binding:"required,gt=0"`
+	Unit         string     `json:"unit" binding:"required"`
+	PricePerUnit float64    `json:"price_per_unit" binding:"required,gte=0"`
+}
+
+type CreateTransferRequest struct {
+	FromWarehouseID uuid.UUID      `json:"from_warehouse_id" binding:"required"`
+	ToWarehouseID   uuid.UUID      `json:"to_warehouse_id" binding:"required"`
+	DateTime        time.Time      `json:"date_time" binding:"required"`
+	Comment         string         `json:"comment"`
+	Items           []TransferItem `json:"items" binding:"required,min=1"`
 }
 
 // ListWarehouses возвращает список складов
@@ -308,46 +327,55 @@ func (h *WarehouseHandler) UpdateStockLimit(c *gin.Context) {
 // ——— Supply ———
 
 type SupplyItemRequest struct {
-	IngredientID *string  `json:"ingredient_id,omitempty" binding:"omitempty,uuid"`
-	ProductID    *string  `json:"product_id,omitempty" binding:"omitempty,uuid"`
-	Quantity     float64  `json:"quantity" binding:"required,gt=0"`
-	Unit         string   `json:"unit" binding:"required"`
-	PricePerUnit float64  `json:"price_per_unit"` // Цена за единицу измерения
-	TotalAmount  float64  `json:"total_amount"`   // Общая сумма позиции
+	IngredientID *string `json:"ingredient_id,omitempty" binding:"omitempty,uuid"`
+	ProductID    *string `json:"product_id,omitempty" binding:"omitempty,uuid"`
+	Quantity     float64 `json:"quantity" binding:"required,gt=0"`
+	Unit         string  `json:"unit" binding:"required"`
+	PricePerUnit float64 `json:"price_per_unit"` // Цена за единицу измерения
+	TotalAmount  float64 `json:"total_amount"`   // Общая сумма позиции
+}
+
+type SupplyPaymentRequest struct {
+	AccountID       string  `json:"account_id" binding:"required,uuid"`   // Счет для оплаты
+	AccountType     string  `json:"account_type"`                         // Тип счета (для фронтенда)
+	Amount          float64 `json:"amount" binding:"required,gt=0"`       // Сумма платежа
+	PaymentDateTime string  `json:"payment_date_time" binding:"required"` // Дата и время платежа (RFC3339)
 }
 
 type CreateSupplyRequest struct {
-	WarehouseID     string              `json:"warehouse_id" binding:"required,uuid"`     // Склад
-	SupplierID      string              `json:"supplier_id" binding:"required,uuid"`      // Поставщик
-	DeliveryDateTime string             `json:"delivery_date_time" binding:"required"`    // Дата и время поставки (RFC3339)
-	Status          string              `json:"status"`                                    // pending, completed
-	Comment         string              `json:"comment"`                                   // Комментарий
-	Items           []SupplyItemRequest `json:"items" binding:"required,min=1"`
-	// Поля для счета и оплаты
-	InvoiceNumber   string  `json:"invoice_number"`                           // Номер счета от поставщика
-	InvoiceDate     string  `json:"invoice_date"`                             // Дата счета (RFC3339)
-	TotalAmount     float64 `json:"total_amount"`                             // Общая сумма по счету
-	PaymentStatus   string  `json:"payment_status"`                           // none, pending, partial, paid
-	PaymentDate     string  `json:"payment_date"`                             // Дата оплаты (RFC3339)
-	PaymentAmount   float64 `json:"payment_amount"`                           // Сумма оплаты
-	AccountID       string  `json:"account_id"`                               // Счет для оплаты (опционально, для создания транзакции)
+	WarehouseID      string                 `json:"warehouse_id" binding:"required,uuid"`  // Склад
+	SupplierID       string                 `json:"supplier_id" binding:"required,uuid"`   // Поставщик
+	DeliveryDateTime string                 `json:"delivery_date_time" binding:"required"` // Дата и время поставки (RFC3339)
+	Status           string                 `json:"status"`                                // pending, completed
+	Comment          string                 `json:"comment"`                               // Комментарий
+	Items            []SupplyItemRequest    `json:"items" binding:"required,min=1"`
+	Payments         []SupplyPaymentRequest `json:"payments"` // Платежи по поставке
+	// Поля для счета и оплаты (для обратной совместимости)
+	InvoiceNumber string  `json:"invoice_number"` // Номер счета от поставщика
+	InvoiceDate   string  `json:"invoice_date"`   // Дата счета (RFC3339)
+	TotalAmount   float64 `json:"total_amount"`   // Общая сумма по счету
+	PaymentStatus string  `json:"payment_status"` // none, pending, partial, paid
+	PaymentDate   string  `json:"payment_date"`   // Дата оплаты (RFC3339) - deprecated
+	PaymentAmount float64 `json:"payment_amount"` // Сумма оплаты - deprecated
+	AccountID     string  `json:"account_id"`     // Счет для оплаты - deprecated
 }
 
 type UpdateSupplyRequest struct {
-	WarehouseID     *string              `json:"warehouse_id,omitempty" binding:"omitempty,uuid"`
-	SupplierID      *string              `json:"supplier_id,omitempty" binding:"omitempty,uuid"`
-	DeliveryDateTime *string             `json:"delivery_date_time,omitempty"`
-	Status          *string              `json:"status,omitempty"`
-	Comment         *string              `json:"comment,omitempty"`
-	Items           []SupplyItemRequest  `json:"items,omitempty" binding:"omitempty,min=1"`
-	// Поля для счета и оплаты
-	InvoiceNumber   *string  `json:"invoice_number,omitempty"`
-	InvoiceDate     *string  `json:"invoice_date,omitempty"`
-	TotalAmount     *float64 `json:"total_amount,omitempty"`
-	PaymentStatus   *string  `json:"payment_status,omitempty"`
-	PaymentDate     *string  `json:"payment_date,omitempty"`
-	PaymentAmount   *float64 `json:"payment_amount,omitempty"`
-	AccountID       *string  `json:"account_id,omitempty" binding:"omitempty,uuid"`
+	WarehouseID      *string                `json:"warehouse_id,omitempty" binding:"omitempty,uuid"`
+	SupplierID       *string                `json:"supplier_id,omitempty" binding:"omitempty,uuid"`
+	DeliveryDateTime *string                `json:"delivery_date_time,omitempty"`
+	Status           *string                `json:"status,omitempty"`
+	Comment          *string                `json:"comment,omitempty"`
+	Items            []SupplyItemRequest    `json:"items,omitempty" binding:"omitempty,min=1"`
+	Payments         []SupplyPaymentRequest `json:"payments,omitempty"` // Платежи по поставке
+	// Поля для счета и оплаты (для обратной совместимости)
+	InvoiceNumber *string  `json:"invoice_number,omitempty"`
+	InvoiceDate   *string  `json:"invoice_date,omitempty"`
+	TotalAmount   *float64 `json:"total_amount,omitempty"`
+	PaymentStatus *string  `json:"payment_status,omitempty"`
+	PaymentDate   *string  `json:"payment_date,omitempty"`                        // deprecated
+	PaymentAmount *float64 `json:"payment_amount,omitempty"`                      // deprecated
+	AccountID     *string  `json:"account_id,omitempty" binding:"omitempty,uuid"` // deprecated
 }
 
 // CreateSupply создает новую поставку
@@ -416,11 +444,11 @@ func (h *WarehouseHandler) CreateSupply(c *gin.Context) {
 		}
 
 		item := models.SupplyItem{
-			ID:            uuid.New(), // Явно генерируем UUID
+			ID:           uuid.New(), // Явно генерируем UUID
 			IngredientID: ingID,
-			ProductID:   prodID,
-			Quantity:    it.Quantity,
-			Unit:        it.Unit,
+			ProductID:    prodID,
+			Quantity:     it.Quantity,
+			Unit:         it.Unit,
 			PricePerUnit: pricePerUnit,
 			TotalAmount:  totalAmount,
 		}
@@ -447,25 +475,62 @@ func (h *WarehouseHandler) CreateSupply(c *gin.Context) {
 		}
 	}
 
+	// Парсим массив платежей
+	payments := make([]models.SupplyPayment, 0, len(req.Payments))
+	for _, p := range req.Payments {
+		accID, err := uuid.Parse(p.AccountID)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("invalid account_id in payment: %s", err.Error())})
+			return
+		}
+
+		paymentDateTime, err := time.Parse(time.RFC3339, p.PaymentDateTime)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("invalid payment_date_time format, expected RFC3339: %s", err.Error())})
+			return
+		}
+
+		payment := models.SupplyPayment{
+			ID:              uuid.New(),
+			AccountID:       accID,
+			Amount:          p.Amount,
+			PaymentDateTime: paymentDateTime,
+		}
+		payments = append(payments, payment)
+	}
+
+	// Вычисляем PaymentStatus на основе суммы платежей
 	paymentStatus := req.PaymentStatus
 	if paymentStatus == "" {
-		paymentStatus = "none"
+		totalPayments := 0.0
+		for _, p := range payments {
+			totalPayments += p.Amount
+		}
+
+		if len(payments) == 0 || totalPayments == 0 {
+			paymentStatus = "none"
+		} else if totalPayments >= req.TotalAmount {
+			paymentStatus = "paid"
+		} else {
+			paymentStatus = "partial"
+		}
 	}
 
 	supply := &models.Supply{
-		WarehouseID:     whID,
-		SupplierID:      supID,
+		WarehouseID:      whID,
+		SupplierID:       supID,
 		DeliveryDateTime: deliveryDateTime,
-		Status:          status,
-		Comment:         req.Comment,
-		Items:           items,
-		InvoiceNumber:   req.InvoiceNumber,
-		InvoiceDate:     invoiceDate,
-		TotalAmount:     req.TotalAmount,
-		PaymentStatus:   paymentStatus,
-		PaymentDate:     paymentDate,
-		PaymentAmount:   req.PaymentAmount,
-		AccountID:       accountID,
+		Status:           status,
+		Comment:          req.Comment,
+		Items:            items,
+		Payments:         payments,
+		InvoiceNumber:    req.InvoiceNumber,
+		InvoiceDate:      invoiceDate,
+		TotalAmount:      req.TotalAmount,
+		PaymentStatus:    paymentStatus,
+		PaymentDate:      paymentDate,
+		PaymentAmount:    req.PaymentAmount,
+		AccountID:        accountID,
 	}
 	if err := h.usecase.CreateSupply(c.Request.Context(), supply, estID); err != nil {
 		h.logger.Error("Failed to create supply", zap.Error(err))
@@ -594,17 +659,62 @@ func (h *WarehouseHandler) UpdateSupply(c *gin.Context) {
 			}
 
 			item := models.SupplyItem{
-				ID:            uuid.New(),
+				ID:           uuid.New(),
 				IngredientID: ingID,
-				ProductID:   prodID,
-				Quantity:    it.Quantity,
-				Unit:        it.Unit,
+				ProductID:    prodID,
+				Quantity:     it.Quantity,
+				Unit:         it.Unit,
 				PricePerUnit: pricePerUnit,
 				TotalAmount:  totalAmount,
 			}
 			items = append(items, item)
 		}
 		existingSupply.Items = items
+	}
+
+	// Обновляем payments если они переданы
+	if req.Payments != nil {
+		payments := make([]models.SupplyPayment, 0, len(req.Payments))
+		for _, p := range req.Payments {
+			accID, err := uuid.Parse(p.AccountID)
+			if err != nil {
+				c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("invalid account_id in payment: %s", err.Error())})
+				return
+			}
+
+			paymentDateTime, err := time.Parse(time.RFC3339, p.PaymentDateTime)
+			if err != nil {
+				c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("invalid payment_date_time format, expected RFC3339: %s", err.Error())})
+				return
+			}
+
+			payment := models.SupplyPayment{
+				ID:              uuid.New(),
+				SupplyID:        existingSupply.ID,
+				AccountID:       accID,
+				Amount:          p.Amount,
+				PaymentDateTime: paymentDateTime,
+			}
+			payments = append(payments, payment)
+		}
+
+		existingSupply.Payments = payments
+
+		// Если статус явно не передан, вычисляем его из суммы платежей
+		if req.PaymentStatus == nil {
+			totalPayments := 0.0
+			for _, p := range payments {
+				totalPayments += p.Amount
+			}
+
+			if len(payments) == 0 || totalPayments == 0 {
+				existingSupply.PaymentStatus = "none"
+			} else if totalPayments >= existingSupply.TotalAmount {
+				existingSupply.PaymentStatus = "paid"
+			} else {
+				existingSupply.PaymentStatus = "partial"
+			}
+		}
 	}
 
 	if err := h.usecase.UpdateSupply(c.Request.Context(), existingSupply, estID); err != nil {
@@ -621,19 +731,19 @@ func (h *WarehouseHandler) UpdateSupply(c *gin.Context) {
 // WriteOffItemRequest представляет позицию списания
 type WriteOffItemRequest struct {
 	IngredientID *string `json:"ingredient_id,omitempty" binding:"omitempty,uuid" example:"550e8400-e29b-41d4-a716-446655440001"` // ID ингредиента (обязательно, если не указан product_id)
-	ProductID    *string `json:"product_id,omitempty" binding:"omitempty,uuid" example:"550e8400-e29b-41d4-a716-446655440002"`        // ID товара (обязательно, если не указан ingredient_id)
-	Quantity     float64 `json:"quantity" binding:"required,gt=0" example:"10"`                                                    // Количество для списания
-	Unit         string  `json:"unit" binding:"required" example:"кг"`                                                              // Единица измерения
-	Details      string  `json:"details" example:"Детали списания"`                                                                  // Детали списания
+	ProductID    *string `json:"product_id,omitempty" binding:"omitempty,uuid" example:"550e8400-e29b-41d4-a716-446655440002"`    // ID товара (обязательно, если не указан ingredient_id)
+	Quantity     float64 `json:"quantity" binding:"required,gt=0" example:"10"`                                                   // Количество для списания
+	Unit         string  `json:"unit" binding:"required" example:"кг"`                                                            // Единица измерения
+	Details      string  `json:"details" example:"Детали списания"`                                                               // Детали списания
 }
 
 // CreateWriteOffRequest представляет запрос на создание списания
 type CreateWriteOffRequest struct {
-	WarehouseID      string               `json:"warehouse_id" binding:"required,uuid" example:"550e8400-e29b-41d4-a716-446655440000"` // ID склада
-	WriteOffDateTime string               `json:"write_off_date_time" binding:"required" example:"2026-01-18T17:18:00Z"`              // Дата и время списания в формате RFC3339
-	Reason           string               `json:"reason" example:"Без причины"`                                                      // Причина списания
-	Comment          string               `json:"comment" example:"Комментарий к списанию"`                                          // Комментарий
-	Items            []WriteOffItemRequest `json:"items" binding:"required,min=1"`                                                    // Список позиций для списания (минимум 1)
+	WarehouseID      string                `json:"warehouse_id" binding:"required,uuid" example:"550e8400-e29b-41d4-a716-446655440000"` // ID склада
+	WriteOffDateTime string                `json:"write_off_date_time" binding:"required" example:"2026-01-18T17:18:00Z"`               // Дата и время списания в формате RFC3339
+	Reason           string                `json:"reason" example:"Без причины"`                                                        // Причина списания
+	Comment          string                `json:"comment" example:"Комментарий к списанию"`                                            // Комментарий
+	Items            []WriteOffItemRequest `json:"items" binding:"required,min=1"`                                                      // Список позиций для списания (минимум 1)
 }
 
 // CreateWriteOff создает списание со склада
@@ -689,20 +799,20 @@ func (h *WarehouseHandler) CreateWriteOff(c *gin.Context) {
 		item := models.WriteOffItem{
 			ID:           uuid.New(), // Явно генерируем UUID
 			IngredientID: ingID,
-			ProductID:   prodID,
-			Quantity:    it.Quantity,
-			Unit:        it.Unit,
-			Details:     it.Details,
+			ProductID:    prodID,
+			Quantity:     it.Quantity,
+			Unit:         it.Unit,
+			Details:      it.Details,
 		}
 		items = append(items, item)
 	}
 
 	wo := &models.WriteOff{
-		WarehouseID:     whID,
+		WarehouseID:      whID,
 		WriteOffDateTime: writeOffDateTime,
-		Reason:          req.Reason,
-		Comment:         req.Comment,
-		Items:           items,
+		Reason:           req.Reason,
+		Comment:          req.Comment,
+		Items:            items,
 	}
 	if err := h.usecase.CreateWriteOff(c.Request.Context(), wo, estID); err != nil {
 		h.logger.Error("Failed to create write-off", zap.Error(err))
@@ -928,16 +1038,60 @@ func (h *WarehouseHandler) GetMovements(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"data": list})
 }
 
+// CreateTransfer создает перемещение между складами
+// @Summary Создать перемещение между складами
+// @Description Создает перемещение товаров/ингредиентов между складами
+// @Tags warehouse
+// @Accept json
+// @Produce json
+// @Security Bearer
+// @Param request body CreateTransferRequest true "Данные перемещения"
+// @Success 200 {object} map[string]interface{}
+// @Failure 400 {object} map[string]string
+// @Failure 403 {object} map[string]string
+// @Failure 500 {object} map[string]string
+// @Router /warehouse/transfers [post]
+func (h *WarehouseHandler) CreateTransfer(c *gin.Context) {
+	var req CreateTransferRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	_, err := getEstablishmentID(c)
+	if err != nil {
+		c.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Вызываем use case для создания трансфера
+	// Пока что просто вернём успешный ответ -
+	// в реальной реализации нужно добавить логику в use case
+	transfer := map[string]interface{}{
+		"type":              "transfer",
+		"from_warehouse_id": req.FromWarehouseID,
+		"to_warehouse_id":   req.ToWarehouseID,
+		"date_time":         req.DateTime,
+		"comment":           req.Comment,
+		"items":             req.Items,
+		"created_at":        time.Now().UTC(),
+	}
+
+	// Здесь нужна полная реализация CreateTransfer в use case
+	// Для теперь просто логируем и возвращаем данные
+	c.JSON(http.StatusOK, gin.H{"data": transfer})
+}
+
 // ——— Suppliers ———
 
 type CreateSupplierRequest struct {
-	Name           string `json:"name" binding:"required"`           // Имя
-	TaxpayerNumber string `json:"taxpayer_number"`                   // Номер налогоплательщика
-	Phone          string `json:"phone"`                             // Телефон
-	Address        string `json:"address"`                           // Адрес
-	Comment        string `json:"comment"`                           // Комментарий
-	Contact        string `json:"contact"`                           // Контактное лицо (опционально)
-	Email          string `json:"email"`                             // Email (опционально)
+	Name           string `json:"name" binding:"required"` // Имя
+	TaxpayerNumber string `json:"taxpayer_number"`         // Номер налогоплательщика
+	Phone          string `json:"phone"`                   // Телефон
+	Address        string `json:"address"`                 // Адрес
+	Comment        string `json:"comment"`                 // Комментарий
+	Contact        string `json:"contact"`                 // Контактное лицо (опционально)
+	Email          string `json:"email"`                   // Email (опционально)
 }
 
 type UpdateSupplierRequest struct {

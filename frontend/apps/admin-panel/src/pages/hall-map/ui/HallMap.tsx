@@ -1,6 +1,10 @@
 import { useHallMap } from '../hooks/useHallMap'
 import * as Styled from './styled'
 import { useState, useRef, useCallback, useEffect } from 'react'
+import { QRCodeModal } from './QRCodeModal'
+import type { HallMapTable } from '../model/types'
+
+type QRModalTable = HallMapTable & { qr_token?: string }
 
 export const HallMap = () => {
   const {
@@ -26,7 +30,9 @@ export const HallMap = () => {
     handleUpdateTablePosition,
     handleUpdateTableSize,
     handleUpdateTableShape,
+    handleBulkUpdateTableShapes,
     flushPendingUpdates,
+    handleUploadRoomBackground,
   } = useHallMap()
 
   const [draggedTableId, setDraggedTableId] = useState<string | null>(null)
@@ -41,6 +47,16 @@ export const HallMap = () => {
   const [resizeDirection, setResizeDirection] = useState<string | null>(null)
   const [hoveredTableId, setHoveredTableId] = useState<string | null>(null)
   const canvasRef = useRef<HTMLDivElement>(null)
+  const backgroundFileInputRef = useRef<HTMLInputElement>(null)
+
+  const [backgroundType, setBackgroundType] = useState<'grid' | 'plain' | 'photo'>('grid')
+  const [qrModalTable, setQrModalTable] = useState<QRModalTable | null>(null)
+
+  // Получаем текущую комнату
+  const currentRoom = rooms.find((room) => room.id === selectedRoomId)
+  const backgroundImage = currentRoom?.background_image_url || null
+
+  const resolvedBackgroundType = backgroundType === 'photo' && !backgroundImage ? 'grid' : backgroundType
 
   const handleTableMouseDown = useCallback(
     (e: React.MouseEvent, tableId: string) => {
@@ -132,7 +148,7 @@ export const HallMap = () => {
     setResizeDirection(null)
   }, [])
 
-  const handleTableDoubleClick = useCallback(
+  const handleToggleTableShape = useCallback(
     (e: React.MouseEvent, tableId: string) => {
       e.preventDefault()
       e.stopPropagation()
@@ -146,6 +162,16 @@ export const HallMap = () => {
     [tables, handleUpdateTableShape]
   )
 
+  const handleBulkShapeChange = useCallback(
+    (e: React.ChangeEvent<HTMLSelectElement>) => {
+      const value = e.target.value
+      if (value === 'round' || value === 'square') {
+        handleBulkUpdateTableShapes(value)
+      }
+    },
+    [handleBulkUpdateTableShapes]
+  )
+
   const handleDeleteClick = useCallback(
     (e: React.MouseEvent, tableId: string) => {
       e.preventDefault()
@@ -155,6 +181,42 @@ export const HallMap = () => {
       }
     },
     [handleDeleteTable]
+  )
+
+  const handleBackgroundTypeChange = useCallback(
+    (e: React.ChangeEvent<HTMLSelectElement>) => {
+      const nextType = e.target.value as 'grid' | 'plain' | 'photo'
+
+      if (nextType === 'photo' && !backgroundImage) {
+        backgroundFileInputRef.current?.click()
+        return
+      }
+
+      setBackgroundType(nextType)
+    },
+    [backgroundImage]
+  )
+
+  const handleUploadBackgroundClick = useCallback(() => {
+    backgroundFileInputRef.current?.click()
+  }, [])
+
+  const handleBackgroundFileChange = useCallback(
+    async (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0]
+      if (!file) return
+
+      try {
+        await handleUploadRoomBackground(file)
+        setBackgroundType('photo')
+      } catch (error) {
+        console.error('Failed to upload background:', error)
+        alert('Не удалось загрузить фон. Попробуйте еще раз.')
+      }
+
+      e.target.value = ''
+    },
+    [handleUploadRoomBackground]
   )
 
   // Добавляем обработчики для перетаскивания и изменения размера
@@ -168,6 +230,25 @@ export const HallMap = () => {
       }
     }
   }, [draggedTableId, resizingTableId, handleMouseMove, handleMouseUp])
+
+  // Синхронизация типа фона с localStorage для UI
+  useEffect(() => {
+    const savedBackgroundType = window.localStorage.getItem('hall-map-background-type')
+    if (savedBackgroundType === 'grid' || savedBackgroundType === 'plain' || savedBackgroundType === 'photo') {
+      setBackgroundType(savedBackgroundType)
+    }
+  }, [])
+
+  useEffect(() => {
+    window.localStorage.setItem('hall-map-background-type', backgroundType)
+  }, [backgroundType])
+
+  // Автоматическое переключение на фото, если есть загруженный фон
+  useEffect(() => {
+    if (backgroundImage && backgroundType !== 'photo') {
+      setBackgroundType('photo')
+    }
+  }, [backgroundImage])
 
   const [hallName, setHallName] = useState('')
   const [tableNumber, setTableNumber] = useState('')
@@ -292,14 +373,35 @@ export const HallMap = () => {
 
             {selectedRoomId && (
               <>
-                <Styled.AddTableButton onClick={handleAddTable}>Добавить стол</Styled.AddTableButton>
+                <Styled.BackgroundSelect value={resolvedBackgroundType} onChange={handleBackgroundTypeChange}>
+                  <option value="grid">Решетка</option>
+                  <option value="plain">Сплошной фон</option>
+                  <option value="photo">Фото</option>
+                </Styled.BackgroundSelect>
+                <Styled.AddTableButton onClick={handleUploadBackgroundClick}>Загрузить фон</Styled.AddTableButton>
+                <Styled.BackgroundSelect onChange={handleBulkShapeChange} defaultValue="">
+                  <option value="" disabled>Форма столов</option>
+                  <option value="round">Все круглые</option>
+                  <option value="square">Все квадратные</option>
+                </Styled.BackgroundSelect>
+                <input
+                  ref={backgroundFileInputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={handleBackgroundFileChange}
+                  style={{ display: 'none' }}
+                />
               </>
             )}
           </Styled.SelectorsGroup>
         </Styled.HeaderControls>
       </Styled.Header>
 
-      <Styled.CanvasContainer ref={canvasRef}>
+      <Styled.CanvasContainer
+        ref={canvasRef}
+        $backgroundType={resolvedBackgroundType}
+        $backgroundImage={backgroundImage}
+      >
         {selectedRoomId &&
           tables.map((table) => (
             <Styled.TableWrapper
@@ -316,16 +418,32 @@ export const HallMap = () => {
                 $shape={table.shape || 'round'}
                 $status={table.status}
                 onMouseDown={(e) => handleTableMouseDown(e, table.id)}
-                onDoubleClick={(e) => handleTableDoubleClick(e, table.id)}
                 title={`Стол ${table.number}${table.name ? ` - ${table.name}` : ''}`}
               >
                 {hoveredTableId === table.id && (
-                  <Styled.TableDeleteButton
-                    onClick={(e) => handleDeleteClick(e, table.id)}
-                    title="Удалить стол"
-                  >
-                    ×
-                  </Styled.TableDeleteButton>
+                  <>
+                    <Styled.TableShapeButton
+                      onClick={(e) => handleToggleTableShape(e, table.id)}
+                      title={`Изменить форму (сейчас: ${table.shape === 'round' ? 'круглая' : 'квадратная'})`}
+                    >
+                      {table.shape === 'round' ? '⬜' : '⭕'}
+                    </Styled.TableShapeButton>
+                    <Styled.TableShapeButton
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        setQrModalTable(table as QRModalTable)
+                      }}
+                      title="QR-код для стола"
+                    >
+                      📱
+                    </Styled.TableShapeButton>
+                    <Styled.TableDeleteButton
+                      onClick={(e) => handleDeleteClick(e, table.id)}
+                      title="Удалить стол"
+                    >
+                      ×
+                    </Styled.TableDeleteButton>
+                  </>
                 )}
                 {table.number}
                 <Styled.ResizeHandle
@@ -503,6 +621,14 @@ export const HallMap = () => {
             </Styled.ModalForm>
           </Styled.Modal>
         </Styled.ModalOverlay>
+      )}
+
+      {qrModalTable && selectedRoomId && (
+        <QRCodeModal
+          table={qrModalTable}
+          roomId={selectedRoomId}
+          onClose={() => setQrModalTable(null)}
+        />
       )}
     </Styled.PageContainer>
   )

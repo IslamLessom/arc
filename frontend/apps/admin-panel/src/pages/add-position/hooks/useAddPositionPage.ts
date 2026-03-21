@@ -1,10 +1,29 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useGetPosition, useCreatePosition, useUpdatePosition, useGetPositions } from '@restaurant-pos/api-client'
-import type { AddPositionFormData, FieldErrors, AccessLevel } from '../model/types'
+import type { AddPositionFormData, FieldErrors, AccessLevel, SalaryPercentageRule } from '../model/types'
 import { ADMIN_PANEL_SECTIONS, SALARY_CATEGORIES, DEFAULT_ADMIN_PANEL_ACCESS } from '../model/types'
 
+const DEFAULT_SALARY_RULE: SalaryPercentageRule = {
+  categoryId: 'all',
+  percentage: '0',
+}
+
 const formatFormDataToPermissions = (formData: AddPositionFormData): string => {
+  const personalSalesPercentages = formData.salaryCalculation.personalSalesPercentages
+    .filter((rule) => (rule.percentage || '').trim() !== '' && Number(rule.percentage || 0) > 0)
+    .map((rule) => ({
+      ...(rule.categoryId && rule.categoryId !== 'all' && { category_id: rule.categoryId }),
+      percentage: parseFloat(rule.percentage || '0'),
+    }))
+
+  const shiftSalesPercentages = formData.salaryCalculation.shiftSalesPercentages
+    .filter((rule) => (rule.percentage || '').trim() !== '' && Number(rule.percentage || 0) > 0)
+    .map((rule) => ({
+      ...(rule.categoryId && rule.categoryId !== 'all' && { category_id: rule.categoryId }),
+      percentage: parseFloat(rule.percentage || '0'),
+    }))
+
   const permissions = {
     cash_access: {
       work_with_cash: formData.cashAccess.workWithCash,
@@ -37,26 +56,16 @@ const formatFormDataToPermissions = (formData: AddPositionFormData): string => {
             },
           }
         : {}),
-      ...(formData.salaryCalculation.personalSalesPercentage.percentage
+      ...(personalSalesPercentages.length > 0
         ? {
-            personal_sales_percentage: {
-              ...(formData.salaryCalculation.personalSalesPercentage.categoryId &&
-                formData.salaryCalculation.personalSalesPercentage.categoryId !== 'all' && {
-                  category_id: formData.salaryCalculation.personalSalesPercentage.categoryId,
-                }),
-              percentage: parseFloat(formData.salaryCalculation.personalSalesPercentage.percentage || '0'),
-            },
+            personal_sales_percentage: personalSalesPercentages[0],
+            personal_sales_percentages: personalSalesPercentages,
           }
         : {}),
-      ...(formData.salaryCalculation.shiftSalesPercentage.percentage
+      ...(shiftSalesPercentages.length > 0
         ? {
-            shift_sales_percentage: {
-              ...(formData.salaryCalculation.shiftSalesPercentage.categoryId &&
-                formData.salaryCalculation.shiftSalesPercentage.categoryId !== 'all' && {
-                  category_id: formData.salaryCalculation.shiftSalesPercentage.categoryId,
-                }),
-              percentage: parseFloat(formData.salaryCalculation.shiftSalesPercentage.percentage || '0'),
-            },
+            shift_sales_percentage: shiftSalesPercentages[0],
+            shift_sales_percentages: shiftSalesPercentages,
           }
         : {}),
     },
@@ -74,6 +83,30 @@ const parsePermissionsToFormData = (permissionsString: string): Partial<AddPosit
       adminPanelAccess[section.section] = section.access_level as AccessLevel
     })
 
+    const parsedPersonalSalesPercentages =
+      permissions.salary_calculation?.personal_sales_percentages?.map((rule: any) => ({
+        categoryId: rule?.category_id || 'all',
+        percentage: rule?.percentage?.toString() || '0',
+      })) ||
+      (permissions.salary_calculation?.personal_sales_percentage
+        ? [{
+            categoryId: permissions.salary_calculation.personal_sales_percentage?.category_id || 'all',
+            percentage: permissions.salary_calculation.personal_sales_percentage?.percentage?.toString() || '0',
+          }]
+        : [])
+
+    const parsedShiftSalesPercentages =
+      permissions.salary_calculation?.shift_sales_percentages?.map((rule: any) => ({
+        categoryId: rule?.category_id || 'all',
+        percentage: rule?.percentage?.toString() || '0',
+      })) ||
+      (permissions.salary_calculation?.shift_sales_percentage
+        ? [{
+            categoryId: permissions.salary_calculation.shift_sales_percentage?.category_id || 'all',
+            percentage: permissions.salary_calculation.shift_sales_percentage?.percentage?.toString() || '0',
+          }]
+        : [])
+
     return {
       cashAccess: {
         workWithCash: permissions.cash_access?.work_with_cash || false,
@@ -89,14 +122,12 @@ const parsePermissionsToFormData = (permissionsString: string): Partial<AddPosit
           perShift: permissions.salary_calculation?.fixed_rate?.per_shift?.toString() || '',
           perMonth: permissions.salary_calculation?.fixed_rate?.per_month?.toString() || '',
         },
-        personalSalesPercentage: {
-          categoryId: permissions.salary_calculation?.personal_sales_percentage?.category_id || 'all',
-          percentage: permissions.salary_calculation?.personal_sales_percentage?.percentage?.toString() || '0',
-        },
-        shiftSalesPercentage: {
-          categoryId: permissions.salary_calculation?.shift_sales_percentage?.category_id || 'all',
-          percentage: permissions.salary_calculation?.shift_sales_percentage?.percentage?.toString() || '0',
-        },
+        personalSalesPercentages: parsedPersonalSalesPercentages.length > 0
+          ? parsedPersonalSalesPercentages
+          : [{ ...DEFAULT_SALARY_RULE }],
+        shiftSalesPercentages: parsedShiftSalesPercentages.length > 0
+          ? parsedShiftSalesPercentages
+          : [{ ...DEFAULT_SALARY_RULE }],
       },
     }
   } catch (error) {
@@ -151,14 +182,8 @@ export const useAddPositionPage = () => {
         perShift: '',
         perMonth: '',
       },
-      personalSalesPercentage: {
-        categoryId: 'all',
-        percentage: '0',
-      },
-      shiftSalesPercentage: {
-        categoryId: 'all',
-        percentage: '0',
-      },
+      personalSalesPercentages: [{ ...DEFAULT_SALARY_RULE }],
+      shiftSalesPercentages: [{ ...DEFAULT_SALARY_RULE }],
     },
     salaryCategories: SALARY_CATEGORIES,
   })
@@ -251,6 +276,43 @@ export const useAddPositionPage = () => {
     }))
   }, [])
 
+  const handleSalaryPercentageChange = useCallback((
+    type: 'personal' | 'shift',
+    index: number,
+    field: 'categoryId' | 'percentage',
+    value: string
+  ) => {
+    setFormData((prev) => {
+      const targetField =
+        type === 'personal' ? 'personalSalesPercentages' : 'shiftSalesPercentages'
+
+      const updatedRules = [...prev.salaryCalculation[targetField]]
+      updatedRules[index] = {
+        ...updatedRules[index],
+        [field]: value,
+      }
+
+      return {
+        ...prev,
+        salaryCalculation: {
+          ...prev.salaryCalculation,
+          [targetField]: updatedRules,
+        },
+      }
+    })
+  }, [])
+
+  const handleAddSalaryCategory = useCallback(() => {
+    setFormData((prev) => ({
+      ...prev,
+      salaryCalculation: {
+        ...prev.salaryCalculation,
+        personalSalesPercentages: [...prev.salaryCalculation.personalSalesPercentages, { ...DEFAULT_SALARY_RULE }],
+        shiftSalesPercentages: [...prev.salaryCalculation.shiftSalesPercentages, { ...DEFAULT_SALARY_RULE }],
+      },
+    }))
+  }, [])
+
   const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault()
     setError(null)
@@ -302,6 +364,8 @@ export const useAddPositionPage = () => {
     handleFieldChange,
     handleNestedFieldChange,
     handleAdminPanelAccessChange,
+    handleSalaryPercentageChange,
+    handleAddSalaryCategory,
     handleSubmit,
     handleBack,
   }

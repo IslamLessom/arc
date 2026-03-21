@@ -12,6 +12,7 @@ export interface PinAuthUser {
   email: string
   name: string
   onboarding_completed: boolean
+  permissions?: string
 }
 
 export interface PinLoginResponse {
@@ -61,6 +62,9 @@ export function usePinLogin() {
         localStorage.setItem('establishment_id', request.establishment_id)
         if (response.data.refresh_token) {
           localStorage.setItem('refresh_token', response.data.refresh_token)
+        }
+        if (response.data.user.permissions) {
+          localStorage.setItem('employee_permissions', response.data.user.permissions)
         }
       }
 

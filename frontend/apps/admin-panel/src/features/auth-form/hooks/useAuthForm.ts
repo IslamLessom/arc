@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '@restaurant-pos/api-client';
+import { getApiErrorMessage, useAuth } from '@restaurant-pos/api-client';
 import { saveUserData } from '../../../shared/hooks/useOnboardingStatus';
 import type { UseAuthFormResult, AuthFormProps } from '../model/types';
 
@@ -61,19 +61,7 @@ export function useAuthForm(props: AuthFormProps): UseAuthFormResult {
         // Перенаправление на главную страницу
         navigate('/');
       } catch (err: unknown) {
-        let errorMessage = 'Неверный email или пароль';
-        
-        if (err && typeof err === 'object' && 'response' in err) {
-          const axiosError = err as { response?: { data?: { error?: string } } };
-          if (axiosError.response?.data?.error) {
-            errorMessage = axiosError.response.data.error;
-          } else if (axiosError.response?.data && typeof axiosError.response.data === 'string') {
-            errorMessage = axiosError.response.data;
-          }
-        } else if (err instanceof Error) {
-          errorMessage = err.message;
-        }
-        
+        const errorMessage = getApiErrorMessage(err, 'Неверный email или пароль');
         setError(errorMessage);
       }
     },

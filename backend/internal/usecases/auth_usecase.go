@@ -2,6 +2,7 @@ package usecases
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"time"
@@ -15,15 +16,35 @@ import (
 
 var ErrUserAlreadyExists = errors.New("user with this email already exists")
 var ErrEmailRequired = errors.New("email is required")
+var ErrNoApplicationAccess = errors.New("employee does not have access to this application")
+var ErrSubscriptionExpired = errors.New("subscription expired")
+
+// PermissionsData представляет распарсенные permissions из role
+type PermissionsData struct {
+	CashAccess struct {
+		WorkWithCash bool `json:"work_with_cash"`
+		AdminHall    bool `json:"admin_hall"`
+	} `json:"cash_access"`
+	AdminPanelAccess struct {
+		Sections []struct {
+			Section     string `json:"section"`
+			AccessLevel string `json:"access_level"`
+		} `json:"sections"`
+	} `json:"admin_panel_access"`
+	ApplicationsAccess struct {
+		ConfirmInstallation bool `json:"confirm_installation"`
+	} `json:"applications_access"`
+	SalaryCalculation struct{} `json:"salary_calculation"`
+}
 
 type AuthUseCase struct {
-	userRepo         repositories.UserRepository
-	roleRepo         repositories.RoleRepository
-	subscriptionRepo repositories.SubscriptionRepository
-	tokenRepo        repositories.TokenRepository
+	userRepo          repositories.UserRepository
+	roleRepo          repositories.RoleRepository
+	subscriptionRepo  repositories.SubscriptionRepository
+	tokenRepo         repositories.TokenRepository
 	establishmentRepo repositories.EstablishmentRepository
-	shiftUseCase     *ShiftUseCase // Заменено на ShiftUseCase
-	config           *config.Config
+	shiftUseCase      *ShiftUseCase // Заменено на ShiftUseCase
+	config            *config.Config
 }
 
 func NewAuthUseCase(
@@ -36,13 +57,13 @@ func NewAuthUseCase(
 	cfg *config.Config,
 ) *AuthUseCase {
 	return &AuthUseCase{
-		userRepo:         userRepo,
-		roleRepo:         roleRepo,
-		subscriptionRepo: subscriptionRepo,
-		tokenRepo:        tokenRepo,
+		userRepo:          userRepo,
+		roleRepo:          roleRepo,
+		subscriptionRepo:  subscriptionRepo,
+		tokenRepo:         tokenRepo,
 		establishmentRepo: establishmentRepo,
-		shiftUseCase:     shiftUseCase, // Присвоение ShiftUseCase
-		config:           cfg,
+		shiftUseCase:      shiftUseCase, // Присвоение ShiftUseCase
+		config:            cfg,
 	}
 }
 
@@ -50,12 +71,12 @@ func NewAuthUseCase(
 func (uc *AuthUseCase) Register(ctx context.Context, email, password, name string) (*models.User, string, string, error) {
 	// Проверяем, существует ли пользователь
 	if email == "" {
-				return nil, "", "", ErrEmailRequired
+		return nil, "", "", ErrEmailRequired
 	}
 
 	existingUser, _ := uc.userRepo.GetByEmail(ctx, email)
 	if existingUser != nil {
-				return nil, "", "", ErrUserAlreadyExists
+		return nil, "", "", ErrUserAlreadyExists
 	}
 
 	// Хешируем пароль
@@ -74,11 +95,11 @@ func (uc *AuthUseCase) Register(ctx context.Context, email, password, name strin
 
 	// Создаем пользователя
 	user := &models.User{
-		Email:                &email,
-		Password:             hashedPassword,
-		Name:                 name,
-		RoleID:               roleID,
-		OnboardingCompleted:  false,
+		Email:               &email,
+		Password:            hashedPassword,
+		Name:                name,
+		RoleID:              roleID,
+		OnboardingCompleted: false,
 	}
 
 	if err := uc.userRepo.Create(ctx, user); err != nil {
@@ -86,7 +107,7 @@ func (uc *AuthUseCase) Register(ctx context.Context, email, password, name strin
 	}
 
 	// Создаем подписку на бесплатный тариф (14 дней)
-	plan, err := uc.subscriptionRepo.GetPlanByName(ctx, "Free Trial")
+	plan, err := uc.subscriptionRepo.GetPlanByName(ctx, "Trial")
 	if err != nil {
 		// Если плана нет, пропускаем создание подписки (можно создать позже)
 		// return nil, "", "", fmt.Errorf("free trial plan not found: %w", err)
@@ -156,6 +177,44 @@ func (uc *AuthUseCase) LoginEmployee(ctx context.Context, pin string, initialCas
 		return nil, "", "", repositories.ErrUserNotFound
 	}
 
+	// Проверяем, что у сотрудника есть роль
+	if user.Role == nil {
+		return nil, "", "", errors.New("employee role not found")
+	}
+
+	// Проверяем доступ к приложению POS (обязательное условие для входа в POS)
+	perms := &PermissionsData{}
+	if user.Role.Permissions != "" {
+		if err := json.Unmarshal([]byte(user.Role.Permissions), perms); err != nil {
+			// Если не можем распарсить permissions - считаем что доступа нет
+			return nil, "", "", fmt.Errorf("failed to parse role permissions: %w", err)
+		}
+	}
+
+	// Для входа в POS приложение у сотрудника должен быть хотя бы какой-то доступ установлен
+	// Либо явный доступ к POS (через applications_access или какой-то другой механизм)
+	// Пока будем проверять что хотя бы есть разрешение работать с кассой
+	// или какие-то установленные права вообще
+
+	// Проверяем наличие реальных прав в админ-панели (не 'none')
+	hasAdminAccess := false
+	for _, section := range perms.AdminPanelAccess.Sections {
+		if section.AccessLevel != "none" {
+			hasAdminAccess = true
+			break
+		}
+	}
+
+	hasAnyAccess := perms.CashAccess.WorkWithCash ||
+		perms.CashAccess.AdminHall ||
+		hasAdminAccess
+
+	if !hasAnyAccess && user.Role.Permissions != "" {
+		// Если есть permissions строка но нет доступов - это потенциально означает что администратор
+		// запретил доступ сотруднику (явно удалил все права)
+		return nil, "", "", ErrNoApplicationAccess
+	}
+
 	// Если у пользователя не установлен EstablishmentID, устанавливаем его
 	updated := false
 	if user.EstablishmentID == nil {
@@ -172,6 +231,14 @@ func (uc *AuthUseCase) LoginEmployee(ctx context.Context, pin string, initialCas
 		if err != nil {
 			return nil, "", "", fmt.Errorf("failed to update user establishment: %w", err)
 		}
+	}
+
+	isValidSubscription, err := uc.ValidateSubscription(ctx, user.ID)
+	if err != nil {
+		return nil, "", "", fmt.Errorf("failed to validate subscription: %w", err)
+	}
+	if !isValidSubscription {
+		return nil, "", "", ErrSubscriptionExpired
 	}
 
 	// Проверяем, есть ли уже активная сессия у пользователя
@@ -202,7 +269,7 @@ func (uc *AuthUseCase) LoginEmployee(ctx context.Context, pin string, initialCas
 // RefreshToken обновляет access token используя refresh token
 func (uc *AuthUseCase) RefreshToken(ctx context.Context, refreshTokenString string) (string, string, error) {
 	claims, err := auth.ValidateToken(refreshTokenString, uc.config.JWT.Secret)
-		if err != nil {
+	if err != nil {
 		return "", "", errors.New("invalid refresh token")
 	}
 
@@ -228,13 +295,33 @@ func (uc *AuthUseCase) RefreshToken(ctx context.Context, refreshTokenString stri
 
 // ValidateSubscription проверяет, активна ли подписка пользователя
 func (uc *AuthUseCase) ValidateSubscription(ctx context.Context, userID uuid.UUID) (bool, error) {
+	user, err := uc.userRepo.GetByID(ctx, userID)
+	if err != nil {
+		return false, err
+	}
+
 	subscription, err := uc.subscriptionRepo.GetSubscriptionByUserID(ctx, userID)
 	if err != nil {
 		return false, err
 	}
 
 	if subscription == nil {
-		return false, nil
+		if user.EstablishmentID == nil {
+			return false, nil
+		}
+
+		establishment, err := uc.establishmentRepo.GetByID(ctx, *user.EstablishmentID)
+		if err != nil {
+			return false, err
+		}
+
+		subscription, err = uc.subscriptionRepo.GetSubscriptionByUserID(ctx, establishment.OwnerID)
+		if err != nil {
+			return false, err
+		}
+		if subscription == nil {
+			return false, nil
+		}
 	}
 
 	return subscription.IsValid(), nil
@@ -264,6 +351,24 @@ func (uc *AuthUseCase) GetCurrentUser(ctx context.Context, userID uuid.UUID) (*m
 	if err != nil {
 		return nil, err
 	}
+	return user, nil
+}
+
+// GetUserByID возвращает пользователя по ID с загруженной ролью
+func (uc *AuthUseCase) GetUserByID(ctx context.Context, userID uuid.UUID) (*models.User, error) {
+	user, err := uc.userRepo.GetByID(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+
+	// Загружаем роль пользователя
+	if user.RoleID != uuid.Nil {
+		role, err := uc.roleRepo.GetByID(ctx, user.RoleID)
+		if err == nil {
+			user.Role = role
+		}
+	}
+
 	return user, nil
 }
 

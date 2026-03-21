@@ -144,6 +144,11 @@ export function ShiftMenuModal({ isOpen, onClose }: ShiftMenuModalProps) {
     }
   }
 
+  const handleSuppliesClick = () => {
+    handleClose()
+    navigate('/supplies')
+  }
+
   const formatDateTime = (dateString: string) => {
     const date = new Date(dateString)
     return date.toLocaleString('ru-RU', {
@@ -321,8 +326,8 @@ export function ShiftMenuModal({ isOpen, onClose }: ShiftMenuModalProps) {
               </Styled.CancelButton>
               {activeShift && (
                 <>
-                  <Styled.RecountButton onClick={() => {/* TODO: добавить функционал пересчета */}}>
-                    Пересчет
+                  <Styled.RecountButton onClick={handleSuppliesClick}>
+                    Поставки
                   </Styled.RecountButton>
                   <Styled.EndButton onClick={() => setShowEndShift(true)}>
                     Закрыть смену

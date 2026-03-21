@@ -112,12 +112,13 @@ export const DateInput = styled.input({
 export const TableContainer = styled.div({
   border: '1px solid #e2e8f0',
   borderRadius: '12px',
-  overflow: 'hidden',
+  overflowX: 'auto',
   backgroundColor: '#ffffff'
 })
 
 export const Table = styled.table({
   width: '100%',
+  minWidth: '1100px',
   borderCollapse: 'collapse'
 })
 
@@ -135,9 +136,9 @@ export const TableCell = styled.th<{
   $align?: 'left' | 'center' | 'right'
   $width?: string
 }>((props) => ({
-  padding: '12px 16px',
+  padding: '10px 12px',
   textAlign: props.$align || 'left',
-  fontSize: '13px',
+  fontSize: '12px',
   fontWeight: '600',
   color: '#64748b',
   borderBottom: '1px solid #e2e8f0',
@@ -148,9 +149,9 @@ export const TableCell = styled.th<{
 export const TableData = styled.td<{
   $align?: 'left' | 'center' | 'right'
 }>((props) => ({
-  padding: '12px 16px',
+  padding: '10px 12px',
   textAlign: props.$align || 'left',
-  fontSize: '14px',
+  fontSize: '13px',
   color: '#1e293b',
   borderBottom: '1px solid #e2e8f0'
 }))
@@ -163,9 +164,9 @@ export const TotalRow = styled.tr({
 export const TotalCell = styled.td<{
   $align?: 'left' | 'center' | 'right'
 }>((props) => ({
-  padding: '16px',
+  padding: '12px',
   textAlign: props.$align || 'right',
-  fontSize: '15px',
+  fontSize: '14px',
   color: '#1e293b',
   fontWeight: '600',
   borderTop: '2px solid #e2e8f0'
@@ -220,3 +221,184 @@ export const ErrorMessage = styled.div({
   color: '#991b1b',
   marginBottom: '24px'
 })
+
+// Modal styles
+export const ModalOverlay = styled.div({
+  position: 'fixed',
+  top: 0,
+  left: 0,
+  right: 0,
+  bottom: 0,
+  backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  zIndex: 1000
+})
+
+export const ModalContent = styled.div({
+  backgroundColor: '#ffffff',
+  borderRadius: '12px',
+  padding: '24px',
+  maxWidth: '500px',
+  width: '90%',
+  maxHeight: '90vh',
+  overflow: 'auto'
+})
+
+export const ModalHeader = styled.div({
+  display: 'flex',
+  justifyContent: 'space-between',
+  alignItems: 'center',
+  marginBottom: '24px'
+})
+
+export const ModalTitle = styled.h2({
+  margin: 0,
+  fontSize: '20px',
+  fontWeight: '600',
+  color: '#1e293b'
+})
+
+export const CloseButton = styled.button({
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  width: '32px',
+  height: '32px',
+  border: 'none',
+  backgroundColor: 'transparent',
+  borderRadius: '6px',
+  cursor: 'pointer',
+  fontSize: '20px',
+  color: '#64748b',
+  transition: 'all 0.2s ease',
+
+  '&:hover': {
+    backgroundColor: '#f1f5f9',
+    color: '#475569'
+  }
+})
+
+export const ModalBody = styled.div({
+  marginBottom: '24px'
+})
+
+export const FormGroup = styled.div({
+  marginBottom: '16px'
+})
+
+export const Label = styled.label({
+  display: 'block',
+  marginBottom: '8px',
+  fontSize: '14px',
+  fontWeight: '500',
+  color: '#475569'
+})
+
+export const Select = styled.select({
+  width: '100%',
+  padding: '10px 12px',
+  border: '1px solid #e2e8f0',
+  borderRadius: '8px',
+  fontSize: '14px',
+  color: '#1e293b',
+  backgroundColor: '#ffffff',
+  outline: 'none',
+  transition: 'border-color 0.2s ease',
+  cursor: 'pointer',
+
+  '&:focus': {
+    borderColor: '#3b82f6'
+  },
+
+  '&:disabled': {
+    backgroundColor: '#f8fafc',
+    color: '#94a3b8',
+    cursor: 'not-allowed'
+  }
+})
+
+export const InfoBox = styled.div({
+  padding: '12px',
+  backgroundColor: '#f0f9ff',
+  border: '1px solid #bae6fd',
+  borderRadius: '8px',
+  marginBottom: '16px'
+})
+
+export const InfoRow = styled.div({
+  display: 'flex',
+  justifyContent: 'space-between',
+  fontSize: '14px',
+  marginBottom: '4px',
+
+  '&:last-child': {
+    marginBottom: 0
+  }
+})
+
+export const InfoLabel = styled.span({
+  color: '#64748b'
+})
+
+export const InfoValue = styled.span<{
+  $highlight?: boolean
+}>((props) => ({
+  fontWeight: props.$highlight ? '600' : '400',
+  color: props.$highlight ? '#0284c7' : '#1e293b'
+}))
+
+export const ModalFooter = styled.div({
+  display: 'flex',
+  justifyContent: 'flex-end',
+  gap: '12px'
+})
+
+export const Button = styled.button<{
+  $variant?: 'primary' | 'secondary'
+}>((props) => ({
+  padding: '10px 20px',
+  border: props.$variant === 'secondary' ? '1px solid #e2e8f0' : 'none',
+  backgroundColor: props.$variant === 'secondary' ? '#ffffff' : '#3b82f6',
+  color: props.$variant === 'secondary' ? '#64748b' : '#ffffff',
+  borderRadius: '8px',
+  fontSize: '14px',
+  fontWeight: '500',
+  cursor: 'pointer',
+  transition: 'all 0.2s ease',
+
+  '&:hover': {
+    backgroundColor: props.$variant === 'secondary' ? '#f8fafc' : '#2563eb'
+  },
+
+  '&:disabled': {
+    opacity: 0.6,
+    cursor: 'not-allowed'
+  }
+}))
+
+export const PayButton = styled.button({
+  display: 'flex',
+  alignItems: 'center',
+  gap: '6px',
+  padding: '8px 16px',
+  border: 'none',
+  backgroundColor: '#10b981',
+  color: '#ffffff',
+  borderRadius: '8px',
+  cursor: 'pointer',
+  fontSize: '14px',
+  fontWeight: '500',
+  transition: 'all 0.2s ease',
+
+  '&:hover': {
+    backgroundColor: '#059669'
+  },
+
+  '&:disabled': {
+    opacity: 0.6,
+    cursor: 'not-allowed'
+  }
+})
+

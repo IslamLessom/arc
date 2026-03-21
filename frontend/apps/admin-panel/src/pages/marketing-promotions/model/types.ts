@@ -16,6 +16,7 @@ export interface Promotion {
 
 export interface PromotionTable extends Promotion {
   number: number
+  impact_preview: string
 }
 
 export interface PromotionsSort {
@@ -25,4 +26,5 @@ export interface PromotionsSort {
 
 export interface PromotionsTableProps {
   onEdit: (id: string) => void
+  onDelete: (id: string) => void
 }

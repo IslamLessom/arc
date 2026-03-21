@@ -37,8 +37,8 @@ type LoginRequest struct {
 }
 
 type EmployeeLoginRequest struct {
-	PIN           string  `json:"pin" binding:"required,numeric,len=4"`
-	InitialCash   float64 `json:"initial_cash" binding:"omitempty,min=0"`
+	PIN             string  `json:"pin" binding:"required,numeric,len=4"`
+	InitialCash     float64 `json:"initial_cash" binding:"omitempty,min=0"`
 	EstablishmentID string  `json:"establishment_id" binding:"required,uuid"` // Добавлено поле заведения
 }
 
@@ -72,8 +72,8 @@ func (h *AuthHandler) Register(c *gin.Context) {
 	user, accessToken, refreshToken, err := h.usecase.Register(c.Request.Context(), req.Email, req.Password, req.Name)
 	if err != nil {
 		h.logger.Error("Failed to register user", zap.Error(err))
-		
-statusCode := http.StatusInternalServerError
+
+		statusCode := http.StatusInternalServerError
 		errorMessage := "Внутренняя ошибка сервера"
 
 		if errors.Is(err, usecases.ErrUserAlreadyExists) {
@@ -119,7 +119,7 @@ func (h *AuthHandler) Login(c *gin.Context) {
 	user, accessToken, refreshToken, err := h.usecase.Login(c.Request.Context(), req.Email, req.Password)
 	if err != nil {
 		h.logger.Error("Failed to login", zap.Error(err))
-statusCode := http.StatusInternalServerError
+		statusCode := http.StatusInternalServerError
 		errorMessage := "Внутренняя ошибка сервера"
 
 		if errors.Is(err, repositories.ErrUserNotFound) || errors.Is(err, repositories.ErrInvalidCredentials) {
@@ -130,15 +130,35 @@ statusCode := http.StatusInternalServerError
 		return
 	}
 
+	// Загружаем роль пользователя
+	userWithRole, err := h.usecase.GetUserByID(c.Request.Context(), user.ID)
+	if err != nil {
+		h.logger.Error("Failed to get user with role", zap.Error(err))
+		// Продолжаем без роли
+		userWithRole = user
+	}
+
+	userResponse := gin.H{
+		"id":                   userWithRole.ID,
+		"email":                userWithRole.Email,
+		"name":                 userWithRole.Name,
+		"onboarding_completed": userWithRole.OnboardingCompleted,
+	}
+
+	// Добавляем роль, если загружена
+	if userWithRole.Role != nil {
+		userResponse["role"] = gin.H{
+			"id":             userWithRole.Role.ID,
+			"name":           userWithRole.Role.Name,
+			"description":    userWithRole.Role.Description,
+			"is_super_admin": userWithRole.Role.IsSuperAdmin,
+		}
+	}
+
 	c.JSON(http.StatusOK, AuthResponse{
 		AccessToken:  accessToken,
 		RefreshToken: refreshToken,
-		User: gin.H{
-			"id":                   user.ID,
-			"email":                user.Email,
-			"name":                 user.Name,
-			"onboarding_completed": user.OnboardingCompleted,
-		},
+		User:         userResponse,
 	})
 }
 
@@ -171,16 +191,22 @@ func (h *AuthHandler) EmployeeLogin(c *gin.Context) {
 	user, accessToken, refreshToken, err := h.usecase.LoginEmployee(c.Request.Context(), req.PIN, req.InitialCash, estID) // Передаем ID заведения
 	if err != nil {
 		h.logger.Error("Failed to login employee", zap.Error(err))
-		
+
 		statusCode := http.StatusInternalServerError
 		errorMessage := "Внутренняя ошибка сервера"
 
 		if errors.Is(err, repositories.ErrUserNotFound) {
 			statusCode = http.StatusUnauthorized
 			errorMessage = "Неверный ПИН-код или сотрудник не найден в этом заведении"
+		} else if errors.Is(err, usecases.ErrSubscriptionExpired) {
+			statusCode = http.StatusForbidden
+			errorMessage = "Подписка заведения истекла. Вход в POS недоступен до продления подписки"
 		} else if strings.Contains(err.Error(), "employee not found in this establishment") {
 			statusCode = http.StatusUnauthorized
 			errorMessage = "Сотрудник не найден в этом заведении"
+		} else if strings.Contains(err.Error(), "does not have access to this application") {
+			statusCode = http.StatusForbidden
+			errorMessage = "У сотрудника нет доступа к приложению. Обратитесь к администратору"
 		} else if strings.Contains(err.Error(), "employee is not assigned to an establishment") {
 			// This case might still be possible if GetByPIN returns a user without an establishment_id
 			// but the primary check is now in GetByPIN
@@ -199,6 +225,7 @@ func (h *AuthHandler) EmployeeLogin(c *gin.Context) {
 			"email":                user.Email,
 			"name":                 user.Name,
 			"onboarding_completed": user.OnboardingCompleted,
+			"permissions":          user.Role.Permissions,
 		},
 	})
 }
@@ -248,6 +275,44 @@ type CurrentUserResponse struct {
 	EstablishmentID *string `json:"establishment_id,omitempty" example:"550e8400-e29b-41d4-a716-446655440000"`
 	// EstablishmentSettings настройки заведения (может быть null)
 	EstablishmentSettings *EstablishmentSettingsResponse `json:"establishment_settings,omitempty"`
+	// Role роль пользователя
+	Role *RoleResponse `json:"role,omitempty"`
+	// SubscriptionID идентификатор подписки (может быть null)
+	SubscriptionID *string `json:"subscription_id,omitempty" example:"550e8400-e29b-41d4-a716-446655440000"`
+	// Subscription подписка пользователя
+	Subscription *SubscriptionResponse `json:"subscription,omitempty"`
+}
+
+// SubscriptionResponse представляет подписку пользователя
+type SubscriptionResponse struct {
+	ID        string                    `json:"id"`
+	UserID    string                    `json:"user_id"`
+	PlanID    string                    `json:"plan_id"`
+	Plan      *SubscriptionPlanResponse `json:"plan,omitempty"`
+	StartDate string                    `json:"start_date"`
+	EndDate   string                    `json:"end_date"`
+	IsActive  bool                      `json:"is_active"`
+	AutoRenew bool                      `json:"auto_renew"`
+	CreatedAt string                    `json:"created_at"`
+	UpdatedAt string                    `json:"updated_at"`
+}
+
+// SubscriptionPlanResponse представляет тарифный план
+type SubscriptionPlanResponse struct {
+	ID       string  `json:"id"`
+	Name     string  `json:"name"`
+	Duration int     `json:"duration"`
+	Price    float64 `json:"price"`
+	Features string  `json:"features"`
+	Active   bool    `json:"active"`
+}
+
+// RoleResponse представляет роль пользователя
+type RoleResponse struct {
+	ID           string `json:"id"`
+	Name         string `json:"name"`
+	Description  string `json:"description,omitempty"`
+	IsSuperAdmin bool   `json:"is_super_admin"`
 }
 
 // EstablishmentSettingsResponse представляет настройки заведения
@@ -290,22 +355,36 @@ func (h *AuthHandler) GetCurrentUser(c *gin.Context) {
 		return
 	}
 
-	user, establishment, err := h.usecase.GetCurrentUserWithEstablishment(c.Request.Context(), userID)
+	// Получаем пользователя с ролью
+	userWithRole, err := h.usecase.GetUserByID(c.Request.Context(), userID)
 	if err != nil {
 		h.logger.Error("Failed to get current user", zap.Error(err))
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Не удалось получить пользователя"})
 		return
 	}
 
+	// Получаем данные заведения если есть
+	_, establishment, _ := h.usecase.GetCurrentUserWithEstablishment(c.Request.Context(), userID)
+
 	response := CurrentUserResponse{
-		ID:                   user.ID.String(),
-		Email:                *user.Email,
-		Name:                 user.Name,
-		OnboardingCompleted: user.OnboardingCompleted,
+		ID:                  userWithRole.ID.String(),
+		Email:               *userWithRole.Email,
+		Name:                userWithRole.Name,
+		OnboardingCompleted: userWithRole.OnboardingCompleted,
 	}
 
-	if user.EstablishmentID != nil {
-		estID := user.EstablishmentID.String()
+	// Добавляем роль, если она загружена
+	if userWithRole.Role != nil {
+		response.Role = &RoleResponse{
+			ID:           userWithRole.Role.ID.String(),
+			Name:         userWithRole.Role.Name,
+			Description:  userWithRole.Role.Description,
+			IsSuperAdmin: userWithRole.Role.IsSuperAdmin,
+		}
+	}
+
+	if userWithRole.EstablishmentID != nil {
+		estID := userWithRole.EstablishmentID.String()
 		response.EstablishmentID = &estID
 
 		if establishment != nil {
@@ -317,6 +396,40 @@ func (h *AuthHandler) GetCurrentUser(c *gin.Context) {
 				HasTakeaway:      establishment.HasTakeaway,
 				HasReservations:  establishment.HasReservations,
 			}
+		}
+	}
+
+	// Добавляем подписку, если она загружена
+	if userWithRole.SubscriptionID != nil {
+		subID := userWithRole.SubscriptionID.String()
+		response.SubscriptionID = &subID
+
+		if userWithRole.Subscription != nil {
+			subscriptionResp := &SubscriptionResponse{
+				ID:        userWithRole.Subscription.ID.String(),
+				UserID:    userWithRole.Subscription.UserID.String(),
+				PlanID:    userWithRole.Subscription.PlanID.String(),
+				StartDate: userWithRole.Subscription.StartDate.Format("2006-01-02T15:04:05Z07:00"),
+				EndDate:   userWithRole.Subscription.EndDate.Format("2006-01-02T15:04:05Z07:00"),
+				IsActive:  userWithRole.Subscription.IsActive,
+				AutoRenew: userWithRole.Subscription.AutoRenew,
+				CreatedAt: userWithRole.Subscription.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
+				UpdatedAt: userWithRole.Subscription.UpdatedAt.Format("2006-01-02T15:04:05Z07:00"),
+			}
+
+			// Добавляем план, если он загружен
+			if userWithRole.Subscription.Plan != nil {
+				subscriptionResp.Plan = &SubscriptionPlanResponse{
+					ID:       userWithRole.Subscription.Plan.ID.String(),
+					Name:     userWithRole.Subscription.Plan.Name,
+					Duration: userWithRole.Subscription.Plan.Duration,
+					Price:    userWithRole.Subscription.Plan.Price,
+					Features: userWithRole.Subscription.Plan.Features,
+					Active:   userWithRole.Subscription.Plan.Active,
+				}
+			}
+
+			response.Subscription = subscriptionResp
 		}
 	}
 

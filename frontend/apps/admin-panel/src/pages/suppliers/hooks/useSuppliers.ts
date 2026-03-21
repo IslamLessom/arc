@@ -3,12 +3,20 @@ import { useNavigate } from 'react-router-dom'
 import { useGetSuppliers, useGetSupplies, useDeleteSupplier } from '@restaurant-pos/api-client'
 import { SupplierTable, SuppliersSort } from '../model/types'
 import { SortDirection } from '../model/enums'
+import { 
+  exportToCSV, 
+  exportToExcel, 
+  printTable, 
+  useColumnVisibility 
+} from '@restaurant-pos/ui'
+import { getSuppliersTableColumns } from '../lib/constants'
 
 export const useSuppliers = () => {
   const navigate = useNavigate()
   const [searchQuery, setSearchQuery] = useState('')
   const [sort, setSort] = useState<SuppliersSort>({ field: 'name', direction: SortDirection.ASC })
   const [isModalOpen, setIsModalOpen] = useState(false)
+  const [isColumnModalOpen, setIsColumnModalOpen] = useState(false)
   const [editingSupplierId, setEditingSupplierId] = useState<string | null>(null)
 
   const { data: apiSuppliers = [], isLoading, error } = useGetSuppliers()
@@ -26,12 +34,18 @@ export const useSuppliers = () => {
         return sum + totalAmount
       }, 0)
       
+      // Задолженность = Сумма поставок - Сумма оплат
       const debtAmount = supplierSupplies.reduce((sum, supply) => {
-        if (supply.status !== 'completed') {
-          const totalAmount = supply.items?.reduce((itemSum, item) => itemSum + (item.total_amount || 0), 0) || 0
-          return sum + totalAmount
-        }
-        return sum
+        // Общая сумма поставки (сумма всех товаров)
+        const totalAmount = supply.items?.reduce((itemSum, item) => itemSum + (item.total_amount || 0), 0) || 0
+        
+        // Сумма всех платежей по этой поставке
+        const paidAmount = supply.payments?.reduce((paySum, payment) => paySum + (payment.amount || 0), 0) || 0
+        
+        // Задолженность по этой поставке
+        const supplyDebt = totalAmount - paidAmount
+        
+        return sum + (supplyDebt > 0 ? supplyDebt : 0)
       }, 0)
 
       return {
@@ -114,19 +128,36 @@ export const useSuppliers = () => {
     handleCloseModal()
   }
 
+  const allColumns = useMemo(() => getSuppliersTableColumns({ onEdit: () => {} }), [])
+
+  const {
+    visibleColumns,
+    columnInfo,
+    toggleColumn,
+    showAllColumns,
+    hideAllColumns,
+    resetColumnVisibility
+  } = useColumnVisibility(allColumns, {
+    storageKey: 'admin-panel-suppliers-columns'
+  })
+
   const handleExport = () => {
-    // Экспорт функциональность
-    console.log('Export suppliers')
+    exportToExcel(filteredAndSortedSuppliers, visibleColumns, 'suppliers.xlsx')
   }
 
   const handlePrint = () => {
-    // Печать функциональность
-    console.log('Print suppliers')
+    printTable(filteredAndSortedSuppliers, visibleColumns, 'Поставщики', {
+      showDate: true,
+      orientation: 'landscape'
+    })
   }
 
   const handleColumns = () => {
-    // Управление столбцами
-    console.log('Manage columns')
+    setIsColumnModalOpen(true)
+  }
+
+  const handleCloseColumnModal = () => {
+    setIsColumnModalOpen(false)
   }
 
   return {
@@ -151,7 +182,15 @@ export const useSuppliers = () => {
     handleSuccess,
     handleExport,
     handlePrint,
-    handleColumns
+    handleColumns,
+    isColumnModalOpen,
+    handleCloseColumnModal,
+    visibleColumns,
+    columnInfo,
+    toggleColumn,
+    showAllColumns,
+    hideAllColumns,
+    resetColumnVisibility,
   }
 }
 

@@ -285,6 +285,44 @@ export const useHallMap = (): UseHallMapResult => {
     [selectedRoomId, scheduleUpdate]
   )
 
+  const handleBulkUpdateTableShapes = useCallback(
+    (shape: 'round' | 'square') => {
+      if (!selectedRoomId) return
+      tables.forEach((table) => {
+        scheduleUpdate(table.id, { shape })
+      })
+    },
+    [selectedRoomId, tables, scheduleUpdate]
+  )
+
+  const handleUploadRoomBackground = useCallback(
+    async (file: File) => {
+      if (!selectedRoomId || !establishmentId) return
+
+      try {
+        const formData = new FormData()
+        formData.append('file', file)
+
+        await apiClient.post(
+          `/establishments/${establishmentId}/rooms/${selectedRoomId}/background`,
+          formData,
+          {
+            headers: {
+              'Content-Type': 'multipart/form-data',
+            },
+          }
+        )
+
+        // Обновляем cache после успешной загрузки
+        await queryClient.invalidateQueries({ queryKey: ['rooms', establishmentId] })
+      } catch (error) {
+        console.error('Failed to upload room background:', error)
+        throw error
+      }
+    },
+    [selectedRoomId, establishmentId, queryClient]
+  )
+
   return {
     tables,
     rooms,
@@ -309,6 +347,8 @@ export const useHallMap = (): UseHallMapResult => {
     handleUpdateTablePosition,
     handleUpdateTableSize,
     handleUpdateTableShape,
+    handleBulkUpdateTableShapes,
     flushPendingUpdates,
+    handleUploadRoomBackground,
   }
 }

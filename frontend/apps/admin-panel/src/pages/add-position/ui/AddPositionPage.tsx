@@ -15,6 +15,8 @@ export const AddPositionPage = () => {
     handleFieldChange,
     handleNestedFieldChange,
     handleAdminPanelAccessChange,
+    handleSalaryPercentageChange,
+    handleAddSalaryCategory,
     handleSubmit,
     handleBack,
   } = useAddPositionPage()
@@ -275,46 +277,34 @@ export const AddPositionPage = () => {
                 Процент от личных продаж
                 <Styled.HelpIcon title="Процент от личных продаж сотрудника">?</Styled.HelpIcon>
               </Styled.SalarySectionTitle>
-              <Styled.SalesPercentageRow>
-                <Styled.CategorySelect
-                  value={formData.salaryCalculation.personalSalesPercentage.categoryId}
-                  onChange={(e) =>
-                    handleNestedFieldChange(
-                      'salaryCalculation',
-                      'personalSalesPercentage',
-                      {
-                        ...formData.salaryCalculation.personalSalesPercentage,
-                        categoryId: e.target.value,
-                      }
-                    )
-                  }
-                  disabled={isSubmitting}
-                >
-                  {formData.salaryCategories.map((category) => (
-                    <option key={category.id} value={category.id}>
-                      {category.name}
-                    </option>
-                  ))}
-                </Styled.CategorySelect>
-                <Styled.PercentageWrapper>
-                  <Styled.PercentageInput
-                    value={formData.salaryCalculation.personalSalesPercentage.percentage}
+              {formData.salaryCalculation.personalSalesPercentages.map((rule, index) => (
+                <Styled.SalesPercentageRow key={`personal-sales-${index}`}>
+                  <Styled.CategorySelect
+                    value={rule.categoryId || 'all'}
                     onChange={(e) =>
-                      handleNestedFieldChange(
-                        'salaryCalculation',
-                        'personalSalesPercentage',
-                        {
-                          ...formData.salaryCalculation.personalSalesPercentage,
-                          percentage: e.target.value,
-                        }
-                      )
+                      handleSalaryPercentageChange('personal', index, 'categoryId', e.target.value)
                     }
-                    placeholder="0"
                     disabled={isSubmitting}
-                  />
-                  <Styled.PercentageSuffix>%</Styled.PercentageSuffix>
-                </Styled.PercentageWrapper>
-              </Styled.SalesPercentageRow>
+                  >
+                    {formData.salaryCategories.map((category) => (
+                      <option key={category.id} value={category.id}>
+                        {category.name}
+                      </option>
+                    ))}
+                  </Styled.CategorySelect>
+                  <Styled.PercentageWrapper>
+                    <Styled.PercentageInput
+                      value={rule.percentage || '0'}
+                      onChange={(e) =>
+                        handleSalaryPercentageChange('personal', index, 'percentage', e.target.value)
+                      }
+                      placeholder="0"
+                      disabled={isSubmitting}
+                    />
+                    <Styled.PercentageSuffix>%</Styled.PercentageSuffix>
+                  </Styled.PercentageWrapper>
+                </Styled.SalesPercentageRow>
+              ))}
             </Styled.SalarySection>
 
             <Styled.SalarySection>
@@ -322,49 +312,39 @@ export const AddPositionPage = () => {
                 Процент от продаж за смену
                 <Styled.HelpIcon title="Процент от продаж за смену">?</Styled.HelpIcon>
               </Styled.SalarySectionTitle>
-              <Styled.SalesPercentageRow>
-                <Styled.CategorySelect
-                  value={formData.salaryCalculation.shiftSalesPercentage.categoryId}
-                  onChange={(e) =>
-                    handleNestedFieldChange(
-                      'salaryCalculation',
-                      'shiftSalesPercentage',
-                      {
-                        ...formData.salaryCalculation.shiftSalesPercentage,
-                        categoryId: e.target.value,
-                      }
-                    )
-                  }
-                  disabled={isSubmitting}
-                >
-                  {formData.salaryCategories.map((category) => (
-                    <option key={category.id} value={category.id}>
-                      {category.name}
-                    </option>
-                  ))}
-                </Styled.CategorySelect>
-                <Styled.PercentageWrapper>
-                  <Styled.PercentageInput
-                    value={formData.salaryCalculation.shiftSalesPercentage.percentage}
+              {formData.salaryCalculation.shiftSalesPercentages.map((rule, index) => (
+                <Styled.SalesPercentageRow key={`shift-sales-${index}`}>
+                  <Styled.CategorySelect
+                    value={rule.categoryId || 'all'}
                     onChange={(e) =>
-                      handleNestedFieldChange(
-                        'salaryCalculation',
-                        'shiftSalesPercentage',
-                        {
-                          ...formData.salaryCalculation.shiftSalesPercentage,
-                          percentage: e.target.value,
-                        }
-                      )
+                      handleSalaryPercentageChange('shift', index, 'categoryId', e.target.value)
                     }
-                    placeholder="0"
                     disabled={isSubmitting}
-                  />
-                  <Styled.PercentageSuffix>%</Styled.PercentageSuffix>
-                </Styled.PercentageWrapper>
-              </Styled.SalesPercentageRow>
+                  >
+                    {formData.salaryCategories.map((category) => (
+                      <option key={category.id} value={category.id}>
+                        {category.name}
+                      </option>
+                    ))}
+                  </Styled.CategorySelect>
+                  <Styled.PercentageWrapper>
+                    <Styled.PercentageInput
+                      value={rule.percentage || '0'}
+                      onChange={(e) =>
+                        handleSalaryPercentageChange('shift', index, 'percentage', e.target.value)
+                      }
+                      placeholder="0"
+                      disabled={isSubmitting}
+                    />
+                    <Styled.PercentageSuffix>%</Styled.PercentageSuffix>
+                  </Styled.PercentageWrapper>
+                </Styled.SalesPercentageRow>
+              ))}
             </Styled.SalarySection>
 
-            <Styled.AddCategoryLink>+ Добавить категорию</Styled.AddCategoryLink>
+            <Styled.AddCategoryLink type="button" onClick={handleAddSalaryCategory}>
+              + Добавить категорию
+            </Styled.AddCategoryLink>
           </Styled.FormSection>
 
           <Styled.FormActions>

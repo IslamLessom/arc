@@ -9,23 +9,24 @@ export const parseQuantityExpression = (input: string): ExpressionParseResult =>
     return { value: 0 }
   }
 
-  // First try to parse as a simple number
-  const simpleNumber = parseFloat(input.replace(',', '.'))
-  if (!isNaN(simpleNumber) && !isNaN(parseFloat(input))) {
+  const normalizedInput = input.trim().replace(',', '.')
+
+  // First try to parse as a simple number (but not expressions like 2+3)
+  const isSimpleNumber = /^[-+]?\d*(\.\d+)?$/.test(normalizedInput)
+  if (isSimpleNumber && normalizedInput !== '' && normalizedInput !== '+' && normalizedInput !== '-') {
+    const simpleNumber = parseFloat(normalizedInput)
     return { value: simpleNumber }
   }
 
   // Try to evaluate as a mathematical expression
-  // Only allow numbers, spaces, and operators + - * /
-  const sanitized = input.trim().replace(/[^0-9+\-*/.\s]/g, '')
-
-  if (sanitized === '') {
+  // Allow only numbers, spaces, parentheses and operators + - * /
+  if (!/^[0-9+\-*/.\s()]+$/.test(normalizedInput) || !/[0-9]/.test(normalizedInput)) {
     return { value: 0, error: 'Некорректное выражение' }
   }
 
   try {
     // Use Function constructor for safe evaluation (safer than eval)
-    const result = new Function('return ' + sanitized)()
+    const result = new Function('return ' + normalizedInput)()
 
     if (typeof result !== 'number' || isNaN(result)) {
       return { value: 0, error: 'Некорректное выражение' }
@@ -62,10 +63,10 @@ export const calculateItemStats = (
   planned: number,
   actual: number,
   pricePerUnit: number
-): { difference: number; differenceValue: number } => {
+): { difference: number; difference_value: number } => {
   const difference = calculateDifference(planned, actual)
-  const differenceValue = calculateDifferenceValue(difference, pricePerUnit)
-  return { difference, differenceValue }
+  const difference_value = calculateDifferenceValue(difference, pricePerUnit)
+  return { difference, difference_value }
 }
 
 /**

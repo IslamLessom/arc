@@ -1,3 +1,9 @@
+# Load .env file if it exists
+ifneq (,$(wildcard ./.env))
+    include .env
+    export
+endif
+
 .PHONY: build run test clean docker-build docker-up docker-down migrate-up migrate-down lint
 
 # Build application
@@ -38,12 +44,12 @@ docker-rebuild:
 	docker-compose up -d app
 
 # Database migrations
-# Note: Uses port 15432 (external port from docker-compose)
+# Reads credentials from .env file. Override with environment variables if needed.
 migrate-up:
-	migrate -path ./backend/migrations -database "postgres://arc_user:arc_password@localhost:15432/arc_db?sslmode=disable" up
+	migrate -path ./backend/migrations -database "postgres://$(DB_USER):$(DB_PASSWORD)@localhost:15433/$(DB_NAME)?sslmode=$(or $(DB_SSLMODE),disable)" up
 
 migrate-down:
-	migrate -path ./backend/migrations -database "postgres://arc_user:arc_password@localhost:15432/arc_db?sslmode=disable" down
+	migrate -path ./backend/migrations -database "postgres://$(DB_USER):$(DB_PASSWORD)@localhost:15433/$(DB_NAME)?sslmode=$(or $(DB_SSLMODE),disable)" down
 
 # Linting
 lint:
@@ -59,3 +65,15 @@ swagger:
 deps:
 	cd backend && go mod download
 	cd backend && go mod tidy
+
+# Production: use .env.prod
+prod-up:
+	@cp .env.prod .env.deploy.tmp
+	docker-compose --env-file .env.prod up -d --build
+	@rm -f .env.deploy.tmp
+
+prod-down:
+	docker-compose --env-file .env.prod down
+
+prod-logs:
+	docker-compose --env-file .env.prod logs -f

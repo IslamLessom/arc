@@ -1,10 +1,11 @@
 import { useState, useEffect, useMemo } from 'react'
-import { useCustomers, useCustomerGroups, type Customer } from '@restaurant-pos/api-client'
+import { useCustomers, useCustomerGroups, useMarketingLoyaltyPrograms } from '@restaurant-pos/api-client'
 import type { CustomerFormData } from '../model/types'
 
 export const useAddCustomerModal = (props: { isOpen: boolean; customerId?: string | null; onSuccess?: () => void; onClose: () => void }) => {
   const { customers, isLoading: isLoadingCustomers, updateCustomer, createCustomer } = useCustomers()
   const { customerGroups, isLoading: isLoadingGroups } = useCustomerGroups()
+  const { loyaltyPrograms, isLoading: isLoadingLoyaltyPrograms } = useMarketingLoyaltyPrograms()
 
   const [formData, setFormData] = useState<CustomerFormData>({
     name: '',
@@ -122,8 +123,10 @@ export const useAddCustomerModal = (props: { isOpen: boolean; customerId?: strin
     fieldErrors,
     isFormValid,
     customerGroups,
+    loyaltyPrograms,
     isLoadingCustomers,
     isLoadingGroups,
+    isLoadingLoyaltyPrograms,
     handleFieldChange,
     handleSubmit,
     handleClose: props.onClose,

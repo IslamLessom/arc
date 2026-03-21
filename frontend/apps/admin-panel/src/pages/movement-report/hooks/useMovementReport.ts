@@ -77,7 +77,8 @@ export const useMovementReport = (): UseMovementReportResult => {
       movements,
       stockItems,
       filters.start_date,
-      filters.end_date
+      filters.end_date,
+      filters.warehouse_id
     )
 
     // Фильтрация по поисковому запросу

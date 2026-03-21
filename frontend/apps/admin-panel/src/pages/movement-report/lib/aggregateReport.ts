@@ -14,7 +14,8 @@ export const aggregateMovementReport = (
   movements: Movement[],
   stockItems: StockItem[],
   startDate: string,
-  endDate: string
+  endDate: string,
+  warehouseId?: string
 ): MovementReportItem[] => {
   const reportMap = new Map<string, MovementReportItem>()
 
@@ -84,6 +85,32 @@ export const aggregateMovementReport = (
         reportItem.expenses += item.quantity
         reportItem.finalBalance -= item.quantity
         reportItem.finalSum = reportItem.finalBalance * reportItem.finalAverageCost
+      } else if (movement.type === 'transfer') {
+        // Для трансферов учитываем в зависимости от склада:
+        // Если это отправление из выбранного склада - это расход
+        // Если это прибытие в выбранный склад - это приход
+        // Если склад не выбран - учитываем только как расход со всех складов
+        const isFromSelectedWarehouse = warehouseId ? movement.from_warehouse_id === warehouseId : true
+        const isToSelectedWarehouse = warehouseId ? movement.to_warehouse_id === warehouseId : false
+
+        if (isFromSelectedWarehouse && !isToSelectedWarehouse) {
+          // Расход со склада
+          reportItem.expenses += item.quantity
+          reportItem.finalBalance -= item.quantity
+          reportItem.finalSum = reportItem.finalBalance * reportItem.finalAverageCost
+        } else if (isToSelectedWarehouse && !isFromSelectedWarehouse) {
+          // Приход на склад
+          reportItem.receipts += item.quantity
+          reportItem.finalBalance += item.quantity
+          // Обновляем среднюю себестоимость
+          const totalCost =
+            reportItem.finalBalance * reportItem.finalAverageCost +
+            item.quantity * item.price_per_unit
+          reportItem.finalAverageCost =
+            reportItem.finalBalance > 0 ? totalCost / reportItem.finalBalance : 0
+          reportItem.finalSum = reportItem.finalBalance * reportItem.finalAverageCost
+        }
+        // Если оба склада совпадают с выбранным или нет фильтра - игнорируем
       }
     })
   })

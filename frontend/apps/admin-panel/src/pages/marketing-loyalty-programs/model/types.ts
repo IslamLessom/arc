@@ -15,6 +15,7 @@ export interface LoyaltyProgram {
 
 export interface LoyaltyProgramTable extends LoyaltyProgram {
   number: number
+  formula_preview: string
 }
 
 export interface LoyaltyProgramsSort {
@@ -24,4 +25,5 @@ export interface LoyaltyProgramsSort {
 
 export interface LoyaltyProgramsTableProps {
   onEdit: (id: string) => void
+  onDelete: (id: string) => void
 }

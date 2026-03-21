@@ -3,7 +3,7 @@ import { Alert } from 'antd'
 import { Button, ButtonSize, ButtonVariant } from '@restaurant-pos/ui'
 import { useAddPositionModal } from '../hooks/useAddPositionModal'
 import type { AddPositionModalProps } from '../model/types'
-import { ADMIN_PANEL_SECTIONS, SALARY_CATEGORIES, type SalaryCategory } from '../model/types'
+import { ADMIN_PANEL_SECTIONS } from '../model/types'
 import { HELP_TOOLTIPS, ADMIN_PANEL_SECTION_LABELS } from '../lib/constants'
 import { getPositionName, POSITION_NAMES } from '../../../pages/positions/lib/positionNameMap'
 import * as Styled from './styled'
@@ -14,6 +14,7 @@ export const AddPositionModal = (props: AddPositionModalProps) => {
 
   const {
     formData,
+    salaryCategories,
     isSubmitting,
     error,
     fieldErrors,
@@ -21,6 +22,8 @@ export const AddPositionModal = (props: AddPositionModalProps) => {
     handleFieldChange,
     handleNestedFieldChange,
     handleAdminPanelAccessChange,
+    handleSalaryPercentageChange,
+    handleAddSalaryCategory,
     handleSubmit,
     handleClose,
   } = useAddPositionModal(props)
@@ -341,46 +344,34 @@ export const AddPositionModal = (props: AddPositionModalProps) => {
                   Процент от личных продаж
                   <Styled.HelpIcon title={HELP_TOOLTIPS.personalSales}>?</Styled.HelpIcon>
                 </Styled.SalarySectionTitle>
-                <Styled.SalesPercentageRow>
-                  <Styled.CategorySelect
-                    value={formData.salaryCalculation.personalSalesPercentage.categoryId}
-                    onChange={(e) =>
-                      handleNestedFieldChange(
-                        'salaryCalculation',
-                        'personalSalesPercentage',
-                        {
-                          ...formData.salaryCalculation.personalSalesPercentage,
-                          categoryId: e.target.value,
-                        }
-                      )
-                    }
-                    disabled={isSubmitting}
-                  >
-                    {SALARY_CATEGORIES.map((category) => (
-                      <option key={category.id} value={category.id}>
-                        {category.name}
-                      </option>
-                    ))}
-                  </Styled.CategorySelect>
-                  <Styled.PercentageWrapper>
-                    <Styled.PercentageInput
-                      value={formData.salaryCalculation.personalSalesPercentage.percentage}
+                {formData.salaryCalculation.personalSalesPercentages.map((rule, index) => (
+                  <Styled.SalesPercentageRow key={`personal-sales-${index}`}>
+                    <Styled.CategorySelect
+                      value={rule.categoryId || 'all'}
                       onChange={(e) =>
-                        handleNestedFieldChange(
-                          'salaryCalculation',
-                          'personalSalesPercentage',
-                          {
-                            ...formData.salaryCalculation.personalSalesPercentage,
-                            percentage: e.target.value,
-                          }
-                        )
+                        handleSalaryPercentageChange('personal', index, 'categoryId', e.target.value)
                       }
-                      placeholder="0"
                       disabled={isSubmitting}
-                    />
-                    <Styled.PercentageSuffix>%</Styled.PercentageSuffix>
-                  </Styled.PercentageWrapper>
-                </Styled.SalesPercentageRow>
+                    >
+                      {salaryCategories.map((category) => (
+                        <option key={category.id} value={category.id}>
+                          {category.name}
+                        </option>
+                      ))}
+                    </Styled.CategorySelect>
+                    <Styled.PercentageWrapper>
+                      <Styled.PercentageInput
+                        value={rule.percentage || '0'}
+                        onChange={(e) =>
+                          handleSalaryPercentageChange('personal', index, 'percentage', e.target.value)
+                        }
+                        placeholder="0"
+                        disabled={isSubmitting}
+                      />
+                      <Styled.PercentageSuffix>%</Styled.PercentageSuffix>
+                    </Styled.PercentageWrapper>
+                  </Styled.SalesPercentageRow>
+                ))}
               </Styled.SalarySection>
 
               <Styled.SalarySection>
@@ -388,49 +379,39 @@ export const AddPositionModal = (props: AddPositionModalProps) => {
                   Процент от продаж за смену
                   <Styled.HelpIcon title={HELP_TOOLTIPS.shiftSales}>?</Styled.HelpIcon>
                 </Styled.SalarySectionTitle>
-                <Styled.SalesPercentageRow>
-                  <Styled.CategorySelect
-                    value={formData.salaryCalculation.shiftSalesPercentage.categoryId}
-                    onChange={(e) =>
-                      handleNestedFieldChange(
-                        'salaryCalculation',
-                        'shiftSalesPercentage',
-                        {
-                          ...formData.salaryCalculation.shiftSalesPercentage,
-                          categoryId: e.target.value,
-                        }
-                      )
-                    }
-                    disabled={isSubmitting}
-                  >
-                    {SALARY_CATEGORIES.map((category) => (
-                      <option key={category.id} value={category.id}>
-                        {category.name}
-                      </option>
-                    ))}
-                  </Styled.CategorySelect>
-                  <Styled.PercentageWrapper>
-                    <Styled.PercentageInput
-                      value={formData.salaryCalculation.shiftSalesPercentage.percentage}
+                {formData.salaryCalculation.shiftSalesPercentages.map((rule, index) => (
+                  <Styled.SalesPercentageRow key={`shift-sales-${index}`}>
+                    <Styled.CategorySelect
+                      value={rule.categoryId || 'all'}
                       onChange={(e) =>
-                        handleNestedFieldChange(
-                          'salaryCalculation',
-                          'shiftSalesPercentage',
-                          {
-                            ...formData.salaryCalculation.shiftSalesPercentage,
-                            percentage: e.target.value,
-                          }
-                        )
+                        handleSalaryPercentageChange('shift', index, 'categoryId', e.target.value)
                       }
-                      placeholder="0"
                       disabled={isSubmitting}
-                    />
-                    <Styled.PercentageSuffix>%</Styled.PercentageSuffix>
-                  </Styled.PercentageWrapper>
-                </Styled.SalesPercentageRow>
+                    >
+                      {salaryCategories.map((category) => (
+                        <option key={category.id} value={category.id}>
+                          {category.name}
+                        </option>
+                      ))}
+                    </Styled.CategorySelect>
+                    <Styled.PercentageWrapper>
+                      <Styled.PercentageInput
+                        value={rule.percentage || '0'}
+                        onChange={(e) =>
+                          handleSalaryPercentageChange('shift', index, 'percentage', e.target.value)
+                        }
+                        placeholder="0"
+                        disabled={isSubmitting}
+                      />
+                      <Styled.PercentageSuffix>%</Styled.PercentageSuffix>
+                    </Styled.PercentageWrapper>
+                  </Styled.SalesPercentageRow>
+                ))}
               </Styled.SalarySection>
 
-              <Styled.AddCategoryLink>+ Добавить категорию</Styled.AddCategoryLink>
+              <Styled.AddCategoryLink type="button" onClick={handleAddSalaryCategory}>
+                + Добавить категорию
+              </Styled.AddCategoryLink>
             </Styled.FormSection>
 
             <Styled.ModalFooter>

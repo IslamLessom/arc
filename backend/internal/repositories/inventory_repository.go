@@ -32,6 +32,7 @@ type InventoryRepository interface {
 	CreateItem(ctx context.Context, item *models.InventoryItem) error
 	UpdateItem(ctx context.Context, item *models.InventoryItem) error
 	DeleteItem(ctx context.Context, id uuid.UUID) error
+	DeleteAllItems(ctx context.Context, inventoryID uuid.UUID) error
 	GetItemsByInventoryID(ctx context.Context, inventoryID uuid.UUID) ([]*models.InventoryItem, error)
 
 	// Stock snapshot - получение остатков на определенную дату
@@ -140,6 +141,10 @@ func (r *inventoryRepository) UpdateItem(ctx context.Context, item *models.Inven
 
 func (r *inventoryRepository) DeleteItem(ctx context.Context, id uuid.UUID) error {
 	return r.db.WithContext(ctx).Delete(&models.InventoryItem{}, "id = ?", id).Error
+}
+
+func (r *inventoryRepository) DeleteAllItems(ctx context.Context, inventoryID uuid.UUID) error {
+	return r.db.WithContext(ctx).Delete(&models.InventoryItem{}, "inventory_id = ?", inventoryID).Error
 }
 
 func (r *inventoryRepository) GetItemsByInventoryID(ctx context.Context, inventoryID uuid.UUID) ([]*models.InventoryItem, error) {

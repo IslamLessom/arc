@@ -15,8 +15,10 @@ export const AddCustomerModal = (props: AddCustomerModalProps) => {
     fieldErrors,
     isFormValid,
     customerGroups,
+    loyaltyPrograms,
     isLoadingCustomers,
     isLoadingGroups,
+    isLoadingLoyaltyPrograms,
     handleFieldChange,
     handleSubmit,
     handleClose,
@@ -209,6 +211,30 @@ export const AddCustomerModal = (props: AddCustomerModalProps) => {
                   </Styled.StyledSelect>
                   {fieldErrors?.group_id && (
                     <Styled.FieldError>{fieldErrors.group_id}</Styled.FieldError>
+                  )}
+                </Styled.RowContent>
+              </Styled.FormRow>
+
+              <Styled.FormRow>
+                <Styled.RowLabel>Программа лояльности</Styled.RowLabel>
+                <Styled.RowContent>
+                  <Styled.StyledSelect
+                    value={formData.loyalty_program_id}
+                    onChange={(e) => handleFieldChange('loyalty_program_id', e.target.value)}
+                    disabled={isSubmitting || isLoadingLoyaltyPrograms}
+                    $hasError={!!fieldErrors?.loyalty_program_id}
+                  >
+                    <option value="">Не назначена</option>
+                    {loyaltyPrograms
+                      .filter((program) => program.active)
+                      .map((program) => (
+                        <option key={program.id} value={program.id}>
+                          {program.name}
+                        </option>
+                      ))}
+                  </Styled.StyledSelect>
+                  {fieldErrors?.loyalty_program_id && (
+                    <Styled.FieldError>{fieldErrors.loyalty_program_id}</Styled.FieldError>
                   )}
                 </Styled.RowContent>
               </Styled.FormRow>

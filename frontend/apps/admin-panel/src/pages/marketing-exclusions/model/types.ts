@@ -12,6 +12,8 @@ export interface Exclusion {
 
 export interface ExclusionTable extends Exclusion {
   number: number
+  impact_preview: string
+  impacted_items_count: number
 }
 
 export interface ExclusionsSort {

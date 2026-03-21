@@ -51,7 +51,18 @@ export const Balances = () => {
   }
 
   const calculateTotal = (item: Stock) => {
-    return (item.quantity * item.price_per_unit).toFixed(2)
+    // Сумма может быть отрицательной если остаток отрицательный
+    const total = item.quantity * item.price_per_unit
+    return total.toFixed(2)
+  }
+
+  const calculateGrandTotal = () => {
+    if (!stock || stock.length === 0) return '0.00'
+    // Считаем общую сумму включая отрицательные остатки
+    const total = stock.reduce((sum, item) => {
+      return sum + (item.quantity * item.price_per_unit)
+    }, 0)
+    return total.toFixed(2)
   }
 
   const isLowStock = (item: Stock) => {
@@ -126,12 +137,23 @@ export const Balances = () => {
                 <Styled.TableCell>{getItemType(item)}</Styled.TableCell>
                 <Styled.TableCell>{getCategoryName(item)}</Styled.TableCell>
                 <Styled.TableCell>{item.warehouse.name}</Styled.TableCell>
-                <Styled.TableCell>{item.quantity.toFixed(2)}</Styled.TableCell>
+                <Styled.TableCell 
+                  style={{ color: item.quantity < 0 ? '#ff4d4f' : 'inherit' }}
+                >
+                  {item.quantity.toFixed(2)}
+                </Styled.TableCell>
                 <Styled.TableCell>{translateUnit(item.unit)}</Styled.TableCell>
                 <Styled.TableCell>
                   {item.price_per_unit.toFixed(2)} ₽
                 </Styled.TableCell>
-                <Styled.TableCell>{calculateTotal(item)} ₽</Styled.TableCell>
+                <Styled.TableCell 
+                  style={{ 
+                    color: parseFloat(calculateTotal(item)) < 0 ? '#ff4d4f' : 'inherit',
+                    fontWeight: parseFloat(calculateTotal(item)) < 0 ? 'bold' : 'normal'
+                  }}
+                >
+                  {calculateTotal(item)} ₽
+                </Styled.TableCell>
                 <Styled.TableCell>
                   <Styled.LimitInput
                     type="number"
@@ -151,6 +173,21 @@ export const Balances = () => {
                 </Styled.TableCell>
               </Styled.TableRow>
             ))}
+            <Styled.TableRow style={{ background: '#f5f5f5', fontWeight: 'bold' }}>
+              <Styled.TableCell colSpan={7} style={{ textAlign: 'right' }}>
+                Итого:
+              </Styled.TableCell>
+              <Styled.TableCell 
+                style={{ 
+                  color: parseFloat(calculateGrandTotal()) < 0 ? '#ff4d4f' : 'inherit',
+                  fontWeight: 'bold',
+                  fontSize: '1.1em'
+                }}
+              >
+                {calculateGrandTotal()} ₽
+              </Styled.TableCell>
+              <Styled.TableCell colSpan={2}></Styled.TableCell>
+            </Styled.TableRow>
           </Styled.TableBody>
         </Styled.Table>
       )}

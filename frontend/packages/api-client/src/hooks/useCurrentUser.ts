@@ -1,5 +1,7 @@
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { useEffect } from 'react'
 import { apiClient } from '../client'
+import type { Subscription } from '@restaurant-pos/types'
 
 export interface CurrentUserResponse {
   id: string
@@ -7,9 +9,23 @@ export interface CurrentUserResponse {
   name: string
   onboarding_completed: boolean
   establishment_id?: string | null
+  subscription_id?: string | null
+  subscription?: Subscription | null
 }
 
 export function useCurrentUser() {
+  const queryClient = useQueryClient()
+  
+  // При каждом изменении токена - инвалидируем кеш
+  useEffect(() => {
+    const handleStorageChange = () => {
+      queryClient.invalidateQueries({ queryKey: ['currentUser'] })
+    }
+    
+    window.addEventListener('storage', handleStorageChange)
+    return () => window.removeEventListener('storage', handleStorageChange)
+  }, [queryClient])
+
   return useQuery({
     queryKey: ['currentUser'],
     queryFn: async (): Promise<CurrentUserResponse | null> => {
@@ -34,6 +50,7 @@ export function useCurrentUser() {
             localStorage.removeItem('auth_token')
             localStorage.removeItem('refresh_token')
             localStorage.removeItem('user_type')
+            queryClient.invalidateQueries({ queryKey: ['currentUser'] })
           }
         }
         throw error

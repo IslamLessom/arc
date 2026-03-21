@@ -18,11 +18,16 @@ export function TableSelection() {
     handleGuestsSelect,
     handleGuestsDropdownClose,
     getDropdownPosition,
+    getOrderForTable,
   } = useTableSelection()
 
   // Находим выбранный зал
   const selectedRoom = rooms.find(r => r.room.id === selectedRoomId)
   const tables = selectedRoom?.tables?.filter((t: Table) => t.active) || []
+
+  // Получаем фон из данных комнаты
+  const backgroundImage = selectedRoom?.room?.background_image_url || null
+  const resolvedBackgroundType = backgroundImage ? 'photo' : 'grid'
 
   // Вычисляем размеры контейнера для схемы
   const getMaxPosition = () => {
@@ -97,7 +102,10 @@ export function TableSelection() {
           </Styled.RoomSelect>
         </Styled.RoomSelector>
 
-        <Styled.HallMapContainer>
+        <Styled.HallMapContainer 
+          $backgroundType={resolvedBackgroundType}
+          $backgroundImage={backgroundImage}
+        >
           {isCreatingOrder && (
             <Styled.LoadingOverlay>
               Создание заказа...
@@ -113,22 +121,58 @@ export function TableSelection() {
             </Styled.EmptyState>
           ) : (
             <Styled.HallMap $minWidth={mapSize.x} $minHeight={mapSize.y}>
-              {tables.map((table: Table) => (
-                <Styled.TableShape
-                  key={table.id}
-                  $x={table.position_x || 0}
-                  $y={table.position_y || 0}
-                  $width={table.width || 80}
-                  $height={table.height || 80}
-                  $shape={table.shape}
-                  $status={table.status}
-                  $selected={selectedTable?.id === table.id}
-                  onClick={() => table.status !== 'occupied' && handleTableClick(table)}
-                >
-                  <Styled.TableNumber>{table.name || table.number}</Styled.TableNumber>
-                  <Styled.TableCapacity>{table.capacity} чел.</Styled.TableCapacity>
-                </Styled.TableShape>
-              ))}
+              {tables.map((table: Table) => {
+                const draftOrder = getOrderForTable(table.id)
+                const isTableReserved = !!draftOrder
+                
+                // Логика блокирования: стол заблокирован если занят И нет черновика
+                const isTableBlocked = table.status === 'occupied' && !isTableReserved
+                
+                // Определяем статус для отображения
+                const displayStatus = isTableReserved ? 'reserved' : table.status
+
+                return (
+                  <Styled.TableShape
+                    key={table.id}
+                    $x={table.position_x || 0}
+                    $y={table.position_y || 0}
+                    $width={table.width || 80}
+                    $height={table.height || 80}
+                    $shape={table.shape}
+                    $status={displayStatus}
+                    $selected={selectedTable?.id === table.id}
+                    onClick={() => {
+                      // Разрешаем клик если стол не заблокирован
+                      if (!isTableBlocked) {
+                        handleTableClick(table)
+                      }
+                    }}
+                    title={
+                      isTableBlocked 
+                        ? 'Стол занят и ожидает оплаты' 
+                        : isTableReserved 
+                          ? `Заказ №${draftOrder.id?.slice(0, 8)}... [${draftOrder.status}]` 
+                          : 'Клик для создания заказа'
+                    }
+                  >
+                    <Styled.TableNumber>{table.name || table.number}</Styled.TableNumber>
+                    <Styled.TableCapacity>{table.capacity} чел.</Styled.TableCapacity>
+                    {draftOrder && (
+                      <Styled.TableOrderInfo 
+                        title={`Статус: ${draftOrder.status?.toUpperCase()}\nСумма: ${draftOrder.total_amount}₽\nПозиции: ${draftOrder.items?.length || 0}\n${draftOrder.guest_name ? `Гость: ${draftOrder.guest_name}` : ''}`}
+                      >
+                        {draftOrder.source === 'qr_menu' && (
+                          <div style={{ fontSize: '0.65rem', color: '#7c3aed', fontWeight: 700 }}>
+                            📱 {draftOrder.guest_name || 'QR-заказ'}
+                          </div>
+                        )}
+                        <div>📝 {draftOrder.total_amount}₽</div>
+                        <div>({draftOrder.items?.length || 0} позиций)</div>
+                      </Styled.TableOrderInfo>
+                    )}
+                  </Styled.TableShape>
+                )
+              })}
 
               {/* Dropdown с выбором количества гостей */}
               {showGuestsDropdown && selectedTable && (

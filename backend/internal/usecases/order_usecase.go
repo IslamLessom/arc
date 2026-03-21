@@ -2,8 +2,10 @@ package usecases
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
+	"math"
 	"time"
 
 	"github.com/google/uuid"
@@ -16,68 +18,592 @@ type OrderUseCase struct {
 	orderRepo       repositories.OrderRepository
 	warehouseRepo   repositories.WarehouseRepository
 	transactionRepo repositories.TransactionRepository
+	shiftRepo       repositories.ShiftRepository
+	clientRepo      repositories.ClientRepository
+	promotionRepo   repositories.PromotionRepository
+	exclusionRepo   repositories.ExclusionRepository
 	accountUseCase  *AccountUseCase // Добавлен AccountUseCase
+}
+
+type OrderPricingRule struct {
+	Code    string  `json:"code"`
+	Amount  float64 `json:"amount"`
+	Message string  `json:"message,omitempty"`
+}
+
+type OrderCalculateResult struct {
+	BaseAmount            float64            `json:"base_amount"`
+	ExcludedAmount        float64            `json:"excluded_amount"`
+	DiscountTotal         float64            `json:"discount_total"`
+	PromotionDiscount     float64            `json:"promotion_discount"`
+	LoyaltyRedeemedPoints int                `json:"loyalty_redeemed_points"`
+	LoyaltyRedeemedAmount float64            `json:"loyalty_redeemed_amount"`
+	LoyaltyEarnedPoints   int                `json:"loyalty_earned_points"`
+	FinalAmount           float64            `json:"final_amount"`
+	AppliedRules          []OrderPricingRule `json:"applied_rules"`
+	AppliedPromotionIDs   []uuid.UUID        `json:"applied_promotion_ids,omitempty"`
+	AppliedPromotionsJSON string             `json:"applied_promotions_json"`
+	Items                 []models.OrderItem `json:"items"`
+	ItemPricing           []OrderItemPricing `json:"item_pricing,omitempty"`
+}
+
+type OrderItemPricing struct {
+	Index               int         `json:"index"`
+	ProductID           *uuid.UUID  `json:"product_id,omitempty"`
+	TechCardID          *uuid.UUID  `json:"tech_card_id,omitempty"`
+	CategoryID          *uuid.UUID  `json:"category_id,omitempty"`
+	ItemName            string      `json:"item_name,omitempty"`
+	Quantity            int         `json:"quantity"`
+	UnitPrice           float64     `json:"unit_price"`
+	TotalPrice          float64     `json:"total_price"`
+	Eligible            bool        `json:"eligible"`
+	IneligibilityReason string      `json:"ineligibility_reason,omitempty"`
+	PromotionIDs        []uuid.UUID `json:"promotion_ids,omitempty"`
+	PromotionNames      []string    `json:"promotion_names,omitempty"`
+	PromotionBadge      string      `json:"promotion_badge,omitempty"`
+}
+
+type OrderPromotionPreviewResult struct {
+	Items            []OrderItemPricing  `json:"items"`
+	ActivePromotions []*models.Promotion `json:"active_promotions"`
+}
+
+type OrderPricingOptions struct {
+	ClientID                 *uuid.UUID
+	SelectedPromotionID      *uuid.UUID
+	RedeemLoyaltyPoints      int
+	ManualDiscountPercentage *float64
+}
+
+type itemPricingMeta struct {
+	ProductID   *uuid.UUID
+	TechCardID  *uuid.UUID
+	CategoryID  *uuid.UUID
+	Eligible    bool
+	TotalAmount float64
+	ItemName    string
+	Reason      string
 }
 
 func NewOrderUseCase(
 	orderRepo repositories.OrderRepository,
 	warehouseRepo repositories.WarehouseRepository,
 	transactionRepo repositories.TransactionRepository,
+	shiftRepo repositories.ShiftRepository,
+	clientRepo repositories.ClientRepository,
+	promotionRepo repositories.PromotionRepository,
+	exclusionRepo repositories.ExclusionRepository,
 	accountUseCase *AccountUseCase, // Добавлен AccountUseCase
 ) *OrderUseCase {
 	return &OrderUseCase{
 		orderRepo:       orderRepo,
 		warehouseRepo:   warehouseRepo,
 		transactionRepo: transactionRepo,
+		shiftRepo:       shiftRepo,
+		clientRepo:      clientRepo,
+		promotionRepo:   promotionRepo,
+		exclusionRepo:   exclusionRepo,
 		accountUseCase:  accountUseCase, // Присвоение AccountUseCase
 	}
 }
 
-func (uc *OrderUseCase) CreateOrder(ctx context.Context, establishmentID uuid.UUID, tableID *uuid.UUID, items []models.OrderItem, totalAmountOverride ...float64) (*models.Order, error) {
+func (uc *OrderUseCase) CalculateOrder(ctx context.Context, establishmentID uuid.UUID, items []models.OrderItem, options OrderPricingOptions) (*OrderCalculateResult, error) {
+	if len(items) == 0 {
+		return nil, errors.New("order must contain at least one item")
+	}
+
+	resolvedItems := make([]models.OrderItem, len(items))
+	copy(resolvedItems, items)
+
+	var (
+		baseAmount     float64
+		excludedAmount float64
+	)
+
+	itemMetaByIdx := make(map[int]itemPricingMeta, len(resolvedItems))
+
+	exclusions, err := uc.exclusionRepo.GetActive(ctx, establishmentID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get active exclusions: %w", err)
+	}
+
+	var client *models.Client
+	if options.ClientID != nil {
+		client, err = uc.clientRepo.GetByID(ctx, *options.ClientID)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get client: %w", err)
+		}
+	}
+
+	for i := range resolvedItems {
+		item := &resolvedItems[i]
+		meta := itemPricingMeta{Eligible: true}
+
+		if item.ProductID != nil {
+			product, getErr := uc.warehouseRepo.GetProductByID(ctx, *item.ProductID)
+			if getErr != nil {
+				return nil, fmt.Errorf("product not found: %w", getErr)
+			}
+			item.Price = product.Price
+			productCategoryID := product.CategoryID
+			meta.CategoryID = &productCategoryID
+			meta.ProductID = item.ProductID
+			meta.ItemName = product.Name
+			if product.ExcludeFromDiscounts {
+				meta.Eligible = false
+				meta.Reason = "Товар исключен из скидок"
+			}
+		} else if item.TechCardID != nil {
+			techCard, getErr := uc.warehouseRepo.GetTechCardByID(ctx, *item.TechCardID)
+			if getErr != nil {
+				return nil, fmt.Errorf("tech card not found: %w", getErr)
+			}
+			item.Price = techCard.Price
+			techCardCategoryID := techCard.CategoryID
+			meta.CategoryID = &techCardCategoryID
+			meta.TechCardID = item.TechCardID
+			meta.ItemName = techCard.Name
+			if techCard.ExcludeFromDiscounts {
+				meta.Eligible = false
+				meta.Reason = "Техкарта исключена из скидок"
+			}
+		} else {
+			return nil, errors.New("order item must have a product or tech card")
+		}
+
+		item.TotalPrice = models.RoundTo2(item.Price * float64(item.Quantity))
+		meta.TotalAmount = item.TotalPrice
+		baseAmount += item.TotalPrice
+
+		for _, exclusion := range exclusions {
+			if !meta.Eligible {
+				break
+			}
+			if exclusion.EntityID == nil {
+				continue
+			}
+
+			switch exclusion.Type {
+			case "product":
+				if meta.ProductID != nil && *meta.ProductID == *exclusion.EntityID {
+					meta.Eligible = false
+					meta.Reason = "Исключено правилом: товар"
+				}
+			case "category":
+				if meta.CategoryID != nil && *meta.CategoryID == *exclusion.EntityID {
+					meta.Eligible = false
+					meta.Reason = "Исключено правилом: категория"
+				}
+			case "tech_card":
+				if meta.TechCardID != nil && *meta.TechCardID == *exclusion.EntityID {
+					meta.Eligible = false
+					meta.Reason = "Исключено правилом: техкарта"
+				}
+			case "customer":
+				if options.ClientID != nil && *options.ClientID == *exclusion.EntityID {
+					meta.Eligible = false
+					meta.Reason = "Исключено правилом: клиент"
+				}
+			case "customer_group":
+				if client != nil && client.GroupID != nil && *client.GroupID == *exclusion.EntityID {
+					meta.Eligible = false
+					meta.Reason = "Исключено правилом: группа клиента"
+				}
+			}
+		}
+
+		if !meta.Eligible {
+			excludedAmount += item.TotalPrice
+		}
+
+		itemMetaByIdx[i] = meta
+	}
+
+	eligibleAmount := baseAmount - excludedAmount
+	if eligibleAmount < 0 {
+		eligibleAmount = 0
+	}
+
+	rules := make([]OrderPricingRule, 0, 8)
+	appliedPromotionIDs := make([]uuid.UUID, 0, 1)
+
+	promotionDiscount := 0.0
+	manualDiscount := 0.0
+	clientGroupDiscount := 0.0
+
+	if options.ManualDiscountPercentage != nil && *options.ManualDiscountPercentage > 0 {
+		manualDiscount = models.RoundTo2(eligibleAmount * (*options.ManualDiscountPercentage / 100.0))
+	}
+
+	if client != nil && client.Group != nil && client.Group.DiscountPercentage > 0 {
+		clientGroupDiscount = models.RoundTo2(eligibleAmount * (client.Group.DiscountPercentage / 100.0))
+	}
+
+	activePromotions, err := uc.promotionRepo.GetActive(ctx, establishmentID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get active promotions: %w", err)
+	}
+
+	var selectedPromotion *models.Promotion
+	if options.SelectedPromotionID != nil {
+		for _, promotion := range activePromotions {
+			if promotion.ID == *options.SelectedPromotionID {
+				selectedPromotion = promotion
+				break
+			}
+		}
+	}
+
+	if selectedPromotion == nil {
+		for _, promotion := range activePromotions {
+			discount := calculatePromotionDiscount(*promotion, resolvedItems, itemMetaByIdx)
+			if discount > promotionDiscount {
+				promotionDiscount = discount
+				selectedPromotion = promotion
+			}
+		}
+	} else {
+		promotionDiscount = calculatePromotionDiscount(*selectedPromotion, resolvedItems, itemMetaByIdx)
+	}
+
+	percentageDiscount := promotionDiscount
+	selectedRuleCode := "promotion"
+	selectedRuleMessage := "Применена акция"
+	if manualDiscount > percentageDiscount {
+		percentageDiscount = manualDiscount
+		selectedRuleCode = "manual_discount"
+		selectedRuleMessage = "Применена ручная скидка"
+	}
+	if clientGroupDiscount > percentageDiscount {
+		percentageDiscount = clientGroupDiscount
+		selectedRuleCode = "client_group"
+		selectedRuleMessage = "Применена скидка группы клиента"
+	}
+
+	if percentageDiscount > 0 {
+		rules = append(rules, OrderPricingRule{Code: selectedRuleCode, Amount: models.RoundTo2(percentageDiscount), Message: selectedRuleMessage})
+	}
+
+	if selectedPromotion != nil && promotionDiscount > 0 && selectedRuleCode == "promotion" {
+		appliedPromotionIDs = append(appliedPromotionIDs, selectedPromotion.ID)
+		rules = append(rules, OrderPricingRule{Code: "promotion_id", Amount: models.RoundTo2(promotionDiscount), Message: selectedPromotion.Name})
+	}
+
+	itemPricing := buildItemPricing(resolvedItems, itemMetaByIdx, activePromotions)
+
+	amountAfterDiscount := models.RoundTo2(baseAmount - percentageDiscount)
+	if amountAfterDiscount < 0 {
+		amountAfterDiscount = 0
+	}
+
+	loyaltyRedeemedPoints := 0
+	loyaltyRedeemedAmount := 0.0
+	loyaltyEarnedPoints := 0
+
+	if client != nil {
+		if options.RedeemLoyaltyPoints > 0 {
+			requested := options.RedeemLoyaltyPoints
+			if requested > client.LoyaltyPoints {
+				requested = client.LoyaltyPoints
+			}
+			maxRedeemByAmount := int(math.Floor(amountAfterDiscount))
+			if requested > maxRedeemByAmount {
+				requested = maxRedeemByAmount
+			}
+			if requested > 0 {
+				loyaltyRedeemedPoints = requested
+				loyaltyRedeemedAmount = models.RoundTo2(float64(requested))
+				rules = append(rules, OrderPricingRule{Code: "loyalty_redeem", Amount: loyaltyRedeemedAmount, Message: "Списаны бонусные баллы"})
+			}
+		}
+
+		if client.LoyaltyProgram != nil && client.LoyaltyProgram.Active {
+			amountForAccrual := amountAfterDiscount - loyaltyRedeemedAmount
+			if amountForAccrual < 0 {
+				amountForAccrual = 0
+			}
+
+			switch client.LoyaltyProgram.Type {
+			case "points":
+				if client.LoyaltyProgram.PointsPerCurrency != nil {
+					loyaltyEarnedPoints = int(math.Floor(amountForAccrual * float64(*client.LoyaltyProgram.PointsPerCurrency) * client.LoyaltyProgram.PointMultiplier))
+				}
+			case "cashback":
+				if client.LoyaltyProgram.CashbackPercentage != nil {
+					cashback := amountForAccrual * (*client.LoyaltyProgram.CashbackPercentage / 100.0)
+					if client.LoyaltyProgram.MaxCashbackAmount != nil && cashback > *client.LoyaltyProgram.MaxCashbackAmount {
+						cashback = *client.LoyaltyProgram.MaxCashbackAmount
+					}
+					loyaltyEarnedPoints = int(math.Floor(cashback * client.LoyaltyProgram.PointMultiplier))
+				}
+			case "tier":
+				loyaltyEarnedPoints = int(math.Floor(amountForAccrual * client.LoyaltyProgram.PointMultiplier))
+			}
+
+			if loyaltyEarnedPoints > 0 {
+				rules = append(rules, OrderPricingRule{Code: "loyalty_earn", Amount: float64(loyaltyEarnedPoints), Message: "Начислены бонусные баллы"})
+			}
+		}
+	}
+
+	finalAmount := models.RoundTo2(amountAfterDiscount - loyaltyRedeemedAmount)
+	if finalAmount < 0 {
+		finalAmount = 0
+	}
+
+	appliedPayload, _ := json.Marshal(map[string]interface{}{
+		"rules":                      rules,
+		"selected_promotion_id":      options.SelectedPromotionID,
+		"manual_discount_percentage": options.ManualDiscountPercentage,
+		"requested_redeem_points":    options.RedeemLoyaltyPoints,
+		"applied_promotion_ids":      appliedPromotionIDs,
+	})
+
+	return &OrderCalculateResult{
+		BaseAmount:            models.RoundTo2(baseAmount),
+		ExcludedAmount:        models.RoundTo2(excludedAmount),
+		DiscountTotal:         models.RoundTo2(percentageDiscount + loyaltyRedeemedAmount),
+		PromotionDiscount:     models.RoundTo2(promotionDiscount),
+		LoyaltyRedeemedPoints: loyaltyRedeemedPoints,
+		LoyaltyRedeemedAmount: loyaltyRedeemedAmount,
+		LoyaltyEarnedPoints:   loyaltyEarnedPoints,
+		FinalAmount:           finalAmount,
+		AppliedRules:          rules,
+		AppliedPromotionIDs:   appliedPromotionIDs,
+		AppliedPromotionsJSON: string(appliedPayload),
+		Items:                 resolvedItems,
+		ItemPricing:           itemPricing,
+	}, nil
+}
+
+func calculatePromotionDiscount(promotion models.Promotion, items []models.OrderItem, itemMetaByIdx map[int]itemPricingMeta) float64 {
+	if len(items) == 0 {
+		return 0
+	}
+
+	switch promotion.Type {
+	case "discount", "happy_hour":
+		if promotion.DiscountPercentage == nil || *promotion.DiscountPercentage <= 0 {
+			return 0
+		}
+		eligibleAmount := 0.0
+		for idx := range items {
+			if itemMetaByIdx[idx].Eligible && promotionTargetsItem(promotion, itemMetaByIdx[idx]) {
+				eligibleAmount += items[idx].TotalPrice
+			}
+		}
+		return models.RoundTo2(eligibleAmount * (*promotion.DiscountPercentage / 100.0))
+	case "buy_x_get_y":
+		if promotion.BuyQuantity == nil || promotion.GetQuantity == nil || *promotion.BuyQuantity <= 0 || *promotion.GetQuantity <= 0 {
+			return 0
+		}
+		discount := 0.0
+		for idx, item := range items {
+			if !itemMetaByIdx[idx].Eligible || !promotionTargetsItem(promotion, itemMetaByIdx[idx]) {
+				continue
+			}
+			groupSize := *promotion.BuyQuantity + *promotion.GetQuantity
+			if groupSize <= 0 {
+				continue
+			}
+			freeSets := item.Quantity / groupSize
+			freeQty := freeSets * *promotion.GetQuantity
+			discount += float64(freeQty) * item.Price
+		}
+		return models.RoundTo2(discount)
+	default:
+		return 0
+	}
+}
+
+func promotionTargetsItem(promotion models.Promotion, meta itemPricingMeta) bool {
+	switch promotion.TargetType {
+	case "", "all":
+		return true
+	case "product":
+		return meta.ProductID != nil && containsUUID(promotion.TargetIDs, *meta.ProductID)
+	case "tech_card":
+		return meta.TechCardID != nil && containsUUID(promotion.TargetIDs, *meta.TechCardID)
+	case "category":
+		return meta.CategoryID != nil && containsUUID(promotion.TargetIDs, *meta.CategoryID)
+	default:
+		return false
+	}
+}
+
+func containsUUID(ids []uuid.UUID, target uuid.UUID) bool {
+	for _, id := range ids {
+		if id == target {
+			return true
+		}
+	}
+	return false
+}
+
+func buildItemPricing(items []models.OrderItem, itemMetaByIdx map[int]itemPricingMeta, promotions []*models.Promotion) []OrderItemPricing {
+	result := make([]OrderItemPricing, 0, len(items))
+
+	for idx, item := range items {
+		meta := itemMetaByIdx[idx]
+		promotionIDs := make([]uuid.UUID, 0)
+		promotionNames := make([]string, 0)
+
+		if meta.Eligible {
+			for _, promotion := range promotions {
+				if calculatePromotionDiscount(*promotion, []models.OrderItem{item}, map[int]itemPricingMeta{0: meta}) <= 0 {
+					continue
+				}
+				promotionIDs = append(promotionIDs, promotion.ID)
+				promotionNames = append(promotionNames, promotion.Name)
+			}
+		}
+
+		badge := ""
+		if len(promotionNames) > 0 {
+			badge = "Акция"
+		}
+
+		result = append(result, OrderItemPricing{
+			Index:               idx,
+			ProductID:           meta.ProductID,
+			TechCardID:          meta.TechCardID,
+			CategoryID:          meta.CategoryID,
+			ItemName:            meta.ItemName,
+			Quantity:            item.Quantity,
+			UnitPrice:           models.RoundTo2(item.Price),
+			TotalPrice:          models.RoundTo2(item.TotalPrice),
+			Eligible:            meta.Eligible,
+			IneligibilityReason: meta.Reason,
+			PromotionIDs:        promotionIDs,
+			PromotionNames:      promotionNames,
+			PromotionBadge:      badge,
+		})
+	}
+
+	return result
+}
+
+func (uc *OrderUseCase) PreviewPromotionsByItems(ctx context.Context, establishmentID uuid.UUID, items []models.OrderItem, options OrderPricingOptions) (*OrderPromotionPreviewResult, error) {
+	calculation, err := uc.CalculateOrder(ctx, establishmentID, items, options)
+	if err != nil {
+		return nil, err
+	}
+
+	activePromotions, err := uc.promotionRepo.GetActive(ctx, establishmentID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get active promotions: %w", err)
+	}
+
+	return &OrderPromotionPreviewResult{
+		Items:            calculation.ItemPricing,
+		ActivePromotions: activePromotions,
+	}, nil
+}
+
+func parsePricingOptionsFromOrder(order *models.Order) OrderPricingOptions {
+	if order == nil {
+		return OrderPricingOptions{}
+	}
+
+	options := OrderPricingOptions{ClientID: order.ClientID}
+	if order.AppliedPromotionsJSON == "" {
+		return options
+	}
+
+	var payload struct {
+		SelectedPromotionID      *uuid.UUID `json:"selected_promotion_id"`
+		ManualDiscountPercentage *float64   `json:"manual_discount_percentage"`
+		RequestedRedeemPoints    int        `json:"requested_redeem_points"`
+	}
+
+	if err := json.Unmarshal([]byte(order.AppliedPromotionsJSON), &payload); err != nil {
+		return options
+	}
+
+	options.SelectedPromotionID = payload.SelectedPromotionID
+	options.ManualDiscountPercentage = payload.ManualDiscountPercentage
+	options.RedeemLoyaltyPoints = payload.RequestedRedeemPoints
+	return options
+}
+
+func applyCalculationToOrder(order *models.Order, calculation *OrderCalculateResult) {
+	order.Items = calculation.Items
+	order.TotalAmount = calculation.BaseAmount
+	order.DiscountTotal = calculation.DiscountTotal
+	order.PromotionDiscountTotal = calculation.PromotionDiscount
+	order.LoyaltyRedeemedPoints = calculation.LoyaltyRedeemedPoints
+	order.LoyaltyRedeemedAmount = calculation.LoyaltyRedeemedAmount
+	order.LoyaltyEarnedPoints = calculation.LoyaltyEarnedPoints
+	order.FinalAmount = calculation.FinalAmount
+	order.AppliedPromotionsJSON = calculation.AppliedPromotionsJSON
+}
+
+func (uc *OrderUseCase) CreateOrder(
+	ctx context.Context,
+	establishmentID uuid.UUID,
+	tableID *uuid.UUID,
+	clientID *uuid.UUID,
+	items []models.OrderItem,
+	selectedPromotionID *uuid.UUID,
+	redeemLoyaltyPoints int,
+	manualDiscountPercentage *float64,
+	totalAmountOverride ...float64,
+) (*models.Order, error) {
 	order := &models.Order{
 		EstablishmentID: establishmentID,
 		TableID:         tableID,
+		ClientID:        clientID,
 		Status:          "draft",
 		Items:           items,
 	}
 
-	// Calculate total amount and ensure item prices are set
-	var totalAmount float64
-	for i := range order.Items {
-		item := &order.Items[i]
-		if item.ProductID != nil {
-			product, err := uc.warehouseRepo.GetProductByID(ctx, *item.ProductID)
-			if err != nil {
-				return nil, fmt.Errorf("product not found: %w", err)
+	// Try to set ShiftID and WaiterID from context (userID should be in context from auth middleware)
+	if userID := ctx.Value("userID"); userID != nil {
+		if userIDStr, ok := userID.(uuid.UUID); ok {
+			// Set WaiterID (the user who created the order)
+			order.WaiterID = &userIDStr
+			fmt.Printf("DEBUG CreateOrder: Set waiter_id=%s\n", userIDStr)
+
+			// Get current active shift for this user
+			activeShift, err := uc.shiftRepo.GetActiveShiftByUserID(ctx, userIDStr)
+			if err == nil && activeShift != nil {
+				order.ShiftID = &activeShift.ID
+				fmt.Printf("DEBUG CreateOrder: Set shift_id=%s for user %s\n", activeShift.ID, userIDStr)
 			}
-			item.Price = product.Price
-		} else if item.TechCardID != nil {
-			techCard, err := uc.warehouseRepo.GetTechCardByID(ctx, *item.TechCardID)
-			if err != nil {
-				return nil, fmt.Errorf("tech card not found: %w", err)
-			}
-			item.Price = techCard.Price
-		} else {
-			return nil, errors.New("order item must have a product or tech card")
 		}
-		item.TotalPrice = item.Price * float64(item.Quantity)
-		totalAmount += item.TotalPrice
 	}
 
-	order.TotalAmount = totalAmount
+	calculation, err := uc.CalculateOrder(ctx, establishmentID, items, OrderPricingOptions{
+		ClientID:                 clientID,
+		SelectedPromotionID:      selectedPromotionID,
+		RedeemLoyaltyPoints:      redeemLoyaltyPoints,
+		ManualDiscountPercentage: manualDiscountPercentage,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	order.Items = calculation.Items
+	order.TotalAmount = calculation.BaseAmount
+	order.DiscountTotal = calculation.DiscountTotal
+	order.PromotionDiscountTotal = calculation.PromotionDiscount
+	order.LoyaltyRedeemedPoints = calculation.LoyaltyRedeemedPoints
+	order.LoyaltyRedeemedAmount = calculation.LoyaltyRedeemedAmount
+	order.LoyaltyEarnedPoints = calculation.LoyaltyEarnedPoints
+	order.FinalAmount = calculation.FinalAmount
+	order.AppliedPromotionsJSON = calculation.AppliedPromotionsJSON
+
 	if len(totalAmountOverride) > 0 {
 		overrideAmount := totalAmountOverride[0]
 		if overrideAmount < 0 {
 			return nil, errors.New("total amount override cannot be negative")
 		}
 
-		// Не разрешаем увеличить итог заказа через override, только применить скидку.
+		// Контроль контракта: фронт не может произвольно менять итог.
 		const epsilon = 0.01
-		if overrideAmount > totalAmount+epsilon {
-			return nil, fmt.Errorf("total amount override (%.2f) cannot exceed calculated amount (%.2f)", overrideAmount, totalAmount)
+		if math.Abs(overrideAmount-calculation.FinalAmount) > epsilon {
+			return nil, fmt.Errorf("total amount override (%.2f) must match server-calculated final amount (%.2f)", overrideAmount, calculation.FinalAmount)
 		}
-
-		order.TotalAmount = overrideAmount
 	}
 
 	if err := uc.orderRepo.Create(ctx, order); err != nil {
@@ -121,7 +647,13 @@ func (uc *OrderUseCase) AddOrderItem(ctx context.Context, orderID uuid.UUID, ite
 
 	// Add item to order
 	order.Items = append(order.Items, item)
-	order.TotalAmount += item.TotalPrice
+
+	pricingOptions := parsePricingOptionsFromOrder(order)
+	calculation, err := uc.CalculateOrder(ctx, order.EstablishmentID, order.Items, pricingOptions)
+	if err != nil {
+		return nil, fmt.Errorf("failed to recalculate order after adding item: %w", err)
+	}
+	applyCalculationToOrder(order, calculation)
 
 	if err := uc.orderRepo.Update(ctx, order); err != nil {
 		return nil, fmt.Errorf("failed to add order item: %w", err)
@@ -154,6 +686,13 @@ func (uc *OrderUseCase) UpdateOrderItemQuantity(ctx context.Context, orderID uui
 		return nil, errors.New("order item not found")
 	}
 
+	pricingOptions := parsePricingOptionsFromOrder(order)
+	calculation, err := uc.CalculateOrder(ctx, order.EstablishmentID, order.Items, pricingOptions)
+	if err != nil {
+		return nil, fmt.Errorf("failed to recalculate order after quantity update: %w", err)
+	}
+	applyCalculationToOrder(order, calculation)
+
 	if err := uc.orderRepo.Update(ctx, order); err != nil {
 		return nil, fmt.Errorf("failed to update order item quantity: %w", err)
 	}
@@ -171,27 +710,40 @@ func (uc *OrderUseCase) ProcessOrderPayment(ctx context.Context, orderID uuid.UU
 		return nil, errors.New("order is already paid or cancelled")
 	}
 
+	pricingOptions := parsePricingOptionsFromOrder(order)
+	calculation, err := uc.CalculateOrder(ctx, order.EstablishmentID, order.Items, pricingOptions)
+	if err != nil {
+		return nil, fmt.Errorf("failed to recalculate order before payment: %w", err)
+	}
+	applyCalculationToOrder(order, calculation)
+
 	// Calculate total payment received
 	totalPaid := cashAmount + cardAmount
 
 	// Логирование для отладки
-	fmt.Printf("DEBUG Payment: orderID=%s, order.TotalAmount=%.2f, cashAmount=%.2f, cardAmount=%.2f, totalPaid=%.2f\n",
-		orderID, order.TotalAmount, cashAmount, cardAmount, totalPaid)
+	fmt.Printf("DEBUG Payment: orderID=%s, order.FinalAmount=%.2f, cashAmount=%.2f, cardAmount=%.2f, totalPaid=%.2f\n",
+		orderID, order.FinalAmount, cashAmount, cardAmount, totalPaid)
 
 	// Сравнение с допуском для float (epsilon = 0.01 - одна копейка)
 	const epsilon = 0.01
-	if totalPaid < order.TotalAmount-epsilon {
-		return nil, fmt.Errorf("total payment (%.2f) is less than total order amount (%.2f)", totalPaid, order.TotalAmount)
+	if totalPaid < order.FinalAmount-epsilon {
+		return nil, fmt.Errorf("total payment (%.2f) is less than total order amount (%.2f)", totalPaid, order.FinalAmount)
 	}
 
-	order.CashAmount = cashAmount
-	order.CardAmount = cardAmount
+	// Ограничиваем суммы транзакций суммой заказа
+	// Транзакция должна быть на сумму заказа, а не на введенную клиентом сумму
+	actualCardAmount := math.Min(cardAmount, order.FinalAmount)
+	remainingAfterCard := math.Max(0, order.FinalAmount-actualCardAmount)
+	actualCashAmount := math.Min(cashAmount, remainingAfterCard)
+
+	order.CashAmount = actualCashAmount
+	order.CardAmount = actualCardAmount
 	order.PaymentStatus = "paid"
 	order.Status = "paid"
 
 	// Calculate change if cash payment exceeds remaining amount
-	if cashAmount > 0 && clientCash > 0 {
-		order.ChangeAmount = clientCash - cashAmount
+	if actualCashAmount > 0 && clientCash > 0 {
+		order.ChangeAmount = clientCash - actualCashAmount
 		if order.ChangeAmount < 0 {
 			return nil, errors.New("client cash is less than cash payment amount")
 		}
@@ -199,6 +751,57 @@ func (uc *OrderUseCase) ProcessOrderPayment(ctx context.Context, orderID uuid.UU
 
 	if err := uc.orderRepo.Update(ctx, order); err != nil {
 		return nil, fmt.Errorf("failed to process order payment: %w", err)
+	}
+
+	// Обновляем статистику всех клиентов из order_items (несколько гостей могут быть разными клиентами)
+	clientTotals := make(map[uuid.UUID]float64) // clientID -> сумма его позиций
+	for _, item := range order.Items {
+		if item.ClientID != nil {
+			clientTotals[*item.ClientID] += item.TotalPrice
+		}
+	}
+
+	// Если есть общий client_id на заказе (обратная совместимость), тоже обрабатываем
+	if order.ClientID != nil {
+		if _, exists := clientTotals[*order.ClientID]; !exists {
+			clientTotals[*order.ClientID] = order.FinalAmount
+		}
+	}
+
+	// Обрабатываем каждого клиента
+	for clientID, clientTotal := range clientTotals {
+		client, getErr := uc.clientRepo.GetByID(ctx, clientID)
+		if getErr != nil {
+			// Пропускаем если клиент не найден
+			continue
+		}
+
+		// Лояльность обрабатывается только для основного клиента заказа
+		if order.ClientID != nil && clientID == *order.ClientID {
+			if calculation.LoyaltyRedeemedPoints > 0 {
+				if err := uc.clientRepo.RedeemLoyaltyPoints(ctx, client.ID, calculation.LoyaltyRedeemedPoints); err != nil {
+					return nil, fmt.Errorf("failed to redeem loyalty points: %w", err)
+				}
+			}
+			if calculation.LoyaltyEarnedPoints > 0 {
+				if err := uc.clientRepo.AddLoyaltyPoints(ctx, client.ID, calculation.LoyaltyEarnedPoints); err != nil {
+					return nil, fmt.Errorf("failed to add loyalty points: %w", err)
+				}
+			}
+		}
+
+		// Обновляем статистику клиента
+		client.TotalOrders += 1
+		client.TotalSpent = models.RoundTo2(client.TotalSpent + clientTotal)
+		if err := uc.clientRepo.Update(ctx, client); err != nil {
+			return nil, fmt.Errorf("failed to update client totals for %s: %w", clientID, err)
+		}
+	}
+
+	for _, promotionID := range calculation.AppliedPromotionIDs {
+		if err := uc.promotionRepo.IncrementUsageCount(ctx, promotionID); err != nil {
+			return nil, fmt.Errorf("failed to increment promotion usage_count: %w", err)
+		}
 	}
 
 	// Create transaction for cash/card payment

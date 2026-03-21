@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -17,9 +18,29 @@ type OrderHandler struct {
 }
 
 type CreateOrderRequest struct {
-	TableID     *uuid.UUID         `json:"table_id,omitempty"`
-	Items       []OrderItemRequest `json:"items" binding:"required,min=1"`
-	TotalAmount *float64           `json:"total_amount,omitempty" binding:"omitempty,min=0"`
+	TableID                  *uuid.UUID         `json:"table_id,omitempty"`
+	TableNumber              *int               `json:"table_number,omitempty"`
+	GuestsCount              *int               `json:"guests_count,omitempty"`
+	ClientID                 *uuid.UUID         `json:"client_id,omitempty"`
+	SelectedPromotionID      *uuid.UUID         `json:"selected_promotion_id,omitempty"`
+	RedeemLoyaltyPoints      int                `json:"redeem_loyalty_points,omitempty" binding:"min=0"`
+	ManualDiscountPercentage *float64           `json:"manual_discount_percentage,omitempty" binding:"omitempty,min=0,max=100"`
+	Items                    []OrderItemRequest `json:"items" binding:"required,min=1"`
+	TotalAmount              *float64           `json:"total_amount,omitempty" binding:"omitempty,min=0"`
+}
+
+type CalculateOrderRequest struct {
+	ClientID                 *uuid.UUID         `json:"client_id,omitempty"`
+	SelectedPromotionID      *uuid.UUID         `json:"selected_promotion_id,omitempty"`
+	RedeemLoyaltyPoints      int                `json:"redeem_loyalty_points,omitempty" binding:"min=0"`
+	ManualDiscountPercentage *float64           `json:"manual_discount_percentage,omitempty" binding:"omitempty,min=0,max=100"`
+	Items                    []OrderItemRequest `json:"items" binding:"required,min=1"`
+}
+
+type PreviewPromotionsRequest struct {
+	ClientID            *uuid.UUID         `json:"client_id,omitempty"`
+	SelectedPromotionID *uuid.UUID         `json:"selected_promotion_id,omitempty"`
+	Items               []OrderItemRequest `json:"items" binding:"required,min=1"`
 }
 
 type OrderItemRequest struct {
@@ -27,6 +48,7 @@ type OrderItemRequest struct {
 	TechCardID  *uuid.UUID `json:"tech_card_id,omitempty"`
 	Quantity    int        `json:"quantity" binding:"required,min=1"`
 	GuestNumber *int       `json:"guest_number,omitempty"`
+	ClientID    *uuid.UUID `json:"client_id,omitempty"` // Клиент для этой позиции (гостя)
 }
 
 type AddOrderItemRequest struct {
@@ -91,7 +113,7 @@ func (h *OrderHandler) List(c *gin.Context) {
 
 // ListActiveOrdersByEstablishment возвращает список активных заказов для заведения
 // @Summary Получить список активных заказов
-// @Description Возвращает список активных заказов (статусы: draft, confirmed, preparing) для текущего заведения
+// @Description Возвращает список активных заказов (статусы: draft, confirmed, preparing, ready) для текущего заведения
 // @Tags orders
 // @Produce json
 // @Security Bearer
@@ -157,6 +179,106 @@ func (h *OrderHandler) Get(c *gin.Context) {
 	c.JSON(http.StatusOK, order)
 }
 
+// Calculate выполняет серверный расчет стоимости заказа без создания заказа
+// @Summary Рассчитать заказ
+// @Description Выполняет серверный расчет скидок/лояльности и возвращает breakdown
+// @Tags orders
+// @Accept json
+// @Produce json
+// @Security Bearer
+// @Param request body CalculateOrderRequest true "Данные для расчета"
+// @Success 200 {object} map[string]interface{}
+// @Failure 400 {object} map[string]string
+// @Failure 500 {object} map[string]string
+// @Router /orders/calculate [post]
+func (h *OrderHandler) Calculate(c *gin.Context) {
+	var req CalculateOrderRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	estID, err := getEstablishmentID(c)
+	if err != nil {
+		c.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
+		return
+	}
+
+	orderItems := make([]models.OrderItem, len(req.Items))
+	for i, itemReq := range req.Items {
+		orderItems[i] = models.OrderItem{
+			ProductID:   itemReq.ProductID,
+			TechCardID:  itemReq.TechCardID,
+			Quantity:    itemReq.Quantity,
+			GuestNumber: itemReq.GuestNumber,
+			ClientID:    itemReq.ClientID,
+		}
+	}
+
+	calculation, err := h.usecase.CalculateOrder(c.Request.Context(), estID, orderItems, usecases.OrderPricingOptions{
+		ClientID:                 req.ClientID,
+		SelectedPromotionID:      req.SelectedPromotionID,
+		RedeemLoyaltyPoints:      req.RedeemLoyaltyPoints,
+		ManualDiscountPercentage: req.ManualDiscountPercentage,
+	})
+	if err != nil {
+		h.logger.Error("Failed to calculate order", zap.Error(err))
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"data": calculation})
+}
+
+// PreviewPromotions returns item-level promotion eligibility and active promotions
+// @Summary Предпросмотр акций по товарам
+// @Description Возвращает eligible/promotions и причину неучастия для каждой позиции
+// @Tags orders
+// @Accept json
+// @Produce json
+// @Security Bearer
+// @Param request body PreviewPromotionsRequest true "Данные для предпросмотра"
+// @Success 200 {object} map[string]interface{}
+// @Failure 400 {object} map[string]string
+// @Failure 500 {object} map[string]string
+// @Router /orders/promotions/preview [post]
+func (h *OrderHandler) PreviewPromotions(c *gin.Context) {
+	var req PreviewPromotionsRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	estID, err := getEstablishmentID(c)
+	if err != nil {
+		c.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
+		return
+	}
+
+	orderItems := make([]models.OrderItem, len(req.Items))
+	for i, itemReq := range req.Items {
+		orderItems[i] = models.OrderItem{
+			ProductID:   itemReq.ProductID,
+			TechCardID:  itemReq.TechCardID,
+			Quantity:    itemReq.Quantity,
+			GuestNumber: itemReq.GuestNumber,
+			ClientID:    itemReq.ClientID,
+		}
+	}
+
+	preview, err := h.usecase.PreviewPromotionsByItems(c.Request.Context(), estID, orderItems, usecases.OrderPricingOptions{
+		ClientID:            req.ClientID,
+		SelectedPromotionID: req.SelectedPromotionID,
+	})
+	if err != nil {
+		h.logger.Error("Failed to preview promotions", zap.Error(err))
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"data": preview})
+}
+
 // Create создает новый заказ
 // @Summary Создать заказ
 // @Description Создает новый заказ
@@ -189,19 +311,57 @@ func (h *OrderHandler) Create(c *gin.Context) {
 			TechCardID:  itemReq.TechCardID,
 			Quantity:    itemReq.Quantity,
 			GuestNumber: itemReq.GuestNumber,
+			ClientID:    itemReq.ClientID,
+		}
+	}
+
+	// Получаем userID из Gin context и добавляем в context.Context
+	ctx := c.Request.Context()
+	if userIDStr, exists := c.Get("user_id"); exists {
+		if userIDString, ok := userIDStr.(string); ok {
+			// Парсим UUID
+			if userID, err := uuid.Parse(userIDString); err == nil {
+				ctx = context.WithValue(ctx, "userID", userID)
+			}
 		}
 	}
 
 	var order *models.Order
 	if req.TotalAmount != nil {
-		order, err = h.usecase.CreateOrder(c.Request.Context(), estID, req.TableID, orderItems, *req.TotalAmount)
+		order, err = h.usecase.CreateOrder(
+			ctx,
+			estID,
+			req.TableID,
+			req.ClientID,
+			orderItems,
+			req.SelectedPromotionID,
+			req.RedeemLoyaltyPoints,
+			req.ManualDiscountPercentage,
+			*req.TotalAmount,
+		)
 	} else {
-		order, err = h.usecase.CreateOrder(c.Request.Context(), estID, req.TableID, orderItems)
+		order, err = h.usecase.CreateOrder(
+			ctx,
+			estID,
+			req.TableID,
+			req.ClientID,
+			orderItems,
+			req.SelectedPromotionID,
+			req.RedeemLoyaltyPoints,
+			req.ManualDiscountPercentage,
+		)
 	}
 	if err != nil {
 		h.logger.Error("Failed to create order", zap.Error(err))
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Не удалось создать заказ"})
 		return
+	}
+
+	// Обновляем guests_count если предоставлено
+	if req.GuestsCount != nil && *req.GuestsCount > 0 && order != nil {
+		// Это только для информационных целей, основной расчет в usecase
+		guestsCount := *req.GuestsCount
+		h.logger.Info("Order created with guests count", zap.Int("guests_count", guestsCount))
 	}
 
 	c.JSON(http.StatusCreated, order)

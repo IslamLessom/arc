@@ -1,7 +1,19 @@
 import { useMemo, useState } from 'react'
 import { useMarketingLoyaltyPrograms, type MarketingLoyaltyProgram } from '@restaurant-pos/api-client'
+import { exportToExcel, printTable, useColumnVisibility } from '@restaurant-pos/ui'
 import { LoyaltyProgramTable, LoyaltyProgramsSort } from '../model/types'
 import { SortDirection } from '../model/enums'
+import { getLoyaltyProgramsTableColumns } from '../lib/constants'
+
+const confirmDelete = (id: string): Promise<boolean> => {
+  return new Promise((resolve) => {
+    if (window.confirm(`Вы уверены, что хотите удалить программу лояльности с ID: ${id}?`)) {
+      resolve(true)
+    } else {
+      resolve(false)
+    }
+  })
+}
 
 const normalizeProgram = (program: MarketingLoyaltyProgram, number: number): LoyaltyProgramTable => ({
   id: program.id,
@@ -17,14 +29,21 @@ const normalizeProgram = (program: MarketingLoyaltyProgram, number: number): Loy
   created_at: program.created_at,
   updated_at: program.updated_at,
   number,
+  formula_preview:
+    program.type === 'points'
+      ? `${program.points_per_currency ?? 0} балл(ов) за 1 валютную единицу, x${program.point_multiplier}`
+      : program.type === 'cashback'
+        ? `${program.cashback_percentage ?? 0}% cashback, лимит ${program.max_cashback_amount ?? 0}`
+        : `Tier-модель с мультипликатором x${program.point_multiplier}`,
 })
 
 export const useLoyaltyPrograms = () => {
-  const { loyaltyPrograms: apiPrograms, isLoading, error, refetch } = useMarketingLoyaltyPrograms()
+  const { loyaltyPrograms: apiPrograms, isLoading, error, refetch, deleteLoyaltyProgram } = useMarketingLoyaltyPrograms()
 
   const [searchQuery, setSearchQuery] = useState('')
   const [sort, setSort] = useState<LoyaltyProgramsSort>({ field: 'name', direction: SortDirection.ASC })
   const [isModalOpen, setIsModalOpen] = useState(false)
+  const [isColumnModalOpen, setIsColumnModalOpen] = useState(false)
   const [editingProgramId, setEditingProgramId] = useState<string | null>(null)
 
   const loyaltyPrograms = useMemo(
@@ -98,16 +117,51 @@ export const useLoyaltyPrograms = () => {
     handleCloseModal()
   }
 
+  const allColumns = useMemo(
+    () => getLoyaltyProgramsTableColumns({ onEdit: () => {}, onDelete: () => {} }),
+    []
+  )
+
+  const {
+    visibleColumns,
+    columnInfo,
+    toggleColumn,
+    showAllColumns,
+    hideAllColumns,
+    resetColumnVisibility,
+  } = useColumnVisibility(allColumns, {
+    storageKey: 'admin-panel-marketing-loyalty-programs-columns'
+  })
+
   const handleExport = () => {
-    console.log('Export loyalty programs')
+    exportToExcel(filteredAndSortedPrograms, visibleColumns, 'marketing-loyalty-programs.xlsx')
   }
 
   const handlePrint = () => {
-    console.log('Print loyalty programs')
+    printTable(filteredAndSortedPrograms, visibleColumns, 'Программы лояльности', {
+      showDate: true,
+      orientation: 'landscape'
+    })
   }
 
   const handleColumns = () => {
-    console.log('Manage columns')
+    setIsColumnModalOpen(true)
+  }
+
+  const handleCloseColumnModal = () => {
+    setIsColumnModalOpen(false)
+  }
+
+  const handleDelete = async (id: string) => {
+    const confirmed = await confirmDelete(id)
+    if (confirmed) {
+      try {
+        await deleteLoyaltyProgram(id)
+        await refetch()
+      } catch (err) {
+        console.error('Failed to delete loyalty program:', err)
+      }
+    }
   }
 
   return {
@@ -129,5 +183,14 @@ export const useLoyaltyPrograms = () => {
     handleExport,
     handlePrint,
     handleColumns,
+    handleDelete,
+    isColumnModalOpen,
+    handleCloseColumnModal,
+    visibleColumns,
+    columnInfo,
+    toggleColumn,
+    showAllColumns,
+    hideAllColumns,
+    resetColumnVisibility,
   }
 }

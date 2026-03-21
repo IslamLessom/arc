@@ -78,7 +78,6 @@ export const Positions = () => {
         <Table
           columns={columns}
           dataSource={positions}
-          emptyMessage="Нет должностей"
         />
       </Styled.TableContainer>
     </Styled.PageContainer>

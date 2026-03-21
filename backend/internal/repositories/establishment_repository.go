@@ -27,7 +27,10 @@ func NewEstablishmentRepository(db *gorm.DB) EstablishmentRepository {
 
 func (r *establishmentRepository) GetByID(ctx context.Context, id uuid.UUID) (*models.Establishment, error) {
 	var establishment models.Establishment
-	err := r.db.WithContext(ctx).Preload("Tables").First(&establishment, "id = ?", id).Error
+	err := r.db.WithContext(ctx).
+		Preload("Rooms").
+		Preload("Rooms.Tables").
+		First(&establishment, "id = ?", id).Error
 	return &establishment, err
 }
 

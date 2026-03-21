@@ -1,5 +1,5 @@
 import { useLoyaltyPrograms } from '../hooks/useLoyaltyPrograms'
-import { Table } from '@restaurant-pos/ui'
+import { ColumnManager, Table } from '@restaurant-pos/ui'
 import { getLoyaltyProgramsTableColumns } from '../lib/constants'
 import type { LoyaltyProgramTable } from '../model/types'
 import { AddLoyaltyProgramModal } from '../../../features/add-loyalty-program-modal'
@@ -22,11 +22,31 @@ export const LoyaltyPrograms = () => {
     handleSuccess,
     handleExport,
     handlePrint,
-    handleColumns
+    handleColumns,
+    handleDelete,
+    isColumnModalOpen,
+    handleCloseColumnModal,
+    visibleColumns,
+    columnInfo,
+    toggleColumn,
+    showAllColumns,
+    hideAllColumns,
+    resetColumnVisibility,
   } = useLoyaltyPrograms()
 
   const columns = getLoyaltyProgramsTableColumns({
-    onEdit: handleEdit
+    onEdit: handleEdit,
+    onDelete: handleDelete,
+  })
+
+  const filteredColumns = columns.filter((col) => {
+    if (!col.dataIndex) return true
+    const key = Array.isArray(col.dataIndex) ? col.dataIndex.join('.') : col.dataIndex
+    const visibleCol = visibleColumns.find((vc) => {
+      const vcKey = Array.isArray(vc.dataIndex) ? vc.dataIndex.join('.') : vc.dataIndex
+      return vcKey === key
+    })
+    return visibleCol !== undefined
   })
 
   if (isLoading) {
@@ -85,10 +105,11 @@ export const LoyaltyPrograms = () => {
 
       <Styled.TableContainer>
         <Table
-          columns={columns}
+          columns={filteredColumns as any}
           dataSource={loyaltyPrograms}
-          onRowClick={(record: LoyaltyProgramTable) => handleEdit(record.id)}
-          emptyMessage="Нет программ лояльности"
+          onRow={(record: LoyaltyProgramTable) => ({
+            onClick: () => handleEdit(record.id)
+          })}
         />
       </Styled.TableContainer>
 
@@ -98,6 +119,17 @@ export const LoyaltyPrograms = () => {
         onSuccess={handleSuccess}
         onClose={handleCloseModal}
       />
+
+      {isColumnModalOpen && (
+        <ColumnManager
+          columns={columnInfo}
+          onToggle={toggleColumn}
+          onShowAll={showAllColumns}
+          onHideAll={hideAllColumns}
+          onReset={resetColumnVisibility}
+          onClose={handleCloseColumnModal}
+        />
+      )}
     </Styled.PageContainer>
   )
 }

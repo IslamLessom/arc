@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useTransactions } from '../hooks/useTransactions'
 import { AddTransactionModal } from './add-transaction-modal'
 import type { Transaction } from '@restaurant-pos/types'
+import { translateCategory } from '../../../shared/lib/categoryTranslations'
 import * as Styled from './styled'
 
 export const Transactions = () => {
@@ -136,7 +137,7 @@ export const Transactions = () => {
                                         {transaction.account?.name || transaction.accountId}
                                     </Styled.TableCell>
                                     <Styled.TableCell>
-                                        {transaction.category || '-'}
+                                        {translateCategory(transaction.category)}
                                     </Styled.TableCell>
                                     <Styled.AmountCell $type={transaction.type}>
                                         {formatAmount(transaction.amount, transaction.type)}

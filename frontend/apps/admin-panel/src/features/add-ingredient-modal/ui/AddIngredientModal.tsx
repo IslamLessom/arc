@@ -1,9 +1,187 @@
+import { useState } from 'react'
 import { useAddIngredientModal } from '../hooks/useAddIngredientModal'
 import type { AddIngredientModalProps } from '../model/types'
-import { Button, Input } from '@restaurant-pos/ui'
+import { Button, Input, ButtonVariant } from '@restaurant-pos/ui'
 import * as Styled from './styled'
+import {
+  useCreateIngredientCategory,
+  useCreateWarehouse,
+  useGetIngredientCategories,
+  useGetWarehouses,
+} from '@restaurant-pos/api-client'
+
+const AddIngredientCategoryDialog = ({
+  isOpen,
+  onClose,
+  onCategoryAdded,
+}: AddIngredientCategoryDialogProps) => {
+  const [categoryName, setCategoryName] = useState('')
+  const [error, setError] = useState<string | null>(null)
+
+  const createCategoryMutation = useCreateIngredientCategory()
+  const { refetch: refetchCategories } = useGetIngredientCategories()
+
+  if (!isOpen) return null
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setError(null)
+
+    const trimmedName = categoryName.trim()
+    if (!trimmedName) {
+      setError('Введите название категории')
+      return
+    }
+
+    try {
+      const newCategory = await createCategoryMutation.mutateAsync({
+        name: trimmedName,
+      })
+
+      await refetchCategories()
+      onCategoryAdded?.(newCategory.id)
+      onClose()
+      setCategoryName('')
+    } catch (err) {
+      console.error('Failed to create ingredient category:', err)
+      setError('Ошибка при создании категории')
+    }
+  }
+
+  return (
+    <Styled.DialogOverlay $isOpen={isOpen} onClick={onClose}>
+      <Styled.DialogContainer onClick={(e) => e.stopPropagation()}>
+        <Styled.DialogHeader>
+          <Styled.DialogTitle>Добавить категорию ингредиентов</Styled.DialogTitle>
+          <Styled.DialogCloseButton onClick={onClose}>×</Styled.DialogCloseButton>
+        </Styled.DialogHeader>
+
+        <Styled.DialogForm onSubmit={handleSubmit}>
+          <Styled.DialogInputGroup>
+            <Styled.DialogLabel>
+              Название <Styled.Required>*</Styled.Required>
+            </Styled.DialogLabel>
+            <Styled.DialogInput
+              type="text"
+              value={categoryName}
+              onChange={(e) => setCategoryName(e.target.value)}
+              placeholder="Например, «Овощи» или «Мясо»"
+              disabled={createCategoryMutation.isPending}
+              autoFocus
+            />
+          </Styled.DialogInputGroup>
+
+          {error && <Styled.FieldError>{error}</Styled.FieldError>}
+
+          <Styled.DialogButtonGroup>
+            <Styled.DialogCancelButton type="button" onClick={onClose}>
+              Отмена
+            </Styled.DialogCancelButton>
+            <Styled.DialogSubmitButton
+              type="submit"
+              $disabled={createCategoryMutation.isPending || !categoryName.trim()}
+            >
+              {createCategoryMutation.isPending ? 'Добавление...' : 'Добавить'}
+            </Styled.DialogSubmitButton>
+          </Styled.DialogButtonGroup>
+        </Styled.DialogForm>
+      </Styled.DialogContainer>
+    </Styled.DialogOverlay>
+  )
+}
+
+const AddWarehouseDialog = ({ isOpen, onClose, onWarehouseAdded }: AddWarehouseDialogProps) => {
+  const [warehouseName, setWarehouseName] = useState('')
+  const [error, setError] = useState<string | null>(null)
+  
+  const createWarehouseMutation = useCreateWarehouse()
+  const { refetch: refetchWarehouses } = useGetWarehouses()
+
+  if (!isOpen) return null
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setError(null)
+
+    const trimmedName = warehouseName.trim()
+    if (!trimmedName) {
+      setError('Введите название склада')
+      return
+    }
+
+    try {
+      const newWarehouse = await createWarehouseMutation.mutateAsync({
+        name: trimmedName,
+      })
+      
+      await refetchWarehouses()
+      onWarehouseAdded?.(newWarehouse.id)
+      onClose()
+      setWarehouseName('')
+    } catch (err) {
+      console.error('Failed to create warehouse:', err)
+      setError('Ошибка при создании склада')
+    }
+  }
+
+  return (
+    <Styled.DialogOverlay $isOpen={isOpen} onClick={onClose}>
+      <Styled.DialogContainer onClick={(e) => e.stopPropagation()}>
+        <Styled.DialogHeader>
+          <Styled.DialogTitle>Добавить склад</Styled.DialogTitle>
+          <Styled.DialogCloseButton onClick={onClose}>×</Styled.DialogCloseButton>
+        </Styled.DialogHeader>
+
+        <Styled.DialogForm onSubmit={handleSubmit}>
+          <Styled.DialogInputGroup>
+            <Styled.DialogLabel>
+              Название <Styled.Required>*</Styled.Required>
+            </Styled.DialogLabel>
+            <Styled.DialogInput
+              type="text"
+              value={warehouseName}
+              onChange={(e) => setWarehouseName(e.target.value)}
+              placeholder="Например, «Основной склад»"
+              disabled={createWarehouseMutation.isPending}
+              autoFocus
+            />
+          </Styled.DialogInputGroup>
+
+          {error && <Styled.FieldError>{error}</Styled.FieldError>}
+
+          <Styled.DialogButtonGroup>
+            <Styled.DialogCancelButton type="button" onClick={onClose}>
+              Отмена
+            </Styled.DialogCancelButton>
+            <Styled.DialogSubmitButton 
+              type="submit"
+              $disabled={createWarehouseMutation.isPending || !warehouseName.trim()}
+            >
+              {createWarehouseMutation.isPending ? 'Добавление...' : 'Добавить'}
+            </Styled.DialogSubmitButton>
+          </Styled.DialogButtonGroup>
+        </Styled.DialogForm>
+      </Styled.DialogContainer>
+    </Styled.DialogOverlay>
+  )
+}
+
+interface AddWarehouseDialogProps {
+  isOpen: boolean
+  onClose: () => void
+  onWarehouseAdded?: (warehouseId: string) => void
+}
+
+interface AddIngredientCategoryDialogProps {
+  isOpen: boolean
+  onClose: () => void
+  onCategoryAdded?: (categoryId: string) => void
+}
 
 export const AddIngredientModal = (props: AddIngredientModalProps) => {
+  const [isAddCategoryDialogOpen, setIsAddCategoryDialogOpen] = useState(false)
+  const [isAddWarehouseDialogOpen, setIsAddWarehouseDialogOpen] = useState(false)
+
   const {
     formData,
     isLoading,
@@ -11,6 +189,8 @@ export const AddIngredientModal = (props: AddIngredientModalProps) => {
     error,
     categories,
     warehouses,
+    refetchCategories,
+    refetchWarehouses,
     handleFieldChange,
     handleSubmit,
     handleClose,
@@ -53,9 +233,15 @@ export const AddIngredientModal = (props: AddIngredientModalProps) => {
                 </Styled.Label>
                 <Styled.Select
                   value={formData.category_id}
-                  onChange={(e) =>
-                    handleFieldChange('category_id', e.target.value)
-                  }
+                  onChange={(e) => {
+                    const value = e.target.value
+                    if (value === '__add_new__') {
+                      setIsAddCategoryDialogOpen(true)
+                      e.target.value = formData.category_id || ''
+                    } else {
+                      handleFieldChange('category_id', value)
+                    }
+                  }}
                   disabled={isSubmitting || isLoading}
                   required
                 >
@@ -65,6 +251,7 @@ export const AddIngredientModal = (props: AddIngredientModalProps) => {
                       {category.name}
                     </option>
                   ))}
+                  <option value="__add_new__" style={{ fontWeight: 500, color: '#3b82f6' }}>+ Добавить категорию</option>
                 </Styled.Select>
               </Styled.InputGroup>
 
@@ -266,9 +453,15 @@ export const AddIngredientModal = (props: AddIngredientModalProps) => {
                     <Styled.Label>Склад</Styled.Label>
                     <Styled.Select
                       value={formData.warehouse_id || ''}
-                      onChange={(e) =>
-                        handleFieldChange('warehouse_id', e.target.value)
-                      }
+                      onChange={(e) => {
+                        const value = e.target.value
+                        if (value === '__add_new__') {
+                          setIsAddWarehouseDialogOpen(true)
+                          e.target.value = formData.warehouse_id || ''
+                        } else {
+                          handleFieldChange('warehouse_id', value)
+                        }
+                      }}
                       disabled={isSubmitting || isLoading}
                     >
                       <option value="">Выберите склад</option>
@@ -277,6 +470,7 @@ export const AddIngredientModal = (props: AddIngredientModalProps) => {
                           {warehouse.name}
                         </option>
                       ))}
+                      <option value="__add_new__" style={{ fontWeight: 500, color: '#3b82f6' }}>+ Добавить склад</option>
                     </Styled.Select>
                   </Styled.InputGroup>
                 </>
@@ -307,20 +501,40 @@ export const AddIngredientModal = (props: AddIngredientModalProps) => {
 
             <Styled.ButtonGroup>
               <Button
-                type="button"
-                variant="outline"
+                htmlType="button"
+                variant={ButtonVariant.Outline}
                 onClick={handleClose}
                 disabled={isSubmitting}
               >
                 Отмена
               </Button>
-              <Button htmlType="submit" disabled={isSubmitting || isLoading}>
+              <Button htmlType="submit" disabled={isSubmitting || isLoading || !formData.name.trim() || !formData.category_id}>
                 {isSubmitting ? 'Сохранение...' : 'Сохранить'}
               </Button>
             </Styled.ButtonGroup>
           </Styled.Form>
         </Styled.ModalBody>
       </Styled.ModalContainer>
+
+      <AddIngredientCategoryDialog
+        isOpen={isAddCategoryDialogOpen}
+        onClose={() => setIsAddCategoryDialogOpen(false)}
+        onCategoryAdded={(categoryId) => {
+          handleFieldChange('category_id', categoryId)
+          setIsAddCategoryDialogOpen(false)
+          refetchCategories?.()
+        }}
+      />
+
+      <AddWarehouseDialog 
+        isOpen={isAddWarehouseDialogOpen}
+        onClose={() => setIsAddWarehouseDialogOpen(false)}
+        onWarehouseAdded={(warehouseId) => {
+          handleFieldChange('warehouse_id', warehouseId)
+          setIsAddWarehouseDialogOpen(false)
+          refetchWarehouses?.()
+        }}
+      />
     </Styled.Overlay>
   )
 }

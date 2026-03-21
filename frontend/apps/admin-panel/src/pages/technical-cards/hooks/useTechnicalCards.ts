@@ -19,18 +19,40 @@ export const useTechnicalCards = () => {
   const deleteTechnicalCardMutation = useDeleteTechnicalCard()
 
   const technicalCards = useMemo(() => {
-    return apiTechnicalCards.map(card => ({
-      id: card.id,
-      name: card.name,
-      category: card.category,
-      ingredients: card.ingredients?.length || 0,
-      weight: 0,
-      cost: card.cost_price,
-      price: card.price,
-      margin: card.cost_price > 0 ? ((card.price - card.cost_price) / card.cost_price * 100) : 0,
-      status: card.active ? TechnicalCardStatus.ACTIVE : TechnicalCardStatus.INACTIVE,
-      lastModified: new Date(card.updated_at).toLocaleDateString('ru-RU')
-    }))
+    return apiTechnicalCards.map(card => {
+      // Calculate output weight (yield) from ingredients in grams
+      const weight = (card.ingredients || []).reduce((total, ingredient) => {
+        let quantityInGrams = 0
+        
+        if (ingredient.unit === 'кг') {
+          quantityInGrams = ingredient.quantity * 1000
+        } else if (ingredient.unit === 'л') {
+          // Assuming density = 1 (1 liter = 1000 grams for liquids)
+          quantityInGrams = ingredient.quantity * 1000
+        } else if (ingredient.unit === 'г') {
+          quantityInGrams = ingredient.quantity
+        } else if (ingredient.unit === 'мл') {
+          // Assuming density = 1
+          quantityInGrams = ingredient.quantity
+        }
+        // For 'шт', we don't add to weight as pieces don't have standard gram measurement
+        
+        return total + quantityInGrams
+      }, 0)
+
+      return {
+        id: card.id,
+        name: card.name,
+        category: card.category?.name || '-',
+        ingredients: card.ingredients?.length || 0,
+        weight: Math.round(weight),
+        cost: card.cost_price,
+        price: card.price,
+        margin: card.cost_price > 0 ? ((card.price - card.cost_price) / card.cost_price * 100) : 0,
+        status: card.active ? TechnicalCardStatus.ACTIVE : TechnicalCardStatus.INACTIVE,
+        lastModified: new Date(card.updated_at).toLocaleDateString('ru-RU')
+      }
+    })
   }, [apiTechnicalCards])
 
   const filteredAndSortedCards = useMemo(() => {

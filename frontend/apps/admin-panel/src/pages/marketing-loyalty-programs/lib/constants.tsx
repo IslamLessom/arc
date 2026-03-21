@@ -1,6 +1,6 @@
 import { LoyaltyProgramTable } from '../model/types'
 import { LoyaltyProgramsTableProps } from '../model/types'
-import { EditButton } from '@restaurant-pos/ui'
+import { DeleteButton, EditButton, TableAlign } from '@restaurant-pos/ui'
 import { LoyaltyProgramType } from '../model/enums'
 import { StatusBadge } from '../ui/styled'
 
@@ -17,7 +17,7 @@ const getTypeLabel = (type: string) => {
   }
 }
 
-export const getLoyaltyProgramsTableColumns = ({ onEdit }: LoyaltyProgramsTableProps) => [
+export const getLoyaltyProgramsTableColumns = ({ onEdit, onDelete }: LoyaltyProgramsTableProps) => [
   {
     title: '№',
     dataIndex: 'number',
@@ -45,7 +45,14 @@ export const getLoyaltyProgramsTableColumns = ({ onEdit }: LoyaltyProgramsTableP
     render: (type: unknown) => <span>{getTypeLabel((type as string) || '')}</span>
   },
   {
-    title: 'Баллов/₸',
+    title: 'Формула',
+    dataIndex: 'formula_preview',
+    key: 'formula_preview',
+    width: 240,
+    render: (formula: unknown) => <span>{(formula as string) || '-'}</span>
+  },
+  {
+    title: 'Баллов/₽',
     dataIndex: 'points_per_currency',
     key: 'points_per_currency',
     width: 100,
@@ -85,10 +92,20 @@ export const getLoyaltyProgramsTableColumns = ({ onEdit }: LoyaltyProgramsTableP
     title: 'Ред.',
     dataIndex: 'edit',
     key: 'edit',
-    align: 'center' as const,
+    align: TableAlign.Center,
     width: 80,
     render: (_: unknown, record: LoyaltyProgramTable) => (
       <EditButton onClick={() => onEdit(record.id)} />
+    )
+  },
+  {
+    title: 'Удал.',
+    dataIndex: 'delete',
+    key: 'delete',
+    align: TableAlign.Center,
+    width: 90,
+    render: (_: unknown, record: LoyaltyProgramTable) => (
+      <DeleteButton onClick={() => onDelete(record.id)} />
     )
   }
 ]

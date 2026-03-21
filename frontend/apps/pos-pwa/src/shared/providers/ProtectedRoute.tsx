@@ -10,6 +10,8 @@ const LazyOrder = lazy(() => import('@/pages/order').then(m => ({ default: m.Ord
 const LazyPayment = lazy(() => import('@/pages/payment').then(m => ({ default: m.Payment })))
 const LazyOrdersArchive = lazy(() => import('@/pages/orders-archive').then(m => ({ default: m.OrdersArchive })))
 const LazyReceiptsArchive = lazy(() => import('@/pages/receipts-archive').then(m => ({ default: m.ReceiptsArchive })))
+const LazySupplies = lazy(() => import('@/pages/supplies').then(m => ({ default: m.Supplies })))
+const LazyAddSupply = lazy(() => import('@/pages/add-supply').then(m => ({ default: m.AddSupply })))
 
 interface ProtectedRouteProps {
   children: React.ReactNode
@@ -31,6 +33,46 @@ function getAuthState(): AuthState {
 function isLocked(): boolean {
   if (typeof window === 'undefined') return false
   return localStorage.getItem('is_locked') === 'true'
+}
+
+function hasApplicationAccess(): boolean {
+  if (typeof window === 'undefined') return false
+  
+  const authState = getAuthState()
+  
+  // Owner всегда имеет доступ
+  if (authState === 'owner') return true
+  
+  // Для сотрудника пытаемся парсить permissions
+  const permissionsStr = localStorage.getItem('employee_permissions')
+  if (!permissionsStr) {
+    // Если нет permissions строки вообще - у сотрудника нет доступа
+    // (это значит что роль не имеет никаких разрешений)
+    return false
+  }
+  
+  try {
+    const permissions = JSON.parse(permissionsStr)
+    
+    // Проверяем наличие реальных прав в админ-панели (не 'none')
+    let hasAdminAccess = false
+    if (permissions.admin_panel_access?.sections && Array.isArray(permissions.admin_panel_access.sections)) {
+      hasAdminAccess = permissions.admin_panel_access.sections.some(
+        (section: { access_level: string }) => section.access_level !== 'none'
+      )
+    }
+    
+    // Проверяем наличие хотя бы какого-то доступа
+    if (permissions.cash_access?.work_with_cash || 
+        permissions.cash_access?.admin_hall || 
+        hasAdminAccess) {
+      return true
+    }
+    return false
+  } catch {
+    // Если не можем парсить - считаем что нет доступа
+    return false
+  }
 }
 
 export function ProtectedRoute({ children }: ProtectedRouteProps) {
@@ -107,6 +149,7 @@ export function PinLoginRoute() {
 export function HomeRoute() {
   const authState = getAuthState()
   const locked = isLocked()
+  const hasAccess = hasApplicationAccess()
 
   if (authState === 'none') {
     return <Navigate to="/auth" replace />
@@ -114,6 +157,11 @@ export function HomeRoute() {
 
   // Если приложение заблокировано или владелец - перенаправляем на pin-login
   if (authState === 'owner' || locked) {
+    return <Navigate to="/pin-login" replace />
+  }
+
+  // Если сотрудник не имеет доступа к приложению - перенаправляем обратно на pin-login
+  if (!hasAccess) {
     return <Navigate to="/pin-login" replace />
   }
 
@@ -127,6 +175,7 @@ export function HomeRoute() {
 export function TableSelectionRoute() {
   const authState = getAuthState()
   const locked = isLocked()
+  const hasAccess = hasApplicationAccess()
 
   if (authState === 'none') {
     return <Navigate to="/auth" replace />
@@ -134,6 +183,11 @@ export function TableSelectionRoute() {
 
   // Если приложение заблокировано или владелец - перенаправляем на pin-login
   if (authState === 'owner' || locked) {
+    return <Navigate to="/pin-login" replace />
+  }
+
+  // Если сотрудник не имеет доступа к приложению - перенаправляем обратно на pin-login
+  if (!hasAccess) {
     return <Navigate to="/pin-login" replace />
   }
 
@@ -147,6 +201,7 @@ export function TableSelectionRoute() {
 export function OrderRoute() {
   const authState = getAuthState()
   const locked = isLocked()
+  const hasAccess = hasApplicationAccess()
 
   if (authState === 'none') {
     return <Navigate to="/auth" replace />
@@ -154,6 +209,11 @@ export function OrderRoute() {
 
   // Если приложение заблокировано или владелец - перенаправляем на pin-login
   if (authState === 'owner' || locked) {
+    return <Navigate to="/pin-login" replace />
+  }
+
+  // Если сотрудник не имеет доступа к приложению - перенаправляем обратно на pin-login
+  if (!hasAccess) {
     return <Navigate to="/pin-login" replace />
   }
 
@@ -167,6 +227,7 @@ export function OrderRoute() {
 export function PaymentRoute() {
   const authState = getAuthState()
   const locked = isLocked()
+  const hasAccess = hasApplicationAccess()
 
   if (authState === 'none') {
     return <Navigate to="/auth" replace />
@@ -174,6 +235,11 @@ export function PaymentRoute() {
 
   // Если приложение заблокировано или владелец - перенаправляем на pin-login
   if (authState === 'owner' || locked) {
+    return <Navigate to="/pin-login" replace />
+  }
+
+  // Если сотрудник не имеет доступа к приложению - перенаправляем обратно на pin-login
+  if (!hasAccess) {
     return <Navigate to="/pin-login" replace />
   }
 
@@ -187,6 +253,7 @@ export function PaymentRoute() {
 export function OrdersArchiveRoute() {
   const authState = getAuthState()
   const locked = isLocked()
+  const hasAccess = hasApplicationAccess()
 
   if (authState === 'none') {
     return <Navigate to="/auth" replace />
@@ -194,6 +261,11 @@ export function OrdersArchiveRoute() {
 
   // Если приложение заблокировано или владелец - перенаправляем на pin-login
   if (authState === 'owner' || locked) {
+    return <Navigate to="/pin-login" replace />
+  }
+
+  // Если сотрудник не имеет доступа к приложению - перенаправляем обратно на pin-login
+  if (!hasAccess) {
     return <Navigate to="/pin-login" replace />
   }
 
@@ -207,6 +279,7 @@ export function OrdersArchiveRoute() {
 export function ReceiptsArchiveRoute() {
   const authState = getAuthState()
   const locked = isLocked()
+  const hasAccess = hasApplicationAccess()
 
   if (authState === 'none') {
     return <Navigate to="/auth" replace />
@@ -217,9 +290,62 @@ export function ReceiptsArchiveRoute() {
     return <Navigate to="/pin-login" replace />
   }
 
+  // Если сотрудник не имеет доступа к приложению - перенаправляем обратно на pin-login
+  if (!hasAccess) {
+    return <Navigate to="/pin-login" replace />
+  }
+
   return (
     <Suspense fallback={<div className="flex items-center justify-center min-h-screen">Загрузка...</div>}>
       <LazyReceiptsArchive />
+    </Suspense>
+  )
+}
+
+export function SuppliesRoute() {
+  const authState = getAuthState()
+  const locked = isLocked()
+  const hasAccess = hasApplicationAccess()
+
+  if (authState === 'none') {
+    return <Navigate to="/auth" replace />
+  }
+
+  if (authState === 'owner' || locked) {
+    return <Navigate to="/pin-login" replace />
+  }
+
+  if (!hasAccess) {
+    return <Navigate to="/pin-login" replace />
+  }
+
+  return (
+    <Suspense fallback={<div className="flex items-center justify-center min-h-screen">Загрузка...</div>}>
+      <LazySupplies />
+    </Suspense>
+  )
+}
+
+export function AddSupplyRoute() {
+  const authState = getAuthState()
+  const locked = isLocked()
+  const hasAccess = hasApplicationAccess()
+
+  if (authState === 'none') {
+    return <Navigate to="/auth" replace />
+  }
+
+  if (authState === 'owner' || locked) {
+    return <Navigate to="/pin-login" replace />
+  }
+
+  if (!hasAccess) {
+    return <Navigate to="/pin-login" replace />
+  }
+
+  return (
+    <Suspense fallback={<div className="flex items-center justify-center min-h-screen">Загрузка...</div>}>
+      <LazyAddSupply />
     </Suspense>
   )
 }

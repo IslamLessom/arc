@@ -1,4 +1,20 @@
-# Binaries
+# ==========================
+# Environment & Secrets
+# ==========================
+.env
+.env.*
+!.env.example
+!.env.dev.example
+!.env.prod.example
+
+# ==========================
+# Scripts (contains credentials helpers)
+# ==========================
+/scripts/
+
+# ==========================
+# Binaries & Build Artifacts
+# ==========================
 *.exe
 *.exe~
 *.dll
@@ -6,45 +22,76 @@
 *.dylib
 bin/
 dist/
-
-# Test binary
 *.test
-
-# Output of the go coverage tool
 *.out
 
-# Dependency directories
+# Go
 vendor/
-
-# Go workspace file
 go.work
-
-# Go cache
 .gocache/
 
-# Environment variables
-.env
-.env.local
-.env.*.local
+# Backend compiled binaries
+backend/api
+backend/main
+backend/bin/
 
-# IDE
+# ==========================
+# Dependencies
+# ==========================
+node_modules/
+
+# ==========================
+# IDE & Editor
+# ==========================
 .idea/
 .vscode/
 *.swp
 *.swo
 *~
 
-# OS
+# ==========================
+# OS Files
+# ==========================
 .DS_Store
 Thumbs.db
+ehthumbs.db
+Desktop.ini
 
+# ==========================
 # Logs
+# ==========================
 *.log
 logs/
+backend/logs/
 
+# ==========================
 # Database
+# ==========================
 *.db
 *.sqlite
+*.sqlite3
 
+# ==========================
 # Docker
+# ==========================
 docker-compose.override.yml
+docker-compose.prod.yml
+
+# ==========================
+# Build outputs
+# ==========================
+.next/
+out/
+build/
+.turbo/
+*.tsbuildinfo
+
+# ==========================
+# Misc
+# ==========================
+*.pem
+*.key
+*.crt
+*.p12
+coverage/
+.nyc_output/

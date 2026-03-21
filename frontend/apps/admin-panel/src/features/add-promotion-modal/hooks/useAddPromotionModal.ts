@@ -69,10 +69,18 @@ export const useAddPromotionModal = (props: AddPromotionModalProps) => {
     if (!formData.start_date) errors.start_date = 'Дата начала обязательна'
     if (!formData.end_date) errors.end_date = 'Дата окончания обязательна'
 
-    if ((formData.type === 'discount' || formData.type === 'happy_hour') && formData.discount_percentage) {
-      const discount = Number(formData.discount_percentage)
-      if (Number.isNaN(discount) || discount < 0 || discount > 100) {
-        errors.discount_percentage = 'Скидка должна быть от 0 до 100'
+    if (formData.start_date && formData.end_date && formData.end_date < formData.start_date) {
+      errors.end_date = 'Дата окончания не может быть раньше даты начала'
+    }
+
+    if (formData.type === 'discount' || formData.type === 'happy_hour') {
+      if (!formData.discount_percentage) {
+        errors.discount_percentage = 'Укажите размер скидки'
+      } else {
+        const discount = Number(formData.discount_percentage)
+        if (Number.isNaN(discount) || discount < 0 || discount > 100) {
+          errors.discount_percentage = 'Скидка должна быть от 0 до 100'
+        }
       }
     }
 
@@ -85,6 +93,22 @@ export const useAddPromotionModal = (props: AddPromotionModalProps) => {
       if (!formData.get_quantity || Number.isNaN(get) || get <= 0) {
         errors.get_quantity = 'Укажите корректное количество Y'
       }
+    }
+
+    const activeOverlappingPromotion = promotions.find((promotion) => {
+      if (props.promotionId && promotion.id === props.promotionId) return false
+      if (!promotion.active) return false
+      if (promotion.type !== formData.type) return false
+
+      const startsInside = formData.start_date >= promotion.start_date.slice(0, 10) && formData.start_date <= promotion.end_date.slice(0, 10)
+      const endsInside = formData.end_date >= promotion.start_date.slice(0, 10) && formData.end_date <= promotion.end_date.slice(0, 10)
+      const wrapsInterval = formData.start_date <= promotion.start_date.slice(0, 10) && formData.end_date >= promotion.end_date.slice(0, 10)
+
+      return startsInside || endsInside || wrapsInterval
+    })
+
+    if (activeOverlappingPromotion) {
+      errors.general = 'Найдена пересекающаяся активная акция такого же типа в выбранный период'
     }
 
     setFieldErrors(errors)

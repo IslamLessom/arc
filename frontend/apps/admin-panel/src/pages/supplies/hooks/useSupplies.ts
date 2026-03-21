@@ -3,11 +3,18 @@ import { useNavigate } from 'react-router-dom'
 import { useGetSupplies, useGetWarehouses, useGetSuppliers } from '@restaurant-pos/api-client'
 import { SupplyTable, SuppliesSort } from '../model/types'
 import { SortDirection, SupplyStatus } from '../model/enums'
-
+import { 
+  exportToCSV, 
+  exportToExcel, 
+  printTable, 
+  useColumnVisibility 
+} from '@restaurant-pos/ui'
+import { getSuppliesTableColumns } from '../lib/constants'
 export const useSupplies = () => {
   const navigate = useNavigate()
   const [searchQuery, setSearchQuery] = useState('')
   const [sort, setSort] = useState<SuppliesSort>({ field: 'delivery_date_time', direction: SortDirection.DESC })
+    const [isColumnModalOpen, setIsColumnModalOpen] = useState(false)
   const [warehouseFilter, setWarehouseFilter] = useState<string | undefined>()
   const [supplierFilter, setSupplierFilter] = useState<string | undefined>()
 
@@ -22,8 +29,15 @@ export const useSupplies = () => {
       // Вычисляем общую сумму из items
       const totalAmount = supply.items?.reduce((sum, item) => sum + (item.total_amount || 0), 0) || 0
       
-      // Задолженность = сумма, если статус не completed
-      const debt = supply.status !== SupplyStatus.COMPLETED ? totalAmount : 0
+      // Задолженность зависит от payment_status
+      let debt = 0
+      const paymentStatus = supply.payment_status
+      
+      if (paymentStatus === 'debt' || paymentStatus === 'partial' || !paymentStatus || paymentStatus === 'none') {
+        // Если в долг, частичная оплата или нет информации об оплате - считаем весь сумму задолженностью
+        debt = totalAmount
+      }
+      // Если paymentStatus === 'paid' или 'pending', debt остается 0
       
       // Формируем список товаров
       const goodsNames = supply.items?.map(item => {
@@ -56,8 +70,8 @@ export const useSupplies = () => {
     })
 
     filtered.sort((a, b) => {
-      let aValue: string | number | Date = a[sort.field]
-      let bValue: string | number | Date = b[sort.field]
+      let aValue: any = a[sort.field]
+      let bValue: any = b[sort.field]
       
       // Специальная обработка для даты
       if (sort.field === 'delivery_date_time') {
@@ -109,16 +123,36 @@ export const useSupplies = () => {
     navigate('/warehouse/deliveries/add')
   }
 
+  const allColumns = useMemo(() => getSuppliesTableColumns({ onEdit: () => {}, onDetails: () => {} }), [])
+
+  const {
+    visibleColumns,
+    columnInfo,
+    toggleColumn,
+    showAllColumns,
+    hideAllColumns,
+    resetColumnVisibility
+  } = useColumnVisibility(allColumns, {
+    storageKey: 'admin-panel-supplies-columns'
+  })
+
   const handleExport = () => {
-    console.log('Export supplies')
+    exportToExcel(filteredAndSortedSupplies, visibleColumns, 'supplies.xlsx')
   }
 
   const handlePrint = () => {
-    console.log('Print supplies')
+    printTable(filteredAndSortedSupplies, visibleColumns, 'Поставки', {
+      showDate: true,
+      orientation: 'landscape'
+    })
   }
 
   const handleColumns = () => {
-    console.log('Manage columns')
+    setIsColumnModalOpen(true)
+  }
+
+  const handleCloseColumnModal = () => {
+    setIsColumnModalOpen(false)
   }
 
   return {
@@ -143,7 +177,15 @@ export const useSupplies = () => {
     handlePrint,
     handleColumns,
     setWarehouseFilter,
-    setSupplierFilter
+    setSupplierFilter,
+    isColumnModalOpen,
+    handleCloseColumnModal,
+    visibleColumns,
+    columnInfo,
+    toggleColumn,
+    showAllColumns,
+    hideAllColumns,
+    resetColumnVisibility,
   }
 }
 

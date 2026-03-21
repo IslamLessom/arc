@@ -15,13 +15,15 @@ type WarehouseUseCase struct {
 	repo         repositories.WarehouseRepository
 	supplierRepo repositories.SupplierRepository
 	financeUC    *FinanceUseCase
+	menuUC       *MenuUseCase
 }
 
-func NewWarehouseUseCase(repo repositories.WarehouseRepository, supplierRepo repositories.SupplierRepository, financeUC *FinanceUseCase) *WarehouseUseCase {
+func NewWarehouseUseCase(repo repositories.WarehouseRepository, supplierRepo repositories.SupplierRepository, financeUC *FinanceUseCase, menuUC *MenuUseCase) *WarehouseUseCase {
 	return &WarehouseUseCase{
 		repo:         repo,
 		supplierRepo: supplierRepo,
 		financeUC:    financeUC,
+		menuUC:       menuUC,
 	}
 }
 
@@ -123,8 +125,38 @@ func (uc *WarehouseUseCase) CreateSupply(ctx context.Context, supply *models.Sup
 		return err
 	}
 
-	// Создаем транзакцию оплаты, если указан счет и сумма оплаты
-	if supply.PaymentStatus == "paid" || supply.PaymentStatus == "partial" {
+	// Создаем транзакции для каждого платежа в массиве Payments
+	if len(supply.Payments) > 0 {
+		for i := range supply.Payments {
+			payment := &supply.Payments[i]
+			payment.SupplyID = supply.ID
+
+			description := fmt.Sprintf("Оплата поставки #%s от поставщика", supply.ID.String())
+			if supply.InvoiceNumber != "" {
+				description = fmt.Sprintf("Оплата счета %s от поставщика", supply.InvoiceNumber)
+			}
+
+			transaction := &models.Transaction{
+				AccountID:       payment.AccountID,
+				Type:            "expense",
+				Category:        "supply_payment",
+				Amount:          payment.Amount,
+				Description:     description,
+				TransactionDate: payment.PaymentDateTime,
+			}
+
+			// Используем метод, разрешающий отрицательный баланс (поставка в долг)
+			if err := uc.financeUC.CreateTransactionAllowNegative(ctx, transaction, establishmentID); err != nil {
+				// Если не удалось создать транзакцию, откатываем создание поставки
+				_ = uc.repo.DeleteSupply(ctx, supply.ID)
+				return fmt.Errorf("failed to create payment transaction: %w", err)
+			}
+
+			// Сохраняем ID созданной транзакции в платеже
+			payment.TransactionID = &transaction.ID
+		}
+	} else if supply.PaymentStatus == "paid" || supply.PaymentStatus == "partial" {
+		// Поддержка старого API (для обратной совместимости)
 		if supply.AccountID != nil && supply.PaymentAmount > 0 {
 			paymentDate := time.Now()
 			if supply.PaymentDate != nil {
@@ -145,7 +177,8 @@ func (uc *WarehouseUseCase) CreateSupply(ctx context.Context, supply *models.Sup
 				TransactionDate: paymentDate,
 			}
 
-			if err := uc.financeUC.CreateTransaction(ctx, transaction, establishmentID); err != nil {
+			// Используем метод, разрешающий отрицательный баланс
+			if err := uc.financeUC.CreateTransactionAllowNegative(ctx, transaction, establishmentID); err != nil {
 				// Если не удалось создать транзакцию, откатываем создание поставки
 				_ = uc.repo.DeleteSupply(ctx, supply.ID)
 				return fmt.Errorf("failed to create payment transaction: %w", err)
@@ -165,6 +198,16 @@ func (uc *WarehouseUseCase) CreateSupply(ctx context.Context, supply *models.Sup
 			// Обновляем цену за единицу из поставки, если она указана
 			if it.PricePerUnit > 0 {
 				st.PricePerUnit = it.PricePerUnit
+
+				// Обновляем себестоимость в товаре (Product)
+				// Для Ingredient себестоимость хранится только в Stock.PricePerUnit
+				// НЕ пересчитываем цену продажи - она должна оставаться неизменной
+				if it.ProductID != nil {
+					if product, err := uc.repo.GetProductByID(ctx, *it.ProductID); err == nil && product != nil {
+						product.CostPrice = it.PricePerUnit
+						_ = uc.menuUC.UpdateProduct(ctx, product)
+					}
+				}
 			} else if it.ProductID != nil && st.PricePerUnit == 0 {
 				// Если цена в поставке не указана и текущая цена 0, берем цену из товара
 				if product, err := uc.repo.GetProductByID(ctx, *it.ProductID); err == nil && product != nil {
@@ -218,6 +261,38 @@ func (uc *WarehouseUseCase) UpdateSupply(ctx context.Context, supply *models.Sup
 		return errors.New("supplier not found or access denied")
 	}
 	_ = sup
+
+	// Создаем транзакции для новых платежей, если они были переданы при обновлении
+	if len(supply.Payments) > 0 {
+		for i := range supply.Payments {
+			payment := &supply.Payments[i]
+
+			// Для уже существующих платежей транзакция уже создана
+			if payment.TransactionID != nil {
+				continue
+			}
+
+			description := fmt.Sprintf("Оплата поставки #%s от поставщика", supply.ID.String())
+			if supply.InvoiceNumber != "" {
+				description = fmt.Sprintf("Оплата счета %s от поставщика", supply.InvoiceNumber)
+			}
+
+			transaction := &models.Transaction{
+				AccountID:       payment.AccountID,
+				Type:            "expense",
+				Category:        "supply_payment",
+				Amount:          payment.Amount,
+				Description:     description,
+				TransactionDate: payment.PaymentDateTime,
+			}
+
+			if err := uc.financeUC.CreateTransactionAllowNegative(ctx, transaction, establishmentID); err != nil {
+				return fmt.Errorf("failed to create payment transaction on update: %w", err)
+			}
+
+			payment.TransactionID = &transaction.ID
+		}
+	}
 
 	// Обновляем поставку
 	return uc.repo.UpdateSupply(ctx, supply)
@@ -286,13 +361,13 @@ func (uc *WarehouseUseCase) GetWriteOff(ctx context.Context, id uuid.UUID, estab
 // GetMovements возвращает все движения по складу (Supply и WriteOff)
 func (uc *WarehouseUseCase) GetMovements(ctx context.Context, establishmentID uuid.UUID, warehouseID *uuid.UUID) ([]interface{}, error) {
 	movements := make([]interface{}, 0)
-	
+
 	// Получаем поставки
 	supplies, err := uc.repo.GetSuppliesByWarehouse(ctx, establishmentID, warehouseID)
 	if err != nil {
 		return nil, err
 	}
-	
+
 	// Преобразуем Supply в движения
 	for _, supply := range supplies {
 		warehouseName := ""
@@ -304,26 +379,26 @@ func (uc *WarehouseUseCase) GetMovements(ctx context.Context, establishmentID uu
 			supplierName = supply.Supplier.Name
 		}
 		movements = append(movements, map[string]interface{}{
-			"type":            "supply",
-			"id":              supply.ID,
-			"warehouse_id":    supply.WarehouseID,
-			"warehouse_name":  warehouseName,
-			"supplier_id":     supply.SupplierID,
-			"supplier_name":   supplierName,
-			"date_time":       supply.DeliveryDateTime,
-			"status":          supply.Status,
-			"comment":         supply.Comment,
-			"items":           supply.Items,
-			"created_at":      supply.CreatedAt,
+			"type":           "supply",
+			"id":             supply.ID,
+			"warehouse_id":   supply.WarehouseID,
+			"warehouse_name": warehouseName,
+			"supplier_id":    supply.SupplierID,
+			"supplier_name":  supplierName,
+			"date_time":      supply.DeliveryDateTime,
+			"status":         supply.Status,
+			"comment":        supply.Comment,
+			"items":          supply.Items,
+			"created_at":     supply.CreatedAt,
 		})
 	}
-	
+
 	// Получаем списания
 	writeOffs, err := uc.repo.GetWriteOffsByWarehouse(ctx, establishmentID, warehouseID)
 	if err != nil {
 		return nil, err
 	}
-	
+
 	// Преобразуем WriteOff в движения
 	for _, writeOff := range writeOffs {
 		warehouseName := ""
@@ -331,15 +406,15 @@ func (uc *WarehouseUseCase) GetMovements(ctx context.Context, establishmentID uu
 			warehouseName = writeOff.Warehouse.Name
 		}
 		movements = append(movements, map[string]interface{}{
-			"type":         "write_off",
-			"id":           writeOff.ID,
-			"warehouse_id": writeOff.WarehouseID,
+			"type":           "write_off",
+			"id":             writeOff.ID,
+			"warehouse_id":   writeOff.WarehouseID,
 			"warehouse_name": warehouseName,
-			"date_time":    writeOff.WriteOffDateTime,
-			"reason":       writeOff.Reason,
-			"comment":      writeOff.Comment,
-			"items":        writeOff.Items,
-			"created_at":   writeOff.CreatedAt,
+			"date_time":      writeOff.WriteOffDateTime,
+			"reason":         writeOff.Reason,
+			"comment":        writeOff.Comment,
+			"items":          writeOff.Items,
+			"created_at":     writeOff.CreatedAt,
 		})
 	}
 

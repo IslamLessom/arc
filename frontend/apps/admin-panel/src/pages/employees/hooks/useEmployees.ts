@@ -2,11 +2,19 @@ import { useState, useMemo } from 'react'
 import { useGetEmployees, useAllEmployeeStatistics } from '@restaurant-pos/api-client'
 import { EmployeeTable, EmployeesSort } from '../model/types'
 import { SortDirection } from '../model/enums'
+import { 
+  exportToCSV, 
+  exportToExcel, 
+  printTable, 
+  useColumnVisibility 
+} from '@restaurant-pos/ui'
+import { getEmployeesTableColumns } from '../lib/constants'
 
 export const useEmployees = () => {
   const [searchQuery, setSearchQuery] = useState('')
   const [sort, setSort] = useState<EmployeesSort>({ field: 'name', direction: SortDirection.ASC })
   const [isModalOpen, setIsModalOpen] = useState(false)
+  const [isColumnModalOpen, setIsColumnModalOpen] = useState(false)
   const [editingEmployeeId, setEditingEmployeeId] = useState<string | null>(null)
 
   // Get current month start and end dates for statistics (memoized to prevent refetches)
@@ -106,17 +114,37 @@ export const useEmployees = () => {
   const handleSuccess = () => {
     handleCloseModal()
   }
+// Get all columns (we need to create a dummy handler for now just to get columns structure)
+  const allColumns = useMemo(() => getEmployeesTableColumns({ onEdit: () => {} }), [])
+
+  const {
+    visibleColumns,
+    columnInfo,
+    toggleColumn,
+    showAllColumns,
+    hideAllColumns,
+    resetColumnVisibility
+  } = useColumnVisibility(allColumns, {
+    storageKey: 'admin-panel-employees-columns'
+  })
 
   const handleExport = () => {
-    console.log('Export employees')
+    exportToExcel(filteredAndSortedEmployees, visibleColumns, 'employees.xlsx')
   }
 
   const handlePrint = () => {
-    console.log('Print employees')
+    printTable(filteredAndSortedEmployees, visibleColumns, 'Сотрудники', {
+      showDate: true,
+      orientation: 'landscape'
+    })
   }
 
   const handleColumns = () => {
-    console.log('Manage columns')
+    setIsColumnModalOpen(true)
+  }
+
+  const handleCloseColumnModal = () => {
+    setIsColumnModalOpen(false)
   }
 
   return {
@@ -138,5 +166,14 @@ export const useEmployees = () => {
     handleExport,
     handlePrint,
     handleColumns,
+    // Column management
+    isColumnModalOpen,
+    handleCloseColumnModal,
+    visibleColumns,
+    columnInfo,
+    toggleColumn,
+    showAllColumns,
+    hideAllColumns,
+    resetColumnVisibility,
   }
 }

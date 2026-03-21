@@ -1,6 +1,7 @@
 import type { Product } from '@restaurant-pos/api-client'
 import type { TechnicalCard } from '@restaurant-pos/api-client'
 import type { Customer } from '@restaurant-pos/api-client'
+import type { MarketingPromotion } from '@restaurant-pos/api-client'
 import { OrderTab, DiscountType } from './enums'
 
 export interface ProductCategory {
@@ -50,6 +51,7 @@ export interface GuestOrder {
 export interface OrderData {
   orderId: string
   tableNumber?: number
+  tableId?: string
   guestsCount: number
   guests: GuestOrder[]
   selectedGuestNumber: number
@@ -103,4 +105,34 @@ export interface UseOrderResult {
 
   // Exclusions
   checkAllItemsExcluded: (items: OrderItem[]) => OrderItem[]
+
+  // Promotions
+  hasActivePromotions: boolean
+  activePromotions: MarketingPromotion[]
+  getItemPromotionBadge: (item: MenuItem) => string | null
+  getItemIneligibilityReason: (item: MenuItem) => string | null
+  isPromotionsModalOpen: boolean
+  openPromotionsModal: () => void
+  closePromotionsModal: () => void
+}
+
+export interface PromotionPreviewItem {
+  index: number
+  product_id?: string
+  tech_card_id?: string
+  category_id?: string
+  item_name?: string
+  quantity: number
+  unit_price: number
+  total_price: number
+  eligible: boolean
+  ineligibility_reason?: string
+  promotion_ids?: string[]
+  promotion_names?: string[]
+  promotion_badge?: string
+}
+
+export interface PromotionPreviewResponse {
+  items: PromotionPreviewItem[]
+  active_promotions: MarketingPromotion[]
 }

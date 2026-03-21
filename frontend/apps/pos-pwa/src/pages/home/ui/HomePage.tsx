@@ -16,14 +16,36 @@ export function HomePage() {
   const [isShiftStartModalOpen, setIsShiftStartModalOpen] = useState(false);
 
   // Проверяем активную смену
-  const { data: activeShift, isLoading: isShiftLoading } = useGetActiveShift();
+  const {
+    data: activeShift,
+    isLoading: isShiftLoading,
+    isError: isShiftError,
+    error: activeShiftError,
+    isFetched: isShiftFetched,
+  } = useGetActiveShift();
+
+  const activeShiftErrorStatus = (activeShiftError as { response?: { status?: number } } | null)?.response?.status;
+  // Определяем что смены действительно нет:
+  // 1. Сервер явно вернул 404 (смена не найдена)
+  // 2. Запрос успешно выполнен, но данных нет
+  // НЕ показываем модалку при сетевых ошибках или других HTTP-статусах
+  const hasNoActiveShift =
+    (isShiftError && activeShiftErrorStatus === 404) ||
+    (isShiftFetched && !isShiftError && !activeShift);
 
   useEffect(() => {
-    // Если нет активной смены и загрузка завершена, показываем модалку открытия смены
-    if (!isShiftLoading && !activeShift) {
+    // Показываем модалку открытия смены только когда смены действительно нет
+    // Это предотвращает ложные срабатывания при временных сетевых проблемах
+    if (!isShiftLoading && hasNoActiveShift) {
       setIsShiftStartModalOpen(true);
+      return;
     }
-  }, [activeShift, isShiftLoading]);
+
+    // Если активная смена есть, модалка должна быть закрыта
+    if (activeShift) {
+      setIsShiftStartModalOpen(false);
+    }
+  }, [activeShift, hasNoActiveShift, isShiftLoading]);
 
   const handleLockClick = () => {
     // Удаляем только бэкапы токенов владельца

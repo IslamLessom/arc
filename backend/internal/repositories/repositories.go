@@ -6,11 +6,11 @@ import (
 
 // Repositories содержит все репозитории приложения
 type Repositories struct {
-	User         UserRepository
-	Role         RoleRepository
-	Establishment EstablishmentRepository
-	Room         RoomRepository
-	Table        TableRepository
+	User               UserRepository
+	Role               RoleRepository
+	Establishment      EstablishmentRepository
+	Room               RoomRepository
+	Table              TableRepository
 	Product            ProductRepository
 	TechCard           TechCardRepository
 	SemiFinished       SemiFinishedRepository
@@ -20,32 +20,36 @@ type Repositories struct {
 	Warehouse          WarehouseRepository
 	Workshop           WorkshopRepository
 	Supplier           SupplierRepository
-	Order        OrderRepository
-	Transaction  TransactionRepository
-	Shift        ShiftRepository
-	ShiftSession ShiftSessionRepository
-	Onboarding   OnboardingRepository
-	Subscription SubscriptionRepository
-	Token        TokenRepository
-	Account      AccountRepository
-	AccountType  AccountTypeRepository
-	Inventory    InventoryRepository
+	Order              OrderRepository
+	Transaction        TransactionRepository
+	Shift              ShiftRepository
+	ShiftSession       ShiftSessionRepository
+	Advance            AdvanceRepository
+	SalaryPayment      SalaryPaymentRepository
+	Onboarding         OnboardingRepository
+	Subscription       SubscriptionRepository
+	Token              TokenRepository
+	Account            AccountRepository
+	AccountType        AccountTypeRepository
+	Inventory          InventoryRepository
 	// Marketing repositories
-	Client             ClientRepository
-	ClientGroup         ClientGroupRepository
-	LoyaltyProgram      LoyaltyProgramRepository
-	Promotion           PromotionRepository
-	Exclusion           ExclusionRepository
+	Client         ClientRepository
+	ClientGroup    ClientGroupRepository
+	LoyaltyProgram LoyaltyProgramRepository
+	Promotion      PromotionRepository
+	Exclusion      ExclusionRepository
+	// QR Menu
+	GuestSession GuestSessionRepository
 }
 
 // NewRepositories создает все репозитории
 func NewRepositories(db *gorm.DB) *Repositories {
 	return &Repositories{
-		User:         NewUserRepository(db),
-		Role:         NewRoleRepository(db),
-		Establishment: NewEstablishmentRepository(db),
-		Room:         NewRoomRepository(db),
-		Table:        NewTableRepository(db),
+		User:               NewUserRepository(db),
+		Role:               NewRoleRepository(db),
+		Establishment:      NewEstablishmentRepository(db),
+		Room:               NewRoomRepository(db),
+		Table:              NewTableRepository(db),
 		Product:            NewProductRepository(db),
 		TechCard:           NewTechCardRepository(db),
 		SemiFinished:       NewSemiFinishedRepository(db),
@@ -55,21 +59,24 @@ func NewRepositories(db *gorm.DB) *Repositories {
 		Warehouse:          NewWarehouseRepository(db),
 		Workshop:           NewWorkshopRepository(db),
 		Supplier:           NewSupplierRepository(db),
-		Order:        NewOrderRepository(db),
-		Transaction:  NewTransactionRepository(db),
-		Shift:        NewShiftRepository(db),
-		ShiftSession: NewShiftSessionRepository(db),
-		Onboarding:   NewOnboardingRepository(db),
-		Subscription: NewSubscriptionRepository(db),
-		Token:        NewTokenRepository(db),
-		Account:      NewAccountRepository(db),
-		AccountType:  NewAccountTypeRepository(db),
-		Inventory:    NewInventoryRepository(db),
+		Order:              NewOrderRepository(db),
+		Transaction:        NewTransactionRepository(db),
+		Shift:              NewShiftRepository(db),
+		ShiftSession:       NewShiftSessionRepository(db),
+		Advance:            NewAdvanceRepository(db),
+		SalaryPayment:      NewSalaryPaymentRepository(db),
+		Onboarding:         NewOnboardingRepository(db),
+		Subscription:       NewSubscriptionRepository(db),
+		Token:              NewTokenRepository(db),
+		Account:            NewAccountRepository(db),
+		AccountType:        NewAccountTypeRepository(db),
+		Inventory:          NewInventoryRepository(db),
 		Client:             NewClientRepository(db),
-		ClientGroup:         NewClientGroupRepository(db),
-		LoyaltyProgram:      NewLoyaltyProgramRepository(db),
-		Promotion:           NewPromotionRepository(db),
-		Exclusion:           NewExclusionRepository(db),
+		ClientGroup:        NewClientGroupRepository(db),
+		LoyaltyProgram:     NewLoyaltyProgramRepository(db),
+		Promotion:          NewPromotionRepository(db),
+		Exclusion:          NewExclusionRepository(db),
+		GuestSession:       NewGuestSessionRepository(db),
 	}
 }
 

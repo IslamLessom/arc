@@ -10,7 +10,6 @@ const defaultForm: ExclusionFormData = {
   selectedProducts: [],
   selectedCategories: [],
   selectedTechCards: [],
-  selectedTechCardCategories: [],
   searchQuery: '',
   active: true,
 }
@@ -20,7 +19,6 @@ export const useAddExclusionModal = (props: AddExclusionModalProps) => {
   const { data: products = [], isLoading: isLoadingProducts } = useGetProducts({ active: true })
   const { data: categories = [], isLoading: isLoadingCategories } = useGetCategories({ type: 'product' })
   const { data: techCards = [], isLoading: isLoadingTechCards } = useGetTechnicalCards({ active: true })
-  const { data: techCardCategories = [], isLoading: isLoadingTechCardCategories } = useGetCategories({ type: 'tech_card' })
 
   const [formData, setFormData] = useState<ExclusionFormData>(defaultForm)
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -40,13 +38,12 @@ export const useAddExclusionModal = (props: AddExclusionModalProps) => {
       setFormData({
         name: current.name || '',
         description: current.description || '',
-        type: (current.type === 'product' || current.type === 'category' || current.type === 'tech_card' || current.type === 'tech_card_category')
+        type: (current.type === 'product' || current.type === 'category' || current.type === 'tech_card')
           ? current.type as ExclusionFormData['type']
           : 'product',
         selectedProducts: current.type === 'product' && current.entity_id ? [current.entity_id] : [],
         selectedCategories: current.type === 'category' && current.entity_id ? [current.entity_id] : [],
         selectedTechCards: current.type === 'tech_card' && current.entity_id ? [current.entity_id] : [],
-        selectedTechCardCategories: current.type === 'tech_card_category' && current.entity_id ? [current.entity_id] : [],
         searchQuery: '',
         active: current.active,
       })
@@ -94,15 +91,6 @@ export const useAddExclusionModal = (props: AddExclusionModalProps) => {
     }))
   }
 
-  const toggleTechCardCategory = (categoryId: string) => {
-    setFormData((prev) => ({
-      ...prev,
-      selectedTechCardCategories: prev.selectedTechCardCategories.includes(categoryId)
-        ? prev.selectedTechCardCategories.filter((id) => id !== categoryId)
-        : [...prev.selectedTechCardCategories, categoryId],
-    }))
-  }
-
   const validateForm = () => {
     const errors: Record<string, string> = {}
 
@@ -119,13 +107,29 @@ export const useAddExclusionModal = (props: AddExclusionModalProps) => {
       case 'tech_card':
         hasSelection = formData.selectedTechCards.length > 0
         break
-      case 'tech_card_category':
-        hasSelection = formData.selectedTechCardCategories.length > 0
-        break
     }
 
     if (!hasSelection) {
       errors.selection = 'Выберите хотя бы один элемент'
+    }
+
+    const existingKeys = new Set(
+      exclusions
+        .filter((item) => (props.exclusionId ? item.id !== props.exclusionId : true))
+        .map((item) => `${item.type}:${item.entity_id}`)
+    )
+
+    const selectedIds =
+      formData.type === 'product'
+        ? formData.selectedProducts
+        : formData.type === 'category'
+          ? formData.selectedCategories
+          : formData.selectedTechCards
+
+    const hasDuplicates = selectedIds.some((id) => existingKeys.has(`${formData.type}:${id}`))
+
+    if (hasDuplicates) {
+      errors.selection = 'Часть выбранных элементов уже есть в активных исключениях'
     }
 
     setFieldErrors(errors)
@@ -149,9 +153,7 @@ export const useAddExclusionModal = (props: AddExclusionModalProps) => {
             ? (formData.selectedProducts[0] || undefined)
             : formData.type === 'category'
               ? (formData.selectedCategories[0] || undefined)
-              : formData.type === 'tech_card'
-                ? (formData.selectedTechCards[0] || undefined)
-                : (formData.selectedTechCardCategories[0] || undefined),
+              : (formData.selectedTechCards[0] || undefined),
           entity_name: undefined,
           active: formData.active,
         })
@@ -181,15 +183,6 @@ export const useAddExclusionModal = (props: AddExclusionModalProps) => {
             type: 'tech_card',
             entity_id: techCardId,
             entity_name: techCards.find((t) => t.id === techCardId)?.name,
-          })
-        }
-        for (const categoryId of formData.selectedTechCardCategories) {
-          await createExclusion({
-            name: formData.name.trim(),
-            description: formData.description.trim() || undefined,
-            type: 'tech_card_category',
-            entity_id: categoryId,
-            entity_name: techCardCategories.find((c) => c.id === categoryId)?.name,
           })
         }
       }
@@ -227,12 +220,6 @@ export const useAddExclusionModal = (props: AddExclusionModalProps) => {
     )
   }, [techCards, formData.searchQuery])
 
-  const filteredTechCardCategories = useMemo(() => {
-    if (!formData.searchQuery) return techCardCategories
-    const query = formData.searchQuery.toLowerCase()
-    return techCardCategories.filter((c) => c.name.toLowerCase().includes(query))
-  }, [techCardCategories, formData.searchQuery])
-
   const isFormValid = useMemo(
     () => {
       if (!formData.name.trim()) return false
@@ -243,8 +230,6 @@ export const useAddExclusionModal = (props: AddExclusionModalProps) => {
           return formData.selectedCategories.length > 0
         case 'tech_card':
           return formData.selectedTechCards.length > 0
-        case 'tech_card_category':
-          return formData.selectedTechCardCategories.length > 0
         default:
           return false
       }
@@ -261,16 +246,13 @@ export const useAddExclusionModal = (props: AddExclusionModalProps) => {
     isLoadingProducts,
     isLoadingCategories,
     isLoadingTechCards,
-    isLoadingTechCardCategories,
     products: filteredProducts,
     categories: filteredCategories,
     techCards: filteredTechCards,
-    techCardCategories: filteredTechCardCategories,
     handleFieldChange,
     toggleProduct,
     toggleCategory,
     toggleTechCard,
-    toggleTechCardCategory,
     handleSubmit,
     handleClose: props.onClose,
   }

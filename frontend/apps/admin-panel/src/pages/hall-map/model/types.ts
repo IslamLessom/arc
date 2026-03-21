@@ -26,6 +26,7 @@ export interface HallMapRoom {
   description?: string
   floor?: number
   active: boolean
+  background_image_url?: string
 }
 
 export interface UseHallMapResult {
@@ -62,6 +63,8 @@ export interface UseHallMapResult {
   handleUpdateTablePosition: (tableId: string, x: number, y: number) => void
   handleUpdateTableSize: (tableId: string, width: number, height: number) => void
   handleUpdateTableShape: (tableId: string, shape: 'round' | 'square') => void
+  handleBulkUpdateTableShapes: (shape: 'round' | 'square') => void
   flushPendingUpdates: () => Promise<void>
+  handleUploadRoomBackground: (file: File) => Promise<void>
 }
 

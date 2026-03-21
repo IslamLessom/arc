@@ -31,6 +31,7 @@ export function useLogout() {
         localStorage.removeItem('auth_token')
         localStorage.removeItem('refresh_token')
         localStorage.removeItem('user_type')
+        localStorage.removeItem('employee_permissions')
       }
     },
   })

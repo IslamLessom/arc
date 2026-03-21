@@ -14,7 +14,6 @@ export const SemiFinished = () => {
     setSearchQuery,
     handleFilterChange,
     handleDeleteSemiFinished,
-    isDeleting,
   } = useSemiFinished()
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -31,6 +30,14 @@ export const SemiFinished = () => {
     if (window.confirm('Вы уверены, что хотите удалить этот полуфабрикат?')) {
       await handleDeleteSemiFinished(id)
     }
+  }
+
+  const handleEdit = (id: string) => {
+    const selectedProduct = filteredProducts.find((product) => product.id === id)
+
+    navigate(`/menu/semi-finished/${id}/edit`, {
+      state: { semiFinishedProduct: selectedProduct },
+    })
   }
 
   if (isLoading) {
@@ -109,7 +116,6 @@ export const SemiFinished = () => {
           <Styled.SemiFinishedList>
             <Styled.ListHeader>
               <span>Название</span>
-              <span>Категория</span>
               <span>Ед. изм.</span>
               <span>Кол-во</span>
               <span>Стоимость</span>
@@ -118,12 +124,11 @@ export const SemiFinished = () => {
             {filteredProducts.map((product) => (
               <Styled.SemiFinishedRow key={product.id}>
                 <Styled.SemiFinishedName>{product.name}</Styled.SemiFinishedName>
-                <Styled.SemiFinishedCategory>{product.category}</Styled.SemiFinishedCategory>
                 <Styled.SemiFinishedUnit>{translateUnit(product.unit)}</Styled.SemiFinishedUnit>
                 <Styled.SemiFinishedQuantity>{product.quantity}</Styled.SemiFinishedQuantity>
-                <Styled.SemiFinishedCost>{product.cost} ₽</Styled.SemiFinishedCost>
+                <Styled.SemiFinishedCost>{product.cost_price} ₽</Styled.SemiFinishedCost>
                 <Styled.SemiFinishedActions>
-                  <Styled.EditButton onClick={() => {}}>Ред.</Styled.EditButton>
+                  <Styled.EditButton onClick={() => handleEdit(product.id)}>Ред.</Styled.EditButton>
                   <Styled.MoreButton onClick={() => handleDelete(product.id)}>
                     ⋯
                   </Styled.MoreButton>

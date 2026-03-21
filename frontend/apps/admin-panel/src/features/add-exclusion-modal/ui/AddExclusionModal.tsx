@@ -16,16 +16,13 @@ export const AddExclusionModal = (props: AddExclusionModalProps) => {
     isLoadingProducts,
     isLoadingCategories,
     isLoadingTechCards,
-    isLoadingTechCardCategories,
     products,
     categories,
     techCards,
-    techCardCategories,
     handleFieldChange,
     toggleProduct,
     toggleCategory,
     toggleTechCard,
-    toggleTechCardCategory,
     handleSubmit,
     handleClose,
   } = useAddExclusionModal(props)
@@ -57,8 +54,6 @@ export const AddExclusionModal = (props: AddExclusionModalProps) => {
         return 'Поиск по названию категории'
       case 'tech_card':
         return 'Поиск по названию тех-карты или категории'
-      case 'tech_card_category':
-        return 'Поиск по названию категории'
       default:
         return 'Поиск...'
     }
@@ -72,8 +67,6 @@ export const AddExclusionModal = (props: AddExclusionModalProps) => {
         return 'Выберите категории'
       case 'tech_card':
         return 'Выберите тех-карты'
-      case 'tech_card_category':
-        return 'Выберите категории'
       default:
         return 'Выберите элементы'
     }
@@ -87,8 +80,6 @@ export const AddExclusionModal = (props: AddExclusionModalProps) => {
         return formData.selectedCategories.length
       case 'tech_card':
         return formData.selectedTechCards.length
-      case 'tech_card_category':
-        return formData.selectedTechCardCategories.length
       default:
         return 0
     }
@@ -157,13 +148,6 @@ export const AddExclusionModal = (props: AddExclusionModalProps) => {
                         onClick={() => handleFieldChange('type', 'tech_card')}
                       >
                         Тех-карты
-                      </Styled.TypeButton>
-                      <Styled.TypeButton
-                        type="button"
-                        $active={formData.type === 'tech_card_category'}
-                        onClick={() => handleFieldChange('type', 'tech_card_category')}
-                      >
-                        Категории тех-карт
                       </Styled.TypeButton>
                     </Styled.TypeToggle>
                   </Styled.FormRow>
@@ -246,25 +230,6 @@ export const AddExclusionModal = (props: AddExclusionModalProps) => {
                                 )}
                               </Styled.ItemInfo>
                               <Styled.ItemPrice>{techCard.price} ₽</Styled.ItemPrice>
-                            </Styled.SelectionItem>
-                          ))
-                        )
-                      ) : formData.type === 'tech_card_category' ? (
-                        isLoadingTechCardCategories ? (
-                          <Styled.LoadingText>Загрузка категорий...</Styled.LoadingText>
-                        ) : techCardCategories.length === 0 ? (
-                          <Styled.EmptyText>Нет категорий</Styled.EmptyText>
-                        ) : (
-                          techCardCategories.map((category) => (
-                            <Styled.SelectionItem key={category.id}>
-                              <Styled.Checkbox
-                                type="checkbox"
-                                checked={formData.selectedTechCardCategories.includes(category.id)}
-                                onChange={() => toggleTechCardCategory(category.id)}
-                              />
-                              <Styled.ItemInfo>
-                                <Styled.ItemName>{category.name}</Styled.ItemName>
-                              </Styled.ItemInfo>
                             </Styled.SelectionItem>
                           ))
                         )

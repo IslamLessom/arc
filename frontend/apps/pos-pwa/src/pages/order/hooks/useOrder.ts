@@ -4,7 +4,17 @@ import { useQueryClient } from '@tanstack/react-query'
 import { useGetCategories, useGetProducts, useGetTechnicalCards, useOrder as useApiOrder } from '@restaurant-pos/api-client'
 import { useCurrentUser } from '@restaurant-pos/api-client'
 import { apiClient } from '@restaurant-pos/api-client'
-import type { UseOrderResult, OrderData, GuestOrder, OrderItem, ProductCategory, MenuItem, GuestDiscount } from '../model/types'
+import { useMarketingPromotions } from '@restaurant-pos/api-client'
+import type {
+  UseOrderResult,
+  OrderData,
+  GuestOrder,
+  OrderItem,
+  ProductCategory,
+  MenuItem,
+  PromotionPreviewResponse,
+  PromotionPreviewItem,
+} from '../model/types'
 import { OrderTab, DiscountType } from '../model/enums'
 import type { Product } from '@restaurant-pos/api-client'
 import type { TechnicalCard } from '@restaurant-pos/api-client'
@@ -14,9 +24,10 @@ import { useExclusions } from './useExclusions'
 const ORDER_STORAGE_KEY = 'order_data_'
 
 function recalculateTotals(guests: GuestOrder[]) {
-  const totalAmount = guests.reduce((sum, g) => sum + g.finalAmount, 0)
+  const totalAmount = guests.reduce((sum, g) => sum + g.totalAmount, 0)
   const totalDiscount = guests.reduce((sum, g) => sum + (g.discount?.amount || 0), 0)
-  return { totalAmount, totalDiscount }
+  const finalAmount = totalAmount - totalDiscount
+  return { totalAmount, totalDiscount, finalAmount }
 }
 
 function normalizeOrderData(data: OrderData): OrderData {
@@ -33,7 +44,7 @@ function normalizeOrderData(data: OrderData): OrderData {
   const selectedGuestNumber = data.selectedGuestNumber || 1
   const selectedGuest = normalizedGuests.find((g) => g.guestNumber === selectedGuestNumber)
   const selectedCustomer = selectedGuest?.customer
-  const { totalAmount, totalDiscount } = recalculateTotals(normalizedGuests)
+  const { totalAmount, totalDiscount, finalAmount } = recalculateTotals(normalizedGuests)
 
   return {
     ...data,
@@ -42,7 +53,7 @@ function normalizeOrderData(data: OrderData): OrderData {
     selectedCustomer,
     totalAmount,
     totalDiscount,
-    finalAmount: totalAmount,
+    finalAmount,
   }
 }
 
@@ -56,6 +67,8 @@ export function useOrder(): UseOrderResult {
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null)
   const [selectedTab, setSelectedTab] = useState<OrderTab>(OrderTab.Check)
   const [orderData, setOrderData] = useState<OrderData | null>(null)
+  const [isPromotionsModalOpen, setIsPromotionsModalOpen] = useState(false)
+  const [promotionPreview, setPromotionPreview] = useState<PromotionPreviewResponse | null>(null)
 
   // Fetch categories all types (product, tech_card, semi_finished)
   const { data: categories = [], isLoading: isLoadingCategories } = useGetCategories({
@@ -92,8 +105,62 @@ export function useOrder(): UseOrderResult {
 
   // Загружаем исключения из скидок
   const { calculateDiscountWithExclusions, checkAllItemsExcluded } = useExclusions()
+  const { promotions } = useMarketingPromotions()
 
-  const locationState = location.state as { guestsCount?: number; tableNumber?: number } | null
+  const activePromotions = useMemo(() => {
+    if (promotionPreview?.active_promotions?.length) {
+      return promotionPreview.active_promotions
+    }
+
+    const now = new Date()
+    return promotions.filter((promotion) => {
+      if (!promotion.active) return false
+      const start = new Date(promotion.start_date)
+      const end = new Date(promotion.end_date)
+      return now >= start && now <= end
+    })
+  }, [promotions, promotionPreview])
+
+  const hasActivePromotions = activePromotions.length > 0
+
+  const findPreviewByMenuItem = useCallback((item: MenuItem): PromotionPreviewItem | null => {
+    if (!promotionPreview?.items?.length) return null
+    const isTechCard = 'itemType' in item && item.itemType === 'tech_card'
+    return promotionPreview.items.find((previewItem) => {
+      if (isTechCard) {
+        return previewItem.tech_card_id === item.id
+      }
+      return previewItem.product_id === item.id
+    }) || null
+  }, [promotionPreview])
+
+  const getItemPromotionBadge = useCallback((item: MenuItem): string | null => {
+    const preview = findPreviewByMenuItem(item)
+    if (preview) {
+      if (!preview.eligible) {
+        return null
+      }
+      return preview.promotion_badge || (preview.promotion_names?.[0] ? 'Акция' : null)
+    }
+
+    if (item.exclude_from_discounts) {
+      return null
+    }
+    return activePromotions.length > 0 ? 'Акция' : null
+  }, [activePromotions.length, findPreviewByMenuItem])
+
+  const getItemIneligibilityReason = useCallback((item: MenuItem): string | null => {
+    const preview = findPreviewByMenuItem(item)
+    if (preview?.ineligibility_reason) {
+      return preview.ineligibility_reason
+    }
+    if (item.exclude_from_discounts) {
+      return 'Товар исключен из скидок'
+    }
+    return null
+  }, [findPreviewByMenuItem])
+
+  const locationState = location.state as { guestsCount?: number; tableNumber?: number; tableId?: string } | null
 
   // Проверяем, является ли orderId UUID (заказ с сервера)
   const isUuidOrderId = useMemo(() => {
@@ -154,18 +221,20 @@ export function useOrder(): UseOrderResult {
       }
     })
 
-    const totalAmount = guests.reduce((sum, g) => sum + g.finalAmount, 0)
+    const totalAmount = guests.reduce((sum, g) => sum + g.totalAmount, 0)
     const totalDiscount = guests.reduce((sum, g) => sum + (g.discount?.amount || 0), 0)
+    const finalAmount = totalAmount - totalDiscount
 
     return {
       orderId: serverOrderData.id,
       tableNumber: serverOrderData.table_number,
+      tableId: serverOrderData.table_id,
       guestsCount: maxGuestNumber,
       guests,
       selectedGuestNumber: 1,
       totalAmount,
       totalDiscount,
-      finalAmount: totalAmount,
+      finalAmount,
     }
   }, [])
 
@@ -174,9 +243,19 @@ export function useOrder(): UseOrderResult {
   useEffect(() => {
     if (orderId && !orderData) {
       const stored = localStorage.getItem(`${ORDER_STORAGE_KEY}${orderId}`)
+      console.log('[useOrder] Loading from localStorage:', {
+        orderId,
+        hasStored: !!stored,
+        storageKey: `${ORDER_STORAGE_KEY}${orderId}`
+      })
       if (stored) {
-        const parsed = JSON.parse(stored) as OrderData
-        setOrderData(normalizeOrderData(parsed))
+        try {
+          const parsed = JSON.parse(stored) as OrderData
+          console.log('[useOrder] Parsed order data:', parsed)
+          setOrderData(normalizeOrderData(parsed))
+        } catch (e) {
+          console.error('Failed to parse stored order data:', e)
+        }
       }
     }
   }, [orderId, orderData])
@@ -194,9 +273,27 @@ export function useOrder(): UseOrderResult {
   // Создаём новый заказ если нет данных вообще
   useEffect(() => {
     if (orderId && !orderData && !isUuidOrderId && !serverOrder) {
+      // Проверяем есть ли данные в localStorage перед созданием нового заказа
+      const stored = localStorage.getItem(`${ORDER_STORAGE_KEY}${orderId}`)
+      console.log('[useOrder] Creating new order check:', {
+        orderId,
+        hasOrderData: !!orderData,
+        isUuidOrderId,
+        hasServerOrder: !!serverOrder,
+        hasStored: !!stored
+      })
+      if (stored) {
+        // Данные уже есть в localStorage, не создаем новый заказ
+        // useEffect выше загрузит их
+        console.log('[useOrder] Found stored data, skipping new order creation')
+        return
+      }
+      
+      console.log('[useOrder] Creating new empty order')
       // Новый заказ (не UUID) - создаём пустой
       const guestsCountFromState = Math.max(1, Number(locationState?.guestsCount || 1))
       const tableNumberFromState = locationState?.tableNumber
+      const tableIdFromState = locationState?.tableId
 
       const guests: GuestOrder[] = Array.from({ length: guestsCountFromState }, (_, index) => ({
         guestNumber: index + 1,
@@ -215,6 +312,7 @@ export function useOrder(): UseOrderResult {
       const initialData: OrderData = {
         orderId,
         tableNumber: tableNumberFromState,
+        tableId: tableIdFromState,
         guestsCount: guestsCountFromState,
         guests,
         selectedGuestNumber: 1,
@@ -230,6 +328,12 @@ export function useOrder(): UseOrderResult {
   // Save order data to localStorage whenever it changes
   useEffect(() => {
     if (orderData && orderId) {
+      console.log('[useOrder] Saving to localStorage:', {
+        orderId,
+        storageKey: `${ORDER_STORAGE_KEY}${orderId}`,
+        totalAmount: orderData.totalAmount,
+        itemsCount: orderData.guests.reduce((sum, g) => sum + g.items.length, 0)
+      })
       localStorage.setItem(`${ORDER_STORAGE_KEY}${orderId}`, JSON.stringify(orderData))
     }
   }, [orderData, orderId])
@@ -248,12 +352,61 @@ export function useOrder(): UseOrderResult {
 
   // Объединенный список товаров и тех-карт для выбранной категории
   const selectedCategoryItems = useMemo(() => {
-    const productItems = products.map(p => ({ ...p, itemType: 'product' as const }))
-    const techCardItems = technicalCards.map(tc => ({ ...tc, itemType: 'tech_card' as const }))
-    const items = [...productItems, ...techCardItems] as MenuItem[]
+    if (!selectedCategoryId) return []
 
-    return items
-  }, [products, technicalCards])
+    const productItems = products
+      .filter(p => p.category_id === selectedCategoryId)
+      .map(p => ({ ...p, itemType: 'product' as const }))
+
+    const techCardItems = technicalCards
+      .filter(tc => tc.category_id === selectedCategoryId)
+      .map(tc => ({ ...tc, itemType: 'tech_card' as const }))
+
+    return [...productItems, ...techCardItems] as MenuItem[]
+  }, [products, technicalCards, selectedCategoryId])
+
+  useEffect(() => {
+    const previewItems = selectedCategoryItems.slice(0, 100).map((item) => {
+      const isTechCard = 'itemType' in item && item.itemType === 'tech_card'
+      return isTechCard
+        ? { tech_card_id: item.id, quantity: 1 }
+        : { product_id: item.id, quantity: 1 }
+    })
+
+    if (previewItems.length === 0) {
+      setPromotionPreview(null)
+      return
+    }
+
+    let isCancelled = false
+    apiClient
+      .post<{ data: PromotionPreviewResponse }>('/orders/promotions/preview', {
+        items: previewItems,
+      })
+      .then((response) => {
+        if (!isCancelled) {
+          setPromotionPreview(response.data.data)
+        }
+      })
+      .catch((error) => {
+        if (!isCancelled) {
+          console.warn('Promotion preview failed:', error)
+          setPromotionPreview(null)
+        }
+      })
+
+    return () => {
+      isCancelled = true
+    }
+  }, [selectedCategoryItems])
+
+  const openPromotionsModal = useCallback(() => {
+    setIsPromotionsModalOpen(true)
+  }, [])
+
+  const closePromotionsModal = useCallback(() => {
+    setIsPromotionsModalOpen(false)
+  }, [])
 
   // Navigate back - сохраняет черновик заказа если есть товары
   const handleBack = useCallback(async () => {
@@ -297,6 +450,10 @@ export function useOrder(): UseOrderResult {
           } else if (item.itemType === 'tech_card' && item.techCardId) {
             result.tech_card_id = item.techCardId
           }
+          // Добавляем client_id для каждой позиции если у гостя указан клиент
+          if (guest.customer?.id) {
+            result.client_id = guest.customer.id
+          }
           return result
         })
       ).filter((item: any) => item.product_id || item.tech_card_id) // Убираем пустые items
@@ -304,8 +461,23 @@ export function useOrder(): UseOrderResult {
       if (isUuidOrderId) {
         // Заказ уже существует на сервере - просто выходим, данные сохранены
       } else if (itemsToSend.length > 0) {
-        // Создаём черновик заказа на сервере
-        const orderResponse = await apiClient.post('/orders', { items: itemsToSend, total_amount: orderData.totalAmount })
+        // Для черновика не передаем total_amount: сервер сам посчитает итог,
+        // это исключает конфликт total/final после акций и скидок.
+        const payload: any = {
+          items: itemsToSend,
+          guests_count: orderData.guestsCount,
+          table_number: orderData.tableNumber,
+          table_id: orderData.tableId,
+        }
+        // Передаем client_id если выбран клиент для начисления баллов и статистики
+        if (orderData.selectedCustomer?.id) {
+          payload.client_id = orderData.selectedCustomer.id
+          console.log('[Draft Order] Sending client_id:', orderData.selectedCustomer.id, 'Customer:', orderData.selectedCustomer.name)
+        } else {
+          console.log('[Draft Order] No customer selected, client_id will be NULL')
+        }
+        console.log('[Draft Order] Payload:', JSON.stringify(payload, null, 2))
+        const orderResponse = await apiClient.post('/orders', payload)
         const serverOrderId = orderResponse?.data?.id
 
         if (serverOrderId) {
@@ -320,6 +492,7 @@ export function useOrder(): UseOrderResult {
     }
 
     // Обновляем список заказов после создания черновика
+    queryClient.invalidateQueries({ queryKey: ['orders', 'active'] })
     queryClient.invalidateQueries({ queryKey: ['orders'] })
     navigate('/table-selection')
   }, [orderData, orderId, navigate, isUuidOrderId, queryClient])
@@ -398,14 +571,14 @@ export function useOrder(): UseOrderResult {
     const newGuests = [...orderData.guests]
     newGuests[guestIndex] = newGuest
 
-    const { totalAmount: newTotalAmount, totalDiscount: newTotalDiscount } = recalculateTotals(newGuests)
+    const { totalAmount: newTotalAmount, totalDiscount: newTotalDiscount, finalAmount: newFinalAmount } = recalculateTotals(newGuests)
 
     setOrderData({
       ...orderData,
       guests: newGuests,
       totalAmount: newTotalAmount,
       totalDiscount: newTotalDiscount,
-      finalAmount: newTotalAmount,
+      finalAmount: newFinalAmount,
     })
   }, [orderData])
 
@@ -493,14 +666,14 @@ export function useOrder(): UseOrderResult {
 
       const newGuests = [...orderData.guests]
       newGuests[guestIndex] = newGuest
-      const { totalAmount: newTotalAmount, totalDiscount: newTotalDiscount } = recalculateTotals(newGuests)
+      const { totalAmount: newTotalAmount, totalDiscount: newTotalDiscount, finalAmount: newFinalAmount } = recalculateTotals(newGuests)
 
       setOrderData({
         ...orderData,
         guests: newGuests,
         totalAmount: newTotalAmount,
         totalDiscount: newTotalDiscount,
-        finalAmount: newTotalAmount,
+        finalAmount: newFinalAmount,
       })
     } else {
       // Update quantity
@@ -534,14 +707,14 @@ export function useOrder(): UseOrderResult {
 
       const newGuests = [...orderData.guests]
       newGuests[guestIndex] = newGuest
-      const { totalAmount: newTotalAmount, totalDiscount: newTotalDiscount } = recalculateTotals(newGuests)
+      const { totalAmount: newTotalAmount, totalDiscount: newTotalDiscount, finalAmount: newFinalAmount } = recalculateTotals(newGuests)
 
       setOrderData({
         ...orderData,
         guests: newGuests,
         totalAmount: newTotalAmount,
         totalDiscount: newTotalDiscount,
-        finalAmount: newTotalAmount,
+        finalAmount: newFinalAmount,
       })
     }
   }, [orderData])
@@ -603,14 +776,14 @@ export function useOrder(): UseOrderResult {
     const newGuests = [...orderData.guests]
     newGuests[guestIndex] = newGuest
 
-    const { totalAmount: newTotalAmount, totalDiscount: newTotalDiscount } = recalculateTotals(newGuests)
+    const { totalAmount: newTotalAmount, totalDiscount: newTotalDiscount, finalAmount: newFinalAmount } = recalculateTotals(newGuests)
 
     setOrderData({
       ...orderData,
       guests: newGuests,
       totalAmount: newTotalAmount,
       totalDiscount: newTotalDiscount,
-      finalAmount: newTotalAmount,
+      finalAmount: newFinalAmount,
     })
   }, [orderData, calculateDiscountWithExclusions])
 
@@ -664,14 +837,14 @@ export function useOrder(): UseOrderResult {
       finalAmount: selectedGuest.totalAmount - discountAmount,
     }
 
-    const { totalAmount: newTotalAmount, totalDiscount: newTotalDiscount } = recalculateTotals(newGuests)
+    const { totalAmount: newTotalAmount, totalDiscount: newTotalDiscount, finalAmount: newFinalAmount } = recalculateTotals(newGuests)
     setOrderData({
       ...orderData,
       guests: newGuests,
       selectedCustomer: customer || undefined,
       totalAmount: newTotalAmount,
       totalDiscount: newTotalDiscount,
-      finalAmount: newTotalAmount,
+      finalAmount: newFinalAmount,
     })
   }, [orderData, calculateDiscountWithExclusions])
 
@@ -690,14 +863,14 @@ export function useOrder(): UseOrderResult {
       finalAmount: guest.totalAmount,
     }
 
-    const { totalAmount: newTotalAmount, totalDiscount: newTotalDiscount } = recalculateTotals(newGuests)
+    const { totalAmount: newTotalAmount, totalDiscount: newTotalDiscount, finalAmount: newFinalAmount } = recalculateTotals(newGuests)
     setOrderData({
       ...orderData,
       guests: newGuests,
       selectedCustomer: undefined,
       totalAmount: newTotalAmount,
       totalDiscount: newTotalDiscount,
-      finalAmount: newTotalAmount,
+      finalAmount: newFinalAmount,
     })
   }, [orderData])
 
@@ -745,5 +918,14 @@ export function useOrder(): UseOrderResult {
 
     // Exclusions
     checkAllItemsExcluded,
+
+    // Promotions
+    hasActivePromotions,
+    activePromotions,
+    getItemPromotionBadge,
+    getItemIneligibilityReason,
+    isPromotionsModalOpen,
+    openPromotionsModal,
+    closePromotionsModal,
   }
 }

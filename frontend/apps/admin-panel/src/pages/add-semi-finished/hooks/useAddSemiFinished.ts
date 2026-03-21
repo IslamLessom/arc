@@ -1,24 +1,72 @@
-import { useState, useCallback, useMemo } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { useCreateSemiFinishedProduct, useGetIngredients, useGetStock } from '@restaurant-pos/api-client'
+import { useState, useCallback, useMemo, useEffect } from 'react'
+import { useLocation, useNavigate, useParams } from 'react-router-dom'
+import {
+  useCreateSemiFinishedProduct,
+  useGetIngredients,
+  useGetSemiFinishedProducts,
+  useGetStock,
+  useUpdateSemiFinishedProduct,
+  type SemiFinishedProduct,
+} from '@restaurant-pos/api-client'
 import type { AddSemiFinishedFormData, SemiFinishedIngredient, FieldErrors, UseAddSemiFinishedResult } from '../model/types'
 
 export const useAddSemiFinished = (): UseAddSemiFinishedResult => {
+  const location = useLocation()
+  const { id } = useParams<{ id: string }>()
+  const isEditMode = Boolean(id)
   const navigate = useNavigate()
   const createMutation = useCreateSemiFinishedProduct()
+  const updateMutation = useUpdateSemiFinishedProduct()
   const { data: apiIngredients = [] } = useGetIngredients()
   const { data: stock = [] } = useGetStock()
+  const { data: semiFinishedProducts = [], isLoading: isSemiFinishedLoading } = useGetSemiFinishedProducts()
+
+  const locationState = location.state as { semiFinishedProduct?: SemiFinishedProduct } | null
+
+  const existingSemiFinished = useMemo(() => {
+    if (!isEditMode || !id) return undefined
+
+    if (locationState?.semiFinishedProduct?.id === id) {
+      return locationState.semiFinishedProduct
+    }
+
+    return semiFinishedProducts.find((product) => product.id === id)
+  }, [isEditMode, id, locationState?.semiFinishedProduct, semiFinishedProducts])
+
+  const isInitialLoading = isEditMode && !existingSemiFinished && isSemiFinishedLoading
 
   const [formData, setFormData] = useState<AddSemiFinishedFormData>({
     name: '',
     cooking_process: '',
     ingredients: []
   })
+  const [isFormInitialized, setIsFormInitialized] = useState(false)
 
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({})
 
-  const isSubmitting = createMutation.isPending
-  const error = createMutation.error ? (createMutation.error as Error).message : null
+  const isSubmitting = createMutation.isPending || updateMutation.isPending
+  const error = createMutation.error
+    ? (createMutation.error as Error).message
+    : updateMutation.error
+      ? (updateMutation.error as Error).message
+      : null
+
+  const normalizeUnit = useCallback((unit: string | undefined): 'г' | 'мл' | 'шт' => {
+    switch (unit) {
+      case 'kg':
+      case 'gram':
+      case 'г':
+      case 'кг':
+        return 'г'
+      case 'liter':
+      case 'ml':
+      case 'л':
+      case 'мл':
+        return 'мл'
+      default:
+        return 'шт'
+    }
+  }, [])
 
   const ingredients = useMemo(() => {
     return apiIngredients.map(ing => ({
@@ -90,6 +138,46 @@ export const useAddSemiFinished = (): UseAddSemiFinishedResult => {
     const stockItem = stock.find(s => s.ingredient_id === ingredientId && s.price_per_unit > 0)
     return stockItem?.price_per_unit || 0
   }, [stock])
+
+  const calculateIngredientCost = useCallback((ingredientId: string, net: number, unit: 'г' | 'мл' | 'шт'): number => {
+    if (!ingredientId || net <= 0) return 0
+
+    const pricePerUnit = getIngredientPrice(ingredientId)
+    let netForCost = net
+
+    if (unit === 'г' || unit === 'мл') {
+      netForCost = net / 1000
+    }
+
+    return netForCost * pricePerUnit
+  }, [getIngredientPrice])
+
+  useEffect(() => {
+    if (!isEditMode || !existingSemiFinished || isFormInitialized) {
+      return
+    }
+
+    setFormData({
+      name: existingSemiFinished.name || '',
+      cooking_process: existingSemiFinished.cooking_process || '',
+      category_id: existingSemiFinished.category_id,
+      workshop_id: existingSemiFinished.workshop_id,
+      ingredients: (existingSemiFinished.ingredients || []).map((ingredient) => {
+        const unit = normalizeUnit(ingredient.unit)
+
+        return {
+          id: `${ingredient.id}-${Math.random()}`,
+          ingredient_id: ingredient.ingredient_id,
+          preparation_method: ingredient.preparation_method,
+          gross: ingredient.gross,
+          net: ingredient.net,
+          unit,
+          cost: calculateIngredientCost(ingredient.ingredient_id, ingredient.net, unit),
+        }
+      }),
+    })
+    setIsFormInitialized(true)
+  }, [isEditMode, existingSemiFinished, normalizeUnit, calculateIngredientCost, isFormInitialized])
 
   const getIngredientLoss = useCallback((ingredientId: string, method?: string): number => {
     const ingredient = apiIngredients.find(ing => ing.id === ingredientId)
@@ -207,19 +295,33 @@ export const useAddSemiFinished = (): UseAddSemiFinishedResult => {
       // Пока используем г по умолчанию
       let unit: 'кг' | 'г' | 'л' | 'мл' | 'шт' = 'г'
 
-      await createMutation.mutateAsync({
-        name: formData.name,
-        category_id: formData.category_id || '',
-        cooking_process: formData.cooking_process,
-        unit: unit,
-        quantity: totalYield,
-        ingredients: ingredientsPayload
-      })
+      if (isEditMode && id) {
+        await updateMutation.mutateAsync({
+          id,
+          data: {
+            name: formData.name,
+            ...(formData.category_id ? { category_id: formData.category_id } : {}),
+            ...(formData.cooking_process ? { cooking_process: formData.cooking_process } : {}),
+            unit,
+            quantity: totalYield,
+            ingredients: ingredientsPayload,
+          },
+        })
+      } else {
+        await createMutation.mutateAsync({
+          name: formData.name,
+          category_id: formData.category_id || '',
+          cooking_process: formData.cooking_process,
+          unit: unit,
+          quantity: totalYield,
+          ingredients: ingredientsPayload
+        })
+      }
       navigate('/menu/semi-finished')
     } catch (err) {
-      console.error('Failed to create semi-finished product:', err)
+      console.error('Failed to save semi-finished product:', err)
     }
-  }, [formData, isFormValid, createMutation, navigate, totalYield])
+  }, [formData, isFormValid, isEditMode, id, updateMutation, createMutation, navigate, totalYield])
 
   const handleBack = useCallback(() => {
     navigate('/menu/semi-finished')
@@ -227,6 +329,8 @@ export const useAddSemiFinished = (): UseAddSemiFinishedResult => {
 
   return {
     formData,
+    isEditMode,
+    isInitialLoading,
     isSubmitting,
     error,
     fieldErrors,

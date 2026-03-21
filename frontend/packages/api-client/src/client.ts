@@ -1,25 +1,19 @@
 import axios from 'axios'
+import { applyApiErrorMessage } from './errors'
 
 // Универсальная функция для получения переменных окружения
 // Работает как в Vite (import.meta.env), так и в Next.js (process.env)
 const getEnvVar = (key: string, defaultValue: string): string => {
-  // Vite использует import.meta.env
-  if (typeof import.meta !== 'undefined') {
-    const meta = import.meta as { env?: Record<string, string> }
-    if (meta.env) {
-      const viteKey = key.replace('NEXT_PUBLIC_', 'VITE_')
-      return meta.env[viteKey] || meta.env[key] || defaultValue
-    }
-  }
-  // Next.js использует process.env
-  if (typeof process !== 'undefined' && process.env) {
-    return process.env[key] || defaultValue
+  const proc = (globalThis as { process?: { env?: Record<string, string> } }).process
+  if (proc?.env) {
+    const viteKey = key.replace('NEXT_PUBLIC_', 'VITE_')
+    return proc.env[viteKey] || proc.env[key] || defaultValue
   }
   return defaultValue
 }
 
 export const apiClient = axios.create({
-  baseURL: getEnvVar('NEXT_PUBLIC_API_URL', 'http://62.109.18.208:8081/api/v1'),
+  baseURL: getEnvVar('NEXT_PUBLIC_API_URL', 'http://localhost:8081/api/v1'),
   timeout: 10000,
   headers: {
     'Content-Type': 'application/json'
@@ -63,9 +57,38 @@ const processQueue = (error: unknown, token: string | null = null) => {
 }
 
 apiClient.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    // Проверяем если это ответ с флагом read_only (от админ-панели при истекшей подписке)
+    if (response.data?.read_only) {
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('subscription_read_only', 'true')
+      }
+    }
+    return response
+  },
   async (error) => {
+    applyApiErrorMessage(error, 'Не удалось выполнить запрос. Попробуйте еще раз.')
     const originalRequest = error.config
+
+    // Обработка ошибок подписки (403 - Forbidden с read_only флагом)
+    if (error.response?.status === 403) {
+      const errorData = error.response.data
+      if (errorData?.read_only === true) {
+        // Это ошибка истекшей подписки - админка работает в read-only режиме
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('subscription_read_only', 'true')
+        }
+        return Promise.reject(error)
+      } else if (errorData?.error === 'subscription expired') {
+        // Это ошибка для POS - полная блокировка доступа
+        if (typeof window !== 'undefined') {
+          localStorage.removeItem('auth_token')
+          localStorage.removeItem('user_type')
+          window.location.href = '/auth'
+        }
+        return Promise.reject(error)
+      }
+    }
 
     if (error.response?.status !== 401 || originalRequest._retry) {
       return Promise.reject(error)

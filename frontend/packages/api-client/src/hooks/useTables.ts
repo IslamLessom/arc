@@ -16,6 +16,7 @@ export interface Table {
   height: number
   shape: 'round' | 'square'
   status: 'available' | 'occupied' | 'reserved'
+  qr_token?: string
   active: boolean
   created_at: string
   updated_at: string
@@ -138,6 +139,29 @@ export function useDeleteTable() {
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['tables', variables.roomId] })
+    },
+  })
+}
+
+export function useGenerateTableQRToken() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: async ({
+      roomId,
+      tableId,
+    }: {
+      roomId: string
+      tableId: string
+    }): Promise<{ qr_token: string }> => {
+      const response = await apiClient.post<{ qr_token: string }>(
+        `/rooms/${roomId}/tables/${tableId}/qr/generate`
+      )
+      return response.data
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['tables', variables.roomId] })
+      queryClient.invalidateQueries({ queryKey: ['table', variables.roomId, variables.tableId] })
     },
   })
 }

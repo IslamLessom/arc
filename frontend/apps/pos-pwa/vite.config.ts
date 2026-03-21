@@ -62,7 +62,8 @@ export default defineConfig({
       '@restaurant-pos/types': path.resolve(__dirname, '../../packages/types/src'),
       '@restaurant-pos/real-time': path.resolve(__dirname, '../../packages/real-time/src'),
       '@restaurant-pos/print-service': path.resolve(__dirname, '../../packages/print-service/src'),
-      '@restaurant-pos/assets': path.resolve(__dirname, '../../packages/assets/src')
+      '@restaurant-pos/assets': path.resolve(__dirname, '../../packages/assets/src'),
+      '@restaurant-pos/features': path.resolve(__dirname, '../../packages/features/src')
     }
   },
   server: {

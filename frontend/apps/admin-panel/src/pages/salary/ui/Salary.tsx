@@ -1,9 +1,25 @@
 import { useSalary } from '../hooks/useSalary'
 import { formatCurrency, formatNumber } from './lib/formatUtils'
+import { PaySalaryModal } from './PaySalaryModal'
+import type { SalaryEntry } from '@restaurant-pos/api-client'
+import { getPositionName } from '../../positions/lib/positionNameMap'
 import * as Styled from './styled'
 
 export const Salary = () => {
-  const { isLoading, error, report, handleBack, handleDateChange } = useSalary()
+  const {
+    isLoading,
+    error,
+    report,
+    isCreatingAdvance,
+    isPayingSalary,
+    paymentModal,
+    handleBack,
+    handleDateChange,
+    handleGiveAdvance,
+    handleOpenPaymentModal,
+    handleClosePaymentModal,
+    handleConfirmPayment,
+  } = useSalary()
 
   if (isLoading) {
     return (
@@ -28,6 +44,8 @@ export const Salary = () => {
   }
 
   const entries = report?.entries || []
+  const totalAdvances = entries.reduce((sum: number, entry: SalaryEntry) => sum + entry.advances_given, 0)
+  const totalToPay = entries.reduce((sum: number, entry: SalaryEntry) => sum + entry.total_to_pay_after_advances, 0)
 
   return (
     <Styled.PageContainer>
@@ -86,39 +104,57 @@ export const Salary = () => {
           <Styled.Table>
             <Styled.TableHeader>
               <tr>
-                <Styled.TableCell $width="200px">Сотрудник</Styled.TableCell>
-                <Styled.TableCell $width="150px">Должность</Styled.TableCell>
-                <Styled.TableCell $align="right" $width="120px">Месячная ставка</Styled.TableCell>
-                <Styled.TableCell $align="right" $width="100px">Часы</Styled.TableCell>
-                <Styled.TableCell $align="center" $width="80px">Смены</Styled.TableCell>
-                <Styled.TableCell $align="right" $width="120px">% от продаж за смены</Styled.TableCell>
-                <Styled.TableCell $align="right" $width="120px">Итого</Styled.TableCell>
+                <Styled.TableCell $width="140px">Сотрудник</Styled.TableCell>
+                <Styled.TableCell $width="110px">Должность</Styled.TableCell>
+                <Styled.TableCell $align="right" $width="90px">Мес. ставка</Styled.TableCell>
+                <Styled.TableCell $align="right" $width="70px">Часы</Styled.TableCell>
+                <Styled.TableCell $align="center" $width="60px">Смены</Styled.TableCell>
+                <Styled.TableCell $align="right" $width="100px">% личн.</Styled.TableCell>
+                <Styled.TableCell $align="right" $width="100px">% смены</Styled.TableCell>
+                <Styled.TableCell $align="right" $width="90px">Начислено</Styled.TableCell>
+                <Styled.TableCell $align="right" $width="90px">Авансы</Styled.TableCell>
+                <Styled.TableCell $align="right" $width="90px">К выплате</Styled.TableCell>
+                <Styled.TableCell $align="center" $width="160px">Действия</Styled.TableCell>
               </tr>
             </Styled.TableHeader>
             <tbody>
-              {entries.map((entry) => (
+              {entries.map((entry: SalaryEntry) => (
                 <Styled.TableRow key={entry.employee_id}>
                   <Styled.TableData>{entry.employee_name}</Styled.TableData>
-                  <Styled.TableData>{entry.position_name}</Styled.TableData>
+                  <Styled.TableData>{getPositionName(entry.position_name)}</Styled.TableData>
                   <Styled.TableData $align="right">
                     {entry.monthly_rate ? formatCurrency(entry.monthly_rate) : '-'}
                   </Styled.TableData>
                   <Styled.TableData $align="right">
                     {formatNumber(entry.hours_worked)}
                     {entry.hourly_rate && (
-                      <span style={{ fontSize: '12px', color: '#94a3b8', marginLeft: '4px' }}>
+                      <span style={{ fontSize: '11px', color: '#94a3b8', marginLeft: '4px', display: 'block' }}>
                         ({formatCurrency(entry.hourly_rate)}/ч)
                       </span>
                     )}
                   </Styled.TableData>
                   <Styled.TableData $align="center">{entry.shifts_worked}</Styled.TableData>
                   <Styled.TableData $align="right">
+                    {entry.personal_sales_commission > 0 ? (
+                      <>
+                        {formatCurrency(entry.personal_sales_commission)}
+                        {entry.personal_sales_percentage && (
+                          <span style={{ fontSize: '10px', color: '#94a3b8', marginLeft: '2px', display: 'block' }}>
+                            {entry.personal_sales_percentage}%
+                          </span>
+                        )}
+                      </>
+                    ) : (
+                      '-'
+                    )}
+                  </Styled.TableData>
+                  <Styled.TableData $align="right">
                     {entry.shift_sales_commission > 0 ? (
                       <>
                         {formatCurrency(entry.shift_sales_commission)}
                         {entry.shift_sales_percentage && (
-                          <span style={{ fontSize: '12px', color: '#94a3b8', marginLeft: '4px' }}>
-                            ({entry.shift_sales_percentage}% от {formatCurrency(entry.shift_sales_amount)})
+                          <span style={{ fontSize: '10px', color: '#94a3b8', marginLeft: '2px', display: 'block' }}>
+                            {entry.shift_sales_percentage}%
                           </span>
                         )}
                       </>
@@ -131,10 +167,44 @@ export const Salary = () => {
                       {formatCurrency(entry.total_salary)}
                     </Styled.SalaryValue>
                   </Styled.TableData>
+                  <Styled.TableData $align="right">
+                    {entry.advances_given > 0 ? formatCurrency(entry.advances_given) : '-'}
+                  </Styled.TableData>
+                  <Styled.TableData $align="right">
+                    <Styled.SalaryValue $highlight>
+                      {formatCurrency(entry.total_to_pay_after_advances)}
+                    </Styled.SalaryValue>
+                  </Styled.TableData>
+                  <Styled.TableData $align="center">
+                    <div style={{ display: 'flex', gap: '6px', justifyContent: 'center' }}>
+                      <Styled.ActionButton
+                        onClick={() => handleGiveAdvance(entry.employee_id, entry.employee_name)}
+                        disabled={isCreatingAdvance}
+                        style={{ fontSize: '12px', padding: '6px 10px' }}
+                      >
+                        + Аванс
+                      </Styled.ActionButton>
+                      <Styled.PayButton
+                        onClick={() =>
+                          handleOpenPaymentModal(
+                            entry.employee_id,
+                            entry.employee_name,
+                            entry.total_salary,
+                            entry.advances_given,
+                            entry.total_to_pay_after_advances
+                          )
+                        }
+                        disabled={isPayingSalary || entry.total_to_pay_after_advances <= 0}
+                        style={{ fontSize: '12px', padding: '6px 10px' }}
+                      >
+                        💰 Выплатить
+                      </Styled.PayButton>
+                    </div>
+                  </Styled.TableData>
                 </Styled.TableRow>
               ))}
               <Styled.TotalRow>
-                <Styled.TotalCell $align="left" colSpan={6}>
+                <Styled.TotalCell $align="left" colSpan={7}>
                   Итого по всем сотрудникам:
                 </Styled.TotalCell>
                 <Styled.TotalCell $align="right">
@@ -142,11 +212,31 @@ export const Salary = () => {
                     {formatCurrency(report?.total_salary || 0)}
                   </Styled.SalaryValue>
                 </Styled.TotalCell>
+                <Styled.TotalCell $align="right">{formatCurrency(totalAdvances)}</Styled.TotalCell>
+                <Styled.TotalCell $align="right">
+                  <Styled.SalaryValue $highlight>{formatCurrency(totalToPay)}</Styled.SalaryValue>
+                </Styled.TotalCell>
+                <Styled.TotalCell $align="center">-</Styled.TotalCell>
               </Styled.TotalRow>
             </tbody>
           </Styled.Table>
         )}
       </Styled.TableContainer>
+
+      {paymentModal && (
+        <PaySalaryModal
+          employeeId={paymentModal.employeeId}
+          employeeName={paymentModal.employeeName}
+          totalSalary={paymentModal.totalSalary}
+          advancesDeducted={paymentModal.advancesDeducted}
+          amountToPay={paymentModal.amountToPay}
+          periodStart={report?.start_date || ''}
+          periodEnd={report?.end_date || ''}
+          onClose={handleClosePaymentModal}
+          onConfirm={handleConfirmPayment}
+          isProcessing={isPayingSalary}
+        />
+      )}
     </Styled.PageContainer>
   )
 }

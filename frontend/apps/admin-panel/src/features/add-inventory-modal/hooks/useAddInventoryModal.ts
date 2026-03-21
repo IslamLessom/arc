@@ -9,7 +9,6 @@ import {
   useGetProducts,
   useGetIngredientCategories,
   useGetCategories,
-  useGetTechnicalCards,
   useGetSemiFinishedProducts,
   type Stock,
   type Ingredient,
@@ -120,7 +119,6 @@ export const useAddInventoryModal = (
   )
   const { data: ingredientCategories = [] } = useGetIngredientCategories()
   const { data: productCategories = [] } = useGetCategories()
-  const { data: techCards = [] } = useGetTechnicalCards()
   const { data: semiFinished = [] } = useGetSemiFinishedProducts()
 
   const createInventoryMutation = useCreateInventory()
@@ -288,21 +286,6 @@ export const useAddInventoryModal = (
       }
     })
 
-    // Tech cards
-    const filteredTechCards = filterBySearch(techCards)
-    const techCardNodes: ProductTreeNode[] = filteredTechCards.map((tc) => {
-      const key = `tech_card:${tc.id}`
-      return {
-        id: key,
-        name: tc.name,
-        type: 'item',
-        checked: selectedItems.has(key),
-        expanded: false,
-        itemType: 'tech_card',
-        itemId: tc.id,
-      }
-    })
-
     // Semi-finished
     const filteredSemiFinished = filterBySearch(semiFinished)
     const semiFinishedNodes: ProductTreeNode[] = filteredSemiFinished.map((sf) => {
@@ -351,22 +334,20 @@ export const useAddInventoryModal = (
       })
     }
 
-    // Tech cards root - check ALL tech cards and semi-finished, not just filtered
-    if (techCards.length > 0 || semiFinished.length > 0) {
-      const allTechCardKeys = techCards.map((tc) => `tech_card:${tc.id}`)
+    // Semi-finished root - check ALL semi-finished, not just filtered
+    if (semiFinished.length > 0) {
       const allSemiFinishedKeys = semiFinished.map((sf) => `semi_finished:${sf.id}`)
-      const allTechCardKeysChecked = allTechCardKeys.length > 0 && allTechCardKeys.every((key) => selectedItems.has(key))
-      const allSemiFinishedChecked = allSemiFinishedKeys.length === 0 || allSemiFinishedKeys.every((key) => selectedItems.has(key))
-      const allChecked = allTechCardKeysChecked && allSemiFinishedChecked
+      const allSemiFinishedChecked =
+        allSemiFinishedKeys.length > 0 && allSemiFinishedKeys.every((key) => selectedItems.has(key))
 
       tree.push({
-        id: 'tech-cards-root',
-        name: 'Произведенные тех. карты и полуфабрикаты',
-        type: 'tech_cards',
-        count: techCards.length + semiFinished.length,
-        checked: allChecked,
-        expanded: expandedNodes.has('tech-cards-root'),
-        children: [...techCardNodes, ...semiFinishedNodes],
+        id: 'semi-finished-root',
+        name: 'Полуфабрикаты',
+        type: 'semi_finished',
+        count: semiFinished.length,
+        checked: allSemiFinishedChecked,
+        expanded: expandedNodes.has('semi-finished-root'),
+        children: semiFinishedNodes,
       })
     }
 
@@ -376,7 +357,6 @@ export const useAddInventoryModal = (
     products,
     ingredientCategories,
     productCategories,
-    techCards,
     semiFinished,
     stockItems,
     formData.items,

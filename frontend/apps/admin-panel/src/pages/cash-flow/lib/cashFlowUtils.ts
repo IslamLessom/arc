@@ -1,5 +1,6 @@
 import type { Transaction, Account } from '@restaurant-pos/types'
 import type { CashFlowRow, MonthData, MonthlyCashFlow, AccountBalance } from './types'
+import { translateCategory } from '../../../shared/lib/categoryTranslations'
 
 const MONTH_NAMES = [
   'Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь',
@@ -163,9 +164,10 @@ export function buildCashFlowRows(
     rows.push({
       id: `income-${category}`,
       type: 'income',
-      label: category,
+      label: translateCategory(category),
       level: 1,
-      parentId: 'income'
+      parentId: 'income',
+      category
     })
   })
 
@@ -182,9 +184,10 @@ export function buildCashFlowRows(
     rows.push({
       id: `expense-${category}`,
       type: 'expense',
-      label: category,
+      label: translateCategory(category),
       level: 1,
-      parentId: 'expense'
+      parentId: 'expense',
+      category
     })
   })
 
@@ -240,9 +243,10 @@ export function buildCashFlowRows(
       rows.push({
         id: `transfer-${category}`,
         type: 'transfer',
-        label: category,
+        label: translateCategory(category),
         level: 1,
-        parentId: 'transfers'
+        parentId: 'transfers',
+        category
       })
     })
   }
@@ -281,7 +285,7 @@ export function getRowValue(
         return Array.from(monthData.income.values()).reduce((sum, val) => sum + val, 0)
       } else {
         // Category income
-        const category = row.label
+        const category = row.category || row.label
         return monthData.income.get(category) || 0
       }
     }
@@ -292,7 +296,7 @@ export function getRowValue(
         return Array.from(monthData.expense.values()).reduce((sum, val) => sum + val, 0)
       } else {
         // Category expense
-        const category = row.label
+        const category = row.category || row.label
         return monthData.expense.get(category) || 0
       }
     }
@@ -329,7 +333,7 @@ export function getRowValue(
         return Array.from(monthData.transfers.values()).reduce((sum, val) => sum + val, 0)
       } else {
         // Category transfers
-        const category = row.label
+        const category = row.category || row.label
         return monthData.transfers.get(category) || 0
       }
     }

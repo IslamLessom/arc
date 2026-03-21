@@ -70,12 +70,12 @@ export const MovementForm = (props: MovementFormProps) => {
                     min="0"
                     step="0.01"
                   />
-                  <Styled.CurrencySymbol>₸</Styled.CurrencySymbol>
+                  <Styled.CurrencySymbol>₽</Styled.CurrencySymbol>
                 </Styled.PriceInputWrapper>
               </div>
               <div>
                 <span style={{ fontSize: '14px', fontWeight: '600', color: '#1e293b' }}>
-                  {(item.total_amount || 0).toFixed(2)} ₸
+                  {(item.total_amount || 0).toFixed(2)} ₽
                 </span>
               </div>
               <div>

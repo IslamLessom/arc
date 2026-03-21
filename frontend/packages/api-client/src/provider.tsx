@@ -1,7 +1,7 @@
 'use client'
 
 import React, { ReactNode, useMemo } from 'react'
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { QueryClient, QueryClientProvider, keepPreviousData } from '@tanstack/react-query'
 
 export function QueryProvider({ children }: { children: ReactNode }) {
   const queryClient = useMemo(
@@ -13,6 +13,7 @@ export function QueryProvider({ children }: { children: ReactNode }) {
             refetchOnWindowFocus: false, // Не обновлять при фокусе окна
             refetchOnReconnect: false, // Не обновлять при реконекте
             retry: 1, // Макс 1 повторная попытка
+            placeholderData: keepPreviousData,
           }
         }
       }),

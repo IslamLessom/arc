@@ -11,13 +11,13 @@ import (
 )
 
 type MenuUseCase struct {
-	productRepo          repositories.ProductRepository
-	techCardRepo         repositories.TechCardRepository
-	semiFinishedRepo     repositories.SemiFinishedRepository
-	ingredientRepo       repositories.IngredientRepository
-	categoryRepo         repositories.CategoryRepository
+	productRepo            repositories.ProductRepository
+	techCardRepo           repositories.TechCardRepository
+	semiFinishedRepo       repositories.SemiFinishedRepository
+	ingredientRepo         repositories.IngredientRepository
+	categoryRepo           repositories.CategoryRepository
 	ingredientCategoryRepo repositories.IngredientCategoryRepository
-	warehouseRepo        repositories.WarehouseRepository
+	warehouseRepo          repositories.WarehouseRepository
 }
 
 func NewMenuUseCase(
@@ -30,13 +30,13 @@ func NewMenuUseCase(
 	warehouseRepo repositories.WarehouseRepository,
 ) *MenuUseCase {
 	return &MenuUseCase{
-		productRepo:           productRepo,
-		techCardRepo:          techCardRepo,
-		semiFinishedRepo:      semiFinishedRepo,
-		ingredientRepo:        ingredientRepo,
-		categoryRepo:          categoryRepo,
+		productRepo:            productRepo,
+		techCardRepo:           techCardRepo,
+		semiFinishedRepo:       semiFinishedRepo,
+		ingredientRepo:         ingredientRepo,
+		categoryRepo:           categoryRepo,
 		ingredientCategoryRepo: ingredientCategoryRepo,
-		warehouseRepo:         warehouseRepo,
+		warehouseRepo:          warehouseRepo,
 	}
 }
 
@@ -71,8 +71,8 @@ func (uc *MenuUseCase) CreateProduct(ctx context.Context, product *models.Produc
 
 // UpdateProduct обновляет товар
 func (uc *MenuUseCase) UpdateProduct(ctx context.Context, product *models.Product) error {
-	// Пересчитываем цену при обновлении
-	product.CalculatePrice()
+	// НЕ пересчитываем цену автоматически - цена обновляется только если указана явно
+	// Если нужен пересчет, он должен быть выполнен до вызова этого метода
 	return uc.productRepo.Update(ctx, product)
 }
 
@@ -210,18 +210,18 @@ func (uc *MenuUseCase) CreateIngredient(ctx context.Context, ingredient *models.
 		// Если указан поставщик, создаем автоматическую поставку
 		if supplierID != uuid.Nil {
 			supply := &models.Supply{
-				WarehouseID:     warehouseID,
-				SupplierID:      supplierID,
+				WarehouseID:      warehouseID,
+				SupplierID:       supplierID,
 				DeliveryDateTime: time.Now(),
-				Status:          "completed",
+				Status:           "completed",
 				Items: []models.SupplyItem{
 					{
-						ID:            uuid.New(),
-						IngredientID:  &ingredient.ID,
-						Quantity:      quantity,
-						Unit:          ingredient.Unit,
-						PricePerUnit:  pricePerUnit,
-						TotalAmount:   quantity * pricePerUnit,
+						ID:           uuid.New(),
+						IngredientID: &ingredient.ID,
+						Quantity:     quantity,
+						Unit:         ingredient.Unit,
+						PricePerUnit: pricePerUnit,
+						TotalAmount:  quantity * pricePerUnit,
 					},
 				},
 			}

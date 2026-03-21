@@ -1,5 +1,3 @@
-import type { CreateIngredientRequest } from '@restaurant-pos/api-client'
-
 export interface AddIngredientModalProps {
   isOpen: boolean
   onClose: () => void
@@ -29,6 +27,8 @@ export interface UseAddIngredientModalResult {
   error: string | null
   categories: Array<{ id: string; name: string }>
   warehouses: Array<{ id: string; name: string }>
+  refetchCategories?: () => void
+  refetchWarehouses?: () => void
   handleFieldChange: (field: keyof AddIngredientFormData, value: string | number | undefined) => void
   handleSubmit: (e: React.FormEvent) => void
   handleClose: () => void

@@ -17,23 +17,42 @@ export const useProductForm = (props: ProductFormProps): UseProductFormResult =>
 
   const handleCategoryChange = useCallback(
     (e: React.ChangeEvent<HTMLSelectElement>) => {
-      handleFieldChange('category_id', e.target.value)
+      const value = e.target.value
+      if (value === '__add_new__') {
+        props.onAddCategoryClick?.()
+        // Reset select to previous value
+        e.target.value = props.formData.category_id || ''
+      } else {
+        handleFieldChange('category_id', value)
+      }
     },
-    [handleFieldChange]
+    [handleFieldChange, props]
   )
 
   const handleWarehouseChange = useCallback(
     (e: React.ChangeEvent<HTMLSelectElement>) => {
-      handleFieldChange('warehouse_id', e.target.value)
+      const value = e.target.value
+      if (value === '__add_new__') {
+        props.onAddWarehouseClick?.()
+        e.target.value = props.formData.warehouse_id || ''
+      } else {
+        handleFieldChange('warehouse_id', value)
+      }
     },
-    [handleFieldChange]
+    [handleFieldChange, props]
   )
 
   const handleWorkshopChange = useCallback(
     (e: React.ChangeEvent<HTMLSelectElement>) => {
-      handleFieldChange('workshop_id', e.target.value)
+      const value = e.target.value
+      if (value === '__add_new__') {
+        props.onAddWorkshopClick?.()
+        e.target.value = props.formData.workshop_id || ''
+      } else {
+        handleFieldChange('workshop_id', value)
+      }
     },
-    [handleFieldChange]
+    [handleFieldChange, props]
   )
 
   const handleImageFileChange = useCallback(

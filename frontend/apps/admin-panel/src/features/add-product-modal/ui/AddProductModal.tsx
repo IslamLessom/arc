@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useAddProductModal } from '../hooks/useAddProductModal'
 import type { AddProductModalProps } from '../model/types'
 import * as Styled from './styled'
@@ -7,8 +7,15 @@ import { Header } from './components/Header'
 import { Footer } from './components/Footer'
 import { HelpLinks } from './components/HelpLinks'
 import { ProductForm } from './components/ProductForm'
+import { AddCategoryDialog } from './components/AddCategoryDialog'
+import { AddWarehouseDialog } from './components/AddWarehouseDialog'
+import { AddWorkshopDialog } from './components/AddWorkshopDialog'
 
 export const AddProductModal = (props: AddProductModalProps) => {
+  const [isAddCategoryDialogOpen, setIsAddCategoryDialogOpen] = useState(false)
+  const [isAddWarehouseDialogOpen, setIsAddWarehouseDialogOpen] = useState(false)
+  const [isAddWorkshopDialogOpen, setIsAddWorkshopDialogOpen] = useState(false)
+
   const {
     formData,
     totalPrice,
@@ -58,6 +65,21 @@ export const AddProductModal = (props: AddProductModalProps) => {
     }
   }, [props.isOpen])
 
+  const handleCategoryAdded = (categoryId: string) => {
+    handleFieldChange('category_id', categoryId)
+    setIsAddCategoryDialogOpen(false)
+  }
+
+  const handleWarehouseAdded = (warehouseId: string) => {
+    handleFieldChange('warehouse_id', warehouseId)
+    setIsAddWarehouseDialogOpen(false)
+  }
+
+  const handleWorkshopAdded = (workshopId: string) => {
+    handleFieldChange('workshop_id', workshopId)
+    setIsAddWorkshopDialogOpen(false)
+  }
+
   if (!props.isOpen) {
     return null
   }
@@ -90,6 +112,9 @@ export const AddProductModal = (props: AddProductModalProps) => {
                   warehouses={warehouses}
                   handleFieldChange={handleFieldChange}
                   firstFocusableRef={firstFocusableRef}
+                  onAddCategoryClick={() => setIsAddCategoryDialogOpen(true)}
+                  onAddWarehouseClick={() => setIsAddWarehouseDialogOpen(true)}
+                  onAddWorkshopClick={() => setIsAddWorkshopDialogOpen(true)}
                 />
               </Styled.FormContent>
 
@@ -103,6 +128,24 @@ export const AddProductModal = (props: AddProductModalProps) => {
           isSubmitting={isSubmitting}
           handleSubmit={handleSubmit}
           productId={props.productId}
+        />
+
+        <AddCategoryDialog 
+          isOpen={isAddCategoryDialogOpen}
+          onClose={() => setIsAddCategoryDialogOpen(false)}
+          onCategoryAdded={handleCategoryAdded}
+        />
+
+        <AddWarehouseDialog 
+          isOpen={isAddWarehouseDialogOpen}
+          onClose={() => setIsAddWarehouseDialogOpen(false)}
+          onWarehouseAdded={handleWarehouseAdded}
+        />
+
+        <AddWorkshopDialog 
+          isOpen={isAddWorkshopDialogOpen}
+          onClose={() => setIsAddWorkshopDialogOpen(false)}
+          onWorkshopAdded={handleWorkshopAdded}
         />
       </Styled.ModalContainer>
     </Styled.Overlay>

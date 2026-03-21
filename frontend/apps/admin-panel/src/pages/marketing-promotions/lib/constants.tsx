@@ -1,7 +1,7 @@
 import { PromotionTable } from '../model/types'
 import { PromotionsTableProps } from '../model/types'
 import { PromotionType } from '../model/enums'
-import { EditButton } from '@restaurant-pos/ui'
+import { DeleteButton, EditButton, TableAlign } from '@restaurant-pos/ui'
 import { TypeBadge, StatusBadge } from '../ui/styled'
 
 const getTypeLabel = (type: string) => {
@@ -24,7 +24,7 @@ const formatDate = (dateString: string) => {
   return date.toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric' })
 }
 
-export const getPromotionsTableColumns = ({ onEdit }: PromotionsTableProps) => [
+export const getPromotionsTableColumns = ({ onEdit, onDelete }: PromotionsTableProps) => [
   {
     title: '№',
     dataIndex: 'number',
@@ -50,6 +50,13 @@ export const getPromotionsTableColumns = ({ onEdit }: PromotionsTableProps) => [
     key: 'type',
     width: 110,
     render: (type: unknown) => <TypeBadge $type={(type as string) || ''}>{getTypeLabel((type as string) || '')}</TypeBadge>
+  },
+  {
+    title: 'Влияние',
+    dataIndex: 'impact_preview',
+    key: 'impact_preview',
+    width: 220,
+    render: (impact: unknown) => <span>{(impact as string) || '-'}</span>
   },
   {
     title: 'Скидка %',
@@ -87,10 +94,20 @@ export const getPromotionsTableColumns = ({ onEdit }: PromotionsTableProps) => [
     title: 'Ред.',
     dataIndex: 'edit',
     key: 'edit',
-    align: 'center' as const,
+    align: TableAlign.Center,
     width: 80,
     render: (_: unknown, record: PromotionTable) => (
       <EditButton onClick={() => onEdit(record.id)} />
+    )
+  },
+  {
+    title: 'Удал.',
+    dataIndex: 'delete',
+    key: 'delete',
+    align: TableAlign.Center,
+    width: 90,
+    render: (_: unknown, record: PromotionTable) => (
+      <DeleteButton onClick={() => onDelete(record.id)} />
     )
   }
 ]

@@ -1,28 +1,40 @@
 import { useState, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useGetWarehouses, useDeleteWarehouse } from '@restaurant-pos/api-client'
+import { useGetWarehouses, useDeleteWarehouse, useGetStock } from '@restaurant-pos/api-client'
 import { Warehouse, WarehousesSort } from '../model/types'
 import { SortDirection } from '../model/enums'
+import { exportToExcel, printTable, useColumnVisibility } from '@restaurant-pos/ui'
+import { getWarehousesTableColumns } from '../lib/constants'
 
 export const useWarehouses = () => {
   const navigate = useNavigate()
   const [searchQuery, setSearchQuery] = useState('')
   const [sort, setSort] = useState<WarehousesSort>({ field: 'id', direction: SortDirection.ASC })
   const [isModalOpen, setIsModalOpen] = useState(false)
+  const [isColumnModalOpen, setIsColumnModalOpen] = useState(false)
   const [editingWarehouseId, setEditingWarehouseId] = useState<string | null>(null)
 
-  const { data: apiWarehouses = [], isLoading, error } = useGetWarehouses()
+  const { data: apiWarehouses = [], isLoading: isWarehousesLoading, error: warehousesError } = useGetWarehouses()
+  const { data: stock = [], isLoading: isStockLoading, error: stockError } = useGetStock()
 
   const deleteWarehouseMutation = useDeleteWarehouse()
+
+  const warehouseAmountsMap = useMemo(() => {
+    return stock.reduce<Record<string, number>>((acc, stockItem) => {
+      const stockValue = (stockItem.quantity || 0) * (stockItem.price_per_unit || 0)
+      acc[stockItem.warehouse_id] = (acc[stockItem.warehouse_id] || 0) + stockValue
+      return acc
+    }, {})
+  }, [stock])
 
   const warehouses = useMemo(() => {
     return apiWarehouses.map(warehouse => ({
       id: warehouse.id,
       name: warehouse.name,
       address: warehouse.address || '',
-      amount: 0 // TODO: Calculate from stock
+      amount: warehouseAmountsMap[warehouse.id] || 0
     }))
-  }, [apiWarehouses])
+  }, [apiWarehouses, warehouseAmountsMap])
 
   const filteredAndSortedWarehouses = useMemo(() => {
     let filtered = warehouses.filter(warehouse =>
@@ -91,25 +103,26 @@ export const useWarehouses = () => {
     handleCloseModal()
   }
 
+  const allColumns = useMemo(() => getWarehousesTableColumns({ onEdit: () => {}, onDelete: () => {} }), [])
+
+  const { visibleColumns, columnInfo, toggleColumn, showAllColumns, hideAllColumns, resetColumnVisibility } = 
+    useColumnVisibility(allColumns, { storageKey: 'admin-panel-warehouses-columns' })
+
   const handleExport = () => {
-    // Экспорт функциональность
-    console.log('Export warehouses')
+    exportToExcel(filteredAndSortedWarehouses, visibleColumns, 'warehouses.xlsx')
   }
 
   const handlePrint = () => {
-    // Печать функциональность
-    console.log('Print warehouses')
+    printTable(filteredAndSortedWarehouses, visibleColumns, 'Склады', { showDate: true, orientation: 'portrait' })
   }
 
-  const handleColumns = () => {
-    // Управление столбцами
-    console.log('Manage columns')
-  }
+  const handleColumns = () => { setIsColumnModalOpen(true) }
+  const handleCloseColumnModal = () => { setIsColumnModalOpen(false) }
 
   return {
     warehouses: filteredAndSortedWarehouses,
-    isLoading,
-    error,
+    isLoading: isWarehousesLoading || isStockLoading,
+    error: warehousesError || stockError,
     searchQuery,
     sort,
     totalWarehousesCount,
@@ -126,7 +139,15 @@ export const useWarehouses = () => {
     handleSuccess,
     handleExport,
     handlePrint,
-    handleColumns
+    handleColumns,
+    isColumnModalOpen,
+    handleCloseColumnModal,
+    visibleColumns,
+    columnInfo,
+    toggleColumn,
+    showAllColumns,
+    hideAllColumns,
+    resetColumnVisibility,
   }
 }
 

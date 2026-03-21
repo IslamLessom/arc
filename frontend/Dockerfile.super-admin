@@ -1,0 +1,38 @@
+# Dockerfile для супер-админ панели
+FROM node:20-alpine AS builder
+
+WORKDIR /app
+
+# Копируем package.json и устанавливаем зависимости
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml turbo.json ./
+COPY tsconfig.json ./
+COPY packages ./packages
+COPY apps/super-admin ./apps/super-admin
+
+# Устанавливаем pnpm
+RUN npm install -g pnpm@9.1.0
+
+# Устанавливаем зависимости
+RUN pnpm install --frozen-lockfile
+
+# Собираем workspace-пакеты, от которых зависит super-admin
+RUN pnpm --filter @restaurant-pos/types build
+RUN pnpm --filter @restaurant-pos/api-client build
+RUN pnpm --filter @restaurant-pos/ui build
+
+# Собираем приложение
+WORKDIR /app/apps/super-admin
+RUN pnpm build
+
+# Production stage
+FROM nginx:alpine
+
+# Копируем собранное приложение
+COPY --from=builder /app/apps/super-admin/dist /usr/share/nginx/html
+
+# Копируем nginx конфигурацию
+COPY apps/super-admin/nginx.conf /etc/nginx/conf.d/default.conf
+
+EXPOSE 80
+
+CMD ["nginx", "-g", "daemon off;"]

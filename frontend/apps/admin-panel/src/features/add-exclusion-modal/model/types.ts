@@ -5,7 +5,7 @@ export interface AddExclusionModalProps {
   onClose: () => void
 }
 
-export type ExclusionType = 'product' | 'category' | 'tech_card' | 'tech_card_category'
+export type ExclusionType = 'product' | 'category' | 'tech_card'
 
 export interface ExclusionFormData {
   name: string
@@ -14,7 +14,6 @@ export interface ExclusionFormData {
   selectedProducts: string[]
   selectedCategories: string[]
   selectedTechCards: string[]
-  selectedTechCardCategories: string[]
   searchQuery: string
   active: boolean
 }

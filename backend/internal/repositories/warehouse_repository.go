@@ -13,8 +13,8 @@ import (
 type StockFilter struct {
 	EstablishmentID *uuid.UUID
 	WarehouseID     *uuid.UUID
-	Search          *string // Поиск по названию ингредиента/товара
-	Type            *string // "ingredient" или "product"
+	Search          *string    // Поиск по названию ингредиента/товара
+	Type            *string    // "ingredient" или "product"
 	CategoryID      *uuid.UUID // Фильтр по категории (для ингредиентов или товаров)
 }
 
@@ -250,12 +250,10 @@ func (r *warehouseRepository) CreateSupply(ctx context.Context, supply *models.S
 		items := supply.Items
 		supply.Items = nil
 
-
 		// Создаем Supply без Items
 		if err := tx.Create(supply).Error; err != nil {
 			return err
 		}
-
 
 		// Теперь создаем элементы по одному с явно установленными UUID
 		for i := range items {
@@ -268,7 +266,6 @@ func (r *warehouseRepository) CreateSupply(ctx context.Context, supply *models.S
 				return err
 			}
 		}
-
 
 		// Восстанавливаем Items для возврата
 		supply.Items = items
@@ -283,10 +280,17 @@ func (r *warehouseRepository) UpdateSupply(ctx context.Context, supply *models.S
 			return err
 		}
 
+		// Удаляем старые платежи поставки
+		if err := tx.Where("supply_id = ?", supply.ID).Delete(&models.SupplyPayment{}).Error; err != nil {
+			return err
+		}
+
 		// Сохраняем Items во временную переменную и очищаем supply.Items
 		// чтобы GORM не пытался создать их автоматически
 		items := supply.Items
+		payments := supply.Payments
 		supply.Items = nil
+		supply.Payments = nil
 
 		// Обновляем Supply
 		if err := tx.Save(supply).Error; err != nil {
@@ -305,8 +309,20 @@ func (r *warehouseRepository) UpdateSupply(ctx context.Context, supply *models.S
 			}
 		}
 
+		// Создаем новые платежи
+		for i := range payments {
+			payments[i].SupplyID = supply.ID
+			if payments[i].ID == uuid.Nil {
+				payments[i].ID = uuid.New()
+			}
+			if err := tx.Create(&payments[i]).Error; err != nil {
+				return err
+			}
+		}
+
 		// Восстанавливаем Items для возврата
 		supply.Items = items
+		supply.Payments = payments
 		return nil
 	})
 }
@@ -322,6 +338,9 @@ func (r *warehouseRepository) GetSupplyByID(ctx context.Context, id uuid.UUID, e
 		Preload("Supplier").
 		Preload("Items.Ingredient").
 		Preload("Items.Product").
+		Preload("Account").
+		Preload("Payments").
+		Preload("Payments.Account").
 		Joins("JOIN warehouses ON supplies.warehouse_id = warehouses.id").
 		Where("supplies.id = ?", id)
 
@@ -333,6 +352,7 @@ func (r *warehouseRepository) GetSupplyByID(ctx context.Context, id uuid.UUID, e
 	if err == gorm.ErrRecordNotFound {
 		return nil, nil
 	}
+
 	return &supply, err
 }
 
@@ -345,6 +365,9 @@ func (r *warehouseRepository) GetSuppliesByIngredientOrProduct(ctx context.Conte
 		Preload("Supplier").
 		Preload("Items.Ingredient").
 		Preload("Items.Product").
+		Preload("Account").
+		Preload("Payments").
+		Preload("Payments.Account").
 		Joins("JOIN warehouses ON supplies.warehouse_id = warehouses.id").
 		Joins("JOIN supply_items ON supplies.id = supply_items.supply_id").
 		Where("warehouses.establishment_id = ?", establishmentID)
@@ -371,13 +394,16 @@ func (r *warehouseRepository) GetSuppliesByWarehouse(ctx context.Context, establ
 		Preload("Supplier").
 		Preload("Items.Ingredient").
 		Preload("Items.Product").
+		Preload("Account").
+		Preload("Payments").
+		Preload("Payments.Account").
 		Joins("JOIN warehouses ON supplies.warehouse_id = warehouses.id").
 		Where("warehouses.establishment_id = ?", establishmentID)
-	
+
 	if warehouseID != nil {
 		query = query.Where("supplies.warehouse_id = ?", *warehouseID)
 	}
-	
+
 	var supplies []*models.Supply
 	err := query.Order("supplies.delivery_date_time DESC").Find(&supplies).Error
 	return supplies, err
@@ -389,12 +415,12 @@ func (r *warehouseRepository) CreateWriteOff(ctx context.Context, writeOff *mode
 		// чтобы GORM не пытался создать их автоматически
 		items := writeOff.Items
 		writeOff.Items = nil
-		
+
 		// Создаем WriteOff без Items
 		if err := tx.Create(writeOff).Error; err != nil {
 			return err
 		}
-		
+
 		// Теперь создаем элементы по одному с явно установленными UUID
 		for i := range items {
 			items[i].WriteOffID = writeOff.ID
@@ -406,7 +432,7 @@ func (r *warehouseRepository) CreateWriteOff(ctx context.Context, writeOff *mode
 				return err
 			}
 		}
-		
+
 		// Восстанавливаем Items для возврата
 		writeOff.Items = items
 		return nil
@@ -421,11 +447,11 @@ func (r *warehouseRepository) GetWriteOffsByWarehouse(ctx context.Context, estab
 		Preload("Items.Product").
 		Joins("JOIN warehouses ON write_offs.warehouse_id = warehouses.id").
 		Where("warehouses.establishment_id = ?", establishmentID)
-	
+
 	if warehouseID != nil {
 		query = query.Where("write_offs.warehouse_id = ?", *warehouseID)
 	}
-	
+
 	var writeOffs []*models.WriteOff
 	err := query.Order("write_offs.write_off_date_time DESC").Find(&writeOffs).Error
 	return writeOffs, err
@@ -439,11 +465,11 @@ func (r *warehouseRepository) GetWriteOffByID(ctx context.Context, id uuid.UUID,
 		Preload("Items.Product").
 		Joins("JOIN warehouses ON write_offs.warehouse_id = warehouses.id").
 		Where("write_offs.id = ?", id)
-	
+
 	if establishmentID != nil {
 		query = query.Where("warehouses.establishment_id = ?", *establishmentID)
 	}
-	
+
 	err := query.First(&writeOff, "write_offs.id = ?", id).Error
 	if err == gorm.ErrRecordNotFound {
 		return nil, nil

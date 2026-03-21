@@ -54,6 +54,9 @@ export interface ProductFormProps {
   warehouses: Array<{ id: string; name: string }>
   handleFieldChange: (field: keyof AddProductFormData, value: string | boolean) => void
   firstFocusableRef: React.RefObject<HTMLInputElement>
+  onAddCategoryClick?: () => void
+  onAddWarehouseClick?: () => void
+  onAddWorkshopClick?: () => void
 }
 
 export interface UseProductFormResult {

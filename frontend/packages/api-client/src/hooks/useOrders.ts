@@ -57,6 +57,9 @@ export interface ApiOrder {
   card_amount?: number
   total_amount: number
   guests_count?: number
+  source?: 'pos' | 'qr_menu'
+  guest_name?: string
+  guest_session_id?: string
   items?: ApiOrderItem[]
   created_at: string
   updated_at: string
@@ -113,6 +116,8 @@ export function useActiveOrders() {
     },
     retry: false,
     throwOnError: false,
+    refetchInterval: 3000, // Обновляем каждые 3 секунды для отображения черновиков
+    refetchOnWindowFocus: true, // Обновляем при возврате в окно
   })
 }
 
@@ -228,6 +233,8 @@ export function useCreateOrder() {
       }
     },
     onSuccess: () => {
+      // Инвалидируем активные заказы чтобы они пересчитались
+      queryClient.invalidateQueries({ queryKey: ['orders', 'active'] })
       queryClient.invalidateQueries({ queryKey: ['orders'] })
     }
   })

@@ -1,7 +1,10 @@
 import { useMemo, useState } from 'react'
 import { useMarketingExclusions, type MarketingExclusion } from '@restaurant-pos/api-client'
+import { useGetProducts, useGetTechnicalCards } from '@restaurant-pos/api-client'
+import { exportToExcel, printTable, useColumnVisibility } from '@restaurant-pos/ui'
 import { ExclusionTable, ExclusionsSort } from '../model/types'
 import { SortDirection } from '../model/enums'
+import { getExclusionsTableColumns } from '../lib/constants'
 
 const confirmDelete = (id: string): Promise<boolean> => {
   return new Promise((resolve) => {
@@ -24,20 +27,60 @@ const normalizeExclusion = (exclusion: MarketingExclusion, number: number): Excl
   created_at: exclusion.created_at,
   updated_at: exclusion.updated_at,
   number,
+  impact_preview: 'Точечное исключение',
+  impacted_items_count: 0,
 })
 
 export const useExclusions = () => {
   const { exclusions: apiExclusions, isLoading, error, refetch, deleteExclusion } = useMarketingExclusions()
+  const { data: products = [] } = useGetProducts({ active: true })
+  const { data: techCards = [] } = useGetTechnicalCards({ active: true })
 
   const [searchQuery, setSearchQuery] = useState('')
   const [sort, setSort] = useState<ExclusionsSort>({ field: 'name', direction: SortDirection.ASC })
   const [isModalOpen, setIsModalOpen] = useState(false)
+  const [isColumnModalOpen, setIsColumnModalOpen] = useState(false)
   const [editingExclusionId, setEditingExclusionId] = useState<string | null>(null)
 
-  const exclusions = useMemo(
-    () => apiExclusions.map((exclusion, index) => normalizeExclusion(exclusion, index + 1)),
-    [apiExclusions]
-  )
+  const exclusions = useMemo(() => {
+    return apiExclusions.map((exclusion, index) => {
+      const base = normalizeExclusion(exclusion, index + 1)
+
+      if (exclusion.type === 'product') {
+        return {
+          ...base,
+          impact_preview: 'Исключен конкретный товар',
+          impacted_items_count: exclusion.entity_id ? 1 : 0,
+        }
+      }
+
+      if (exclusion.type === 'category') {
+        const count = exclusion.entity_id
+          ? products.filter((product) => product.category_id === exclusion.entity_id).length
+          : 0
+
+        return {
+          ...base,
+          impact_preview: 'Исключены все товары категории',
+          impacted_items_count: count,
+        }
+      }
+
+      if (exclusion.type === 'tech_card') {
+        const count = exclusion.entity_id
+          ? techCards.filter((card) => card.id === exclusion.entity_id).length
+          : 0
+
+        return {
+          ...base,
+          impact_preview: 'Исключена конкретная тех-карта',
+          impacted_items_count: count,
+        }
+      }
+
+      return base
+    })
+  }, [apiExclusions, products, techCards])
 
   const filteredAndSortedExclusions = useMemo(() => {
     if (!exclusions.length) return []
@@ -106,16 +149,39 @@ export const useExclusions = () => {
     handleCloseModal()
   }
 
+  const allColumns = useMemo(
+    () => getExclusionsTableColumns({ onEdit: () => {}, onDelete: () => {} }),
+    []
+  )
+
+  const {
+    visibleColumns,
+    columnInfo,
+    toggleColumn,
+    showAllColumns,
+    hideAllColumns,
+    resetColumnVisibility,
+  } = useColumnVisibility(allColumns, {
+    storageKey: 'admin-panel-marketing-exclusions-columns'
+  })
+
   const handleExport = () => {
-    console.log('Export exclusions')
+    exportToExcel(filteredAndSortedExclusions, visibleColumns, 'marketing-exclusions.xlsx')
   }
 
   const handlePrint = () => {
-    console.log('Print exclusions')
+    printTable(filteredAndSortedExclusions, visibleColumns, 'Исключения', {
+      showDate: true,
+      orientation: 'landscape'
+    })
   }
 
   const handleColumns = () => {
-    console.log('Manage columns')
+    setIsColumnModalOpen(true)
+  }
+
+  const handleCloseColumnModal = () => {
+    setIsColumnModalOpen(false)
   }
 
   const handleDelete = async (id: string) => {
@@ -150,5 +216,13 @@ export const useExclusions = () => {
     handlePrint,
     handleColumns,
     handleDelete,
+    isColumnModalOpen,
+    handleCloseColumnModal,
+    visibleColumns,
+    columnInfo,
+    toggleColumn,
+    showAllColumns,
+    hideAllColumns,
+    resetColumnVisibility,
   }
 }

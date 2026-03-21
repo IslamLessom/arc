@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useSupplies } from '../hooks/useSupplies'
-import { Table } from '@restaurant-pos/ui'
+import { Table, ColumnManager } from '@restaurant-pos/ui'
 import { getSuppliesTableColumns } from '../lib/constants'
 import { SupplyDetailsModal } from '../../../features/supply-details-modal'
 import * as Styled from './styled'
@@ -26,7 +26,15 @@ export const Supplies = () => {
     handleAdd,
     handleExport,
     handlePrint,
-    handleColumns
+    handleColumns,
+    isColumnModalOpen,
+    handleCloseColumnModal,
+    visibleColumns,
+    columnInfo,
+    toggleColumn,
+    showAllColumns,
+    hideAllColumns,
+    resetColumnVisibility,
   } = useSupplies()
 
   const handleDetails = (id: string) => {
@@ -39,10 +47,14 @@ export const Supplies = () => {
     setSelectedSupplyId(undefined)
   }
 
-  const columns = getSuppliesTableColumns({
-    onEdit: handleEdit,
-    onDetails: handleDetails
-  })
+  const columns = visibleColumns.map(col => ({
+    ...col,
+    ...(col.key === 'actions' ? { render: (_: unknown, record: any) => {
+      const OriginalButton = getSuppliesTableColumns({ onEdit: handleEdit, onDetails: handleDetails })
+        .find(c => c.key === 'actions')?.render
+      return OriginalButton ? OriginalButton(_, record) : null
+    }} : {})
+  }))
 
   if (isLoading) {
     return (
@@ -169,6 +181,17 @@ export const Supplies = () => {
         supplyId={selectedSupplyId}
         onClose={handleCloseDetailsModal}
       />
+
+      {isColumnModalOpen && (
+        <ColumnManager
+          columns={columnInfo}
+          onToggle={toggleColumn}
+          onShowAll={showAllColumns}
+          onHideAll={hideAllColumns}
+          onReset={resetColumnVisibility}
+          onClose={handleCloseColumnModal}
+        />
+      )}
     </Styled.PageContainer>
   )
 }

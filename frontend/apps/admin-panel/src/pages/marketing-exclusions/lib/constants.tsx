@@ -56,6 +56,20 @@ export const getExclusionsTableColumns = ({ onEdit, onDelete }: ExclusionsTableP
     render: (entityName: unknown) => <span>{(entityName as string) || '-'}</span>
   },
   {
+    title: 'Влияние',
+    dataIndex: 'impact_preview',
+    key: 'impact_preview',
+    width: 220,
+    render: (impact: unknown) => <span>{(impact as string) || '-'}</span>
+  },
+  {
+    title: 'Затронуто',
+    dataIndex: 'impacted_items_count',
+    key: 'impacted_items_count',
+    width: 100,
+    render: (count: unknown) => <span>{(count as number) ?? 0}</span>
+  },
+  {
     title: 'Статус',
     dataIndex: 'is_active',
     key: 'is_active',

@@ -23,6 +23,21 @@ export interface SupplyItem {
   created_at: string
 }
 
+export interface SupplyPayment {
+  id: string
+  supply_id: string
+  account_id: string
+  account?: {
+    id: string
+    name: string
+  }
+  amount: number
+  payment_date_time: string
+  transaction_id?: string
+  created_at: string
+  updated_at: string
+}
+
 export interface Supply {
   id: string
   warehouse_id: string
@@ -42,6 +57,13 @@ export interface Supply {
   status: 'pending' | 'completed' | 'cancelled'
   comment?: string
   items?: SupplyItem[]
+  payments?: SupplyPayment[]
+  account_id?: string
+  account?: {
+    id: string
+    name: string
+  }
+  payment_status?: 'none' | 'pending' | 'partial' | 'paid' | 'debt'
   created_at: string
   updated_at: string
 }
@@ -67,13 +89,26 @@ interface SupplyItemRequest {
   total_amount?: number
 }
 
+export interface SupplyPaymentRequest {
+  account_id: string
+  account_type?: string // Optional, используется для отображения на фронтенде
+  amount: number
+  payment_date_time: string // RFC3339 format
+}
+
 export interface CreateSupplyRequest {
   warehouse_id: string
   supplier_id: string
   delivery_date_time: string // RFC3339 format
   status?: 'pending' | 'completed' | 'cancelled'
+  payment_status?: 'none' | 'pending' | 'partial' | 'paid' | 'debt'
   comment?: string
   items: SupplyItemRequest[]
+  payments?: SupplyPaymentRequest[] // Массив платежей
+  // Дополнительные поля для учета
+  invoice_number?: string
+  invoice_date?: string
+  total_amount?: number
 }
 
 export function useGetSupplies(filter?: SupplyFilter) {
@@ -118,6 +153,8 @@ export function useCreateSupply() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['supplies'] })
       queryClient.invalidateQueries({ queryKey: ['stock'] })
+      queryClient.invalidateQueries({ queryKey: ['accounts'] })
+      queryClient.invalidateQueries({ queryKey: ['transactions'] })
     },
   })
 }
@@ -136,6 +173,8 @@ export function useUpdateSupply() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['supplies'] })
       queryClient.invalidateQueries({ queryKey: ['stock'] })
+      queryClient.invalidateQueries({ queryKey: ['accounts'] })
+      queryClient.invalidateQueries({ queryKey: ['transactions'] })
     },
   })
 }

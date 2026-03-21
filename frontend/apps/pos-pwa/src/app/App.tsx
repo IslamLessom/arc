@@ -1,6 +1,17 @@
 import { Routes, Route } from 'react-router-dom'
 import { Providers } from './providers'
-import { AuthRoute, PinLoginRoute, HomeRoute, TableSelectionRoute, OrderRoute, PaymentRoute, OrdersArchiveRoute, ReceiptsArchiveRoute } from '@/shared/providers/ProtectedRoute'
+import {
+  AuthRoute,
+  PinLoginRoute,
+  HomeRoute,
+  TableSelectionRoute,
+  OrderRoute,
+  PaymentRoute,
+  OrdersArchiveRoute,
+  ReceiptsArchiveRoute,
+  SuppliesRoute,
+  AddSupplyRoute,
+} from '@/shared/providers/ProtectedRoute'
 import { NotFoundPage } from '@/pages/not-found'
 
 export function App() {
@@ -15,6 +26,8 @@ export function App() {
         <Route path="/payment/:orderId" element={<PaymentRoute />} />
         <Route path="/orders" element={<OrdersArchiveRoute />} />
         <Route path="/receipts" element={<ReceiptsArchiveRoute />} />
+        <Route path="/supplies" element={<SuppliesRoute />} />
+        <Route path="/supplies/add" element={<AddSupplyRoute />} />
         <Route path="*" element={<NotFoundPage />} />
       </Routes>
     </Providers>

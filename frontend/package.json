@@ -11,7 +11,8 @@
     "dev:marketing": "turbo run dev --filter=@restaurant-pos/marketing-site",
     "dev:admin": "turbo run dev --filter=@restaurant-pos/admin-panel",
     "dev:pos": "turbo run dev --filter=@restaurant-pos/pos-pwa",
-    "dev:qr-menu": "turbo run dev --filter=@restaurant-pos/qr-menu-pwa"
+    "dev:qr-menu": "turbo run dev --filter=@restaurant-pos/qr-menu-pwa",
+    "dev:super-admin": "turbo run dev --filter=@restaurant-pos/super-admin"
   },
   "devDependencies": {
     "@typescript-eslint/eslint-plugin": "^7.0.0",

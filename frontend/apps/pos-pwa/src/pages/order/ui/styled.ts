@@ -281,6 +281,15 @@ export const ItemPrice = styled.div({
   color: '#7f8c8d',
 })
 
+export const ItemMetaReason = styled.div({
+  fontSize: '11px',
+  color: '#b45309',
+  marginBottom: '4px',
+  whiteSpace: 'nowrap',
+  overflow: 'hidden',
+  textOverflow: 'ellipsis',
+})
+
 export const ItemQuantity = styled.div({
   display: 'flex',
   alignItems: 'center',
@@ -449,6 +458,88 @@ export const ActionButton = styled.button({
   },
 })
 
+export const PromotionsModal = styled.div({
+  position: 'fixed',
+  top: '50%',
+  left: '50%',
+  transform: 'translate(-50%, -50%)',
+  width: '90%',
+  maxWidth: '460px',
+  maxHeight: '70vh',
+  backgroundColor: '#ffffff',
+  borderRadius: '12px',
+  boxShadow: '0 10px 30px rgba(0, 0, 0, 0.25)',
+  zIndex: 1100,
+  display: 'flex',
+  flexDirection: 'column',
+})
+
+export const PromotionsModalHeader = styled.div({
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'space-between',
+  padding: '12px 16px',
+  borderBottom: '1px solid #e5e7eb',
+})
+
+export const PromotionsTitle = styled.h3({
+  margin: 0,
+  fontSize: '16px',
+  fontWeight: 700,
+  color: '#1f2937',
+})
+
+export const CloseModalButton = styled.button({
+  width: '32px',
+  height: '32px',
+  border: 'none',
+  borderRadius: '50%',
+  backgroundColor: '#eef2f7',
+  color: '#111827',
+  fontSize: '20px',
+  cursor: 'pointer',
+})
+
+export const PromotionsList = styled.div({
+  padding: '12px 16px',
+  overflowY: 'auto',
+  display: 'flex',
+  flexDirection: 'column',
+  gap: '10px',
+})
+
+export const PromotionsEmpty = styled.div({
+  fontSize: '13px',
+  color: '#6b7280',
+  textAlign: 'center',
+  padding: '16px 0',
+})
+
+export const PromotionCard = styled.div({
+  border: '1px solid #e5e7eb',
+  borderRadius: '10px',
+  padding: '10px 12px',
+  backgroundColor: '#f9fafb',
+})
+
+export const PromotionName = styled.div({
+  fontSize: '14px',
+  fontWeight: 700,
+  color: '#111827',
+  marginBottom: '4px',
+})
+
+export const PromotionDescription = styled.div({
+  fontSize: '12px',
+  color: '#374151',
+  marginBottom: '6px',
+})
+
+export const PromotionMeta = styled.div({
+  fontSize: '12px',
+  color: '#4b5563',
+})
+
 export const CategoriesGrid = styled.div({
   display: 'grid',
   gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))',
@@ -503,6 +594,7 @@ export const ProductsGrid = styled.div({
 })
 
 export const ProductCard = styled.button({
+  position: 'relative',
   display: 'flex',
   flexDirection: 'column',
   alignItems: 'center',
@@ -520,6 +612,31 @@ export const ProductCard = styled.button({
     backgroundColor: '#f8f9fa',
   },
 })
+
+export const ProductBadges = styled.div({
+  position: 'absolute',
+  top: '8px',
+  left: '8px',
+  right: '8px',
+  display: 'flex',
+  justifyContent: 'flex-start',
+  gap: '6px',
+  flexWrap: 'wrap',
+  pointerEvents: 'none',
+})
+
+export const ProductBadge = styled.span<{ $variant: 'promo' | 'excluded' }>((props) => ({
+  display: 'inline-flex',
+  alignItems: 'center',
+  padding: '2px 6px',
+  borderRadius: '10px',
+  fontSize: '10px',
+  fontWeight: 700,
+  lineHeight: 1.2,
+  color: props.$variant === 'promo' ? '#065f46' : '#9f1239',
+  backgroundColor: props.$variant === 'promo' ? '#d1fae5' : '#ffe4e6',
+  border: props.$variant === 'promo' ? '1px solid #86efac' : '1px solid #fecdd3',
+}))
 
 export const ProductImage = styled.div({
   width: '64px',

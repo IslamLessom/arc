@@ -12,22 +12,22 @@ import (
 
 type CreateLoyaltyProgramRequest struct {
 	Name               string   `json:"name" binding:"required"`
-	Description         *string  `json:"description,omitempty"`
+	Description        *string  `json:"description,omitempty"`
 	Type               string   `json:"type" binding:"required,oneof=points cashback tier"`
-	PointsPerCurrency  *int      `json:"points_per_currency,omitempty" binding:"omitempty,min=1"`
-	CashbackPercentage *float64  `json:"cashback_percentage,omitempty" binding:"omitempty,min=0,max=100"`
-	MaxCashbackAmount *float64  `json:"max_cashback_amount,omitempty" binding:"omitempty,min=0"`
-	PointMultiplier     float64  `json:"point_multiplier" binding:"required,min=0.1,max=10"`
+	PointsPerCurrency  *int     `json:"points_per_currency,omitempty" binding:"omitempty,min=1"`
+	CashbackPercentage *float64 `json:"cashback_percentage,omitempty" binding:"omitempty,min=0,max=100"`
+	MaxCashbackAmount  *float64 `json:"max_cashback_amount,omitempty" binding:"omitempty,min=0"`
+	PointMultiplier    float64  `json:"point_multiplier" binding:"required,min=0.1,max=10"`
 }
 
 type UpdateLoyaltyProgramRequest struct {
 	Name               *string  `json:"name,omitempty"`
-	Description         *string  `json:"description,omitempty"`
+	Description        *string  `json:"description,omitempty"`
 	Type               *string  `json:"type,omitempty" binding:"omitempty,oneof=points cashback tier"`
 	PointsPerCurrency  *int     `json:"points_per_currency,omitempty" binding:"omitempty,min=1"`
-	CashbackPercentage *float64  `json:"cashback_percentage,omitempty" binding:"omitempty,min=0,max=100"`
-	MaxCashbackAmount *float64  `json:"max_cashback_amount,omitempty" binding:"omitempty,min=0"`
-	PointMultiplier     *float64 `json:"point_multiplier,omitempty" binding:"omitempty,min=0.1,max=10"`
+	CashbackPercentage *float64 `json:"cashback_percentage,omitempty" binding:"omitempty,min=0,max=100"`
+	MaxCashbackAmount  *float64 `json:"max_cashback_amount,omitempty" binding:"omitempty,min=0"`
+	PointMultiplier    *float64 `json:"point_multiplier,omitempty" binding:"omitempty,min=0.1,max=10"`
 	Active             *bool    `json:"active,omitempty"`
 }
 
@@ -227,25 +227,29 @@ func (h *MarketingHandler) DeleteLoyaltyProgram(c *gin.Context) {
 
 type CreatePromotionRequest struct {
 	Name               string   `json:"name" binding:"required"`
-	Description         *string  `json:"description,omitempty"`
+	Description        *string  `json:"description,omitempty"`
 	Type               string   `json:"type" binding:"required,oneof=discount buy_x_get_y bundle happy_hour"`
-	DiscountPercentage  *float64  `json:"discount_percentage,omitempty" binding:"omitempty,min=0,max=100"`
-	BuyQuantity        *int      `json:"buy_quantity,omitempty" binding:"omitempty,min=1"`
-	GetQuantity         *int      `json:"get_quantity,omitempty" binding:"omitempty,min=1"`
-	StartDate           string   `json:"start_date" binding:"required"`
-	EndDate             string   `json:"end_date" binding:"required"`
+	TargetType         string   `json:"target_type,omitempty" binding:"omitempty,oneof=all product tech_card category"`
+	TargetIDs          []string `json:"target_ids,omitempty"`
+	DiscountPercentage *float64 `json:"discount_percentage,omitempty" binding:"omitempty,min=0,max=100"`
+	BuyQuantity        *int     `json:"buy_quantity,omitempty" binding:"omitempty,min=1"`
+	GetQuantity        *int     `json:"get_quantity,omitempty" binding:"omitempty,min=1"`
+	StartDate          string   `json:"start_date" binding:"required"`
+	EndDate            string   `json:"end_date" binding:"required"`
 }
 
 type UpdatePromotionRequest struct {
-	Name               *string  `json:"name,omitempty"`
-	Description         *string  `json:"description,omitempty"`
-	Type               *string  `json:"type,omitempty" binding:"omitempty,oneof=discount buy_x_get_y bundle happy_hour"`
-	DiscountPercentage  *float64  `json:"discount_percentage,omitempty" binding:"omitempty,min=0,max=100"`
+	Name               *string   `json:"name,omitempty"`
+	Description        *string   `json:"description,omitempty"`
+	Type               *string   `json:"type,omitempty" binding:"omitempty,oneof=discount buy_x_get_y bundle happy_hour"`
+	TargetType         *string   `json:"target_type,omitempty" binding:"omitempty,oneof=all product tech_card category"`
+	TargetIDs          *[]string `json:"target_ids,omitempty"`
+	DiscountPercentage *float64  `json:"discount_percentage,omitempty" binding:"omitempty,min=0,max=100"`
 	BuyQuantity        *int      `json:"buy_quantity,omitempty" binding:"omitempty,min=1"`
-	GetQuantity         *int      `json:"get_quantity,omitempty" binding:"omitempty,min=1"`
-	StartDate           *string  `json:"start_date,omitempty"`
-	EndDate             *string  `json:"end_date,omitempty"`
-	Active             *bool    `json:"active,omitempty"`
+	GetQuantity        *int      `json:"get_quantity,omitempty" binding:"omitempty,min=1"`
+	StartDate          *string   `json:"start_date,omitempty"`
+	EndDate            *string   `json:"end_date,omitempty"`
+	Active             *bool     `json:"active,omitempty"`
 }
 
 // CreatePromotion creates a new promotion
@@ -279,6 +283,8 @@ func (h *MarketingHandler) CreatePromotion(c *gin.Context) {
 		req.Name,
 		req.Description,
 		req.Type,
+		req.TargetType,
+		req.TargetIDs,
 		req.DiscountPercentage,
 		req.BuyQuantity,
 		req.GetQuantity,
@@ -387,6 +393,10 @@ func (h *MarketingHandler) UpdatePromotion(c *gin.Context) {
 	if req.Type != nil {
 		promotionType = *req.Type
 	}
+	var targetType string
+	if req.TargetType != nil {
+		targetType = *req.TargetType
+	}
 	var startDate string
 	if req.StartDate != nil {
 		startDate = *req.StartDate
@@ -402,6 +412,8 @@ func (h *MarketingHandler) UpdatePromotion(c *gin.Context) {
 		name,
 		req.Description,
 		promotionType,
+		targetType,
+		req.TargetIDs,
 		req.DiscountPercentage,
 		req.BuyQuantity,
 		req.GetQuantity,
@@ -450,7 +462,7 @@ func (h *MarketingHandler) DeletePromotion(c *gin.Context) {
 
 type CreateExclusionRequest struct {
 	Name        string  `json:"name" binding:"required"`
-	Description  *string `json:"description,omitempty"`
+	Description *string `json:"description,omitempty"`
 	Type        string  `json:"type" binding:"required,oneof=product category customer customer_group tech_card"`
 	EntityID    *string `json:"entity_id,omitempty" binding:"omitempty,uuid"`
 	EntityName  *string `json:"entity_name,omitempty"`
@@ -458,11 +470,11 @@ type CreateExclusionRequest struct {
 
 type UpdateExclusionRequest struct {
 	Name        *string `json:"name,omitempty"`
-	Description  *string `json:"description,omitempty"`
+	Description *string `json:"description,omitempty"`
 	Type        *string `json:"type,omitempty" binding:"omitempty,oneof=product category customer customer_group tech_card"`
 	EntityID    *string `json:"entity_id,omitempty" binding:"omitempty,uuid"`
 	EntityName  *string `json:"entity_name,omitempty"`
-	Active       *bool   `json:"active,omitempty"`
+	Active      *bool   `json:"active,omitempty"`
 }
 
 // CreateExclusion creates a new exclusion

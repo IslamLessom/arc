@@ -92,19 +92,49 @@ export const AddTableButton = styled.button({
   },
 })
 
-export const CanvasContainer = styled.div({
-  position: 'relative',
-  width: '100%',
-  height: '600px',
+export const BackgroundSelect = styled.select({
+  padding: '8px 12px',
   border: '1px solid #e2e8f0',
-  borderRadius: '12px',
-  backgroundColor: '#f8fafc',
-  overflow: 'hidden',
-  backgroundImage: `
-    linear-gradient(#e2e8f0 1px, transparent 1px),
-    linear-gradient(90deg, #e2e8f0 1px, transparent 1px)
-  `,
-  backgroundSize: '20px 20px',
+  borderRadius: '8px',
+  fontSize: '14px',
+  color: '#1e293b',
+  backgroundColor: '#ffffff',
+  cursor: 'pointer',
+  minWidth: '170px',
+
+  '&:focus': {
+    outline: 'none',
+    borderColor: '#3b82f6',
+  },
+})
+
+export const CanvasContainer = styled.div<{
+  $backgroundType?: 'grid' | 'plain' | 'photo'
+  $backgroundImage?: string | null
+}>((props) => {
+  const isPhoto = props.$backgroundType === 'photo' && Boolean(props.$backgroundImage)
+  const isGrid = props.$backgroundType === 'grid' || !props.$backgroundType
+
+  return {
+    position: 'relative',
+    width: '100%',
+    height: '600px',
+    border: '1px solid #e2e8f0',
+    borderRadius: '12px',
+    backgroundColor: props.$backgroundType === 'plain' ? '#f1f5f9' : '#f8fafc',
+    overflow: 'hidden',
+    backgroundImage: isPhoto
+      ? `url(${props.$backgroundImage})`
+      : isGrid
+      ? `
+        linear-gradient(#e2e8f0 1px, transparent 1px),
+        linear-gradient(90deg, #e2e8f0 1px, transparent 1px)
+      `
+      : 'none',
+    backgroundSize: isPhoto ? 'cover' : isGrid ? '20px 20px' : 'auto',
+    backgroundPosition: isPhoto ? 'center' : '0 0',
+    backgroundRepeat: isPhoto ? 'no-repeat' : 'repeat',
+  }
 })
 
 export const TableWrapper = styled.div<{
@@ -178,6 +208,33 @@ export const TableDeleteButton = styled.button({
 
   '&:hover': {
     backgroundColor: '#dc2626',
+    transform: 'scale(1.1)',
+  },
+})
+
+export const TableShapeButton = styled.button({
+  position: 'absolute',
+  top: '-8px',
+  left: '-8px',
+  width: '24px',
+  height: '24px',
+  borderRadius: '50%',
+  border: 'none',
+  backgroundColor: '#3b82f6',
+  color: '#ffffff',
+  fontSize: '12px',
+  fontWeight: 'bold',
+  cursor: 'pointer',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  boxShadow: '0 2px 4px rgba(0, 0, 0, 0.2)',
+  zIndex: 10,
+  transition: 'all 0.2s ease',
+  lineHeight: 1,
+
+  '&:hover': {
+    backgroundColor: '#2563eb',
     transform: 'scale(1.1)',
   },
 })

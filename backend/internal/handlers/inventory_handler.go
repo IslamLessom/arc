@@ -28,21 +28,21 @@ func NewInventoryHandler(usecase *usecases.InventoryUseCase, logger *zap.Logger)
 // ——— Requests ———
 
 type CreateInventoryRequest struct {
-	WarehouseID   string                        `json:"warehouse_id" binding:"required,uuid"`
-	Type          models.InventoryType          `json:"type" binding:"required,oneof=full partial"`
-	ScheduledDate *string                       `json:"scheduled_date"` // RFC3339 format
-	Comment       string                        `json:"comment"`
-	Items         []CreateInventoryItemRequest  `json:"items"`
+	WarehouseID   string                       `json:"warehouse_id" binding:"required,uuid"`
+	Type          models.InventoryType         `json:"type" binding:"required,oneof=full partial"`
+	ScheduledDate *string                      `json:"scheduled_date"` // RFC3339 format
+	Comment       string                       `json:"comment"`
+	Items         []CreateInventoryItemRequest `json:"items"`
 }
 
 type CreateInventoryItemRequest struct {
-	Type             models.InventoryItemType `json:"type" binding:"required,oneof=ingredient product tech_card semi_finished"`
-	IngredientID     *string                  `json:"ingredient_id,omitempty" binding:"omitempty,uuid"`
-	ProductID        *string                  `json:"product_id,omitempty" binding:"omitempty,uuid"`
-	TechCardID       *string                  `json:"tech_card_id,omitempty" binding:"omitempty,uuid"`
-	SemiFinishedID   *string                  `json:"semi_finished_id,omitempty" binding:"omitempty,uuid"`
-	ActualQuantity   float64                  `json:"actual_quantity"`
-	Comment          string                   `json:"comment"`
+	Type           models.InventoryItemType `json:"type" binding:"required,oneof=ingredient product tech_card semi_finished"`
+	IngredientID   *string                  `json:"ingredient_id,omitempty" binding:"omitempty,uuid"`
+	ProductID      *string                  `json:"product_id,omitempty" binding:"omitempty,uuid"`
+	TechCardID     *string                  `json:"tech_card_id,omitempty" binding:"omitempty,uuid"`
+	SemiFinishedID *string                  `json:"semi_finished_id,omitempty" binding:"omitempty,uuid"`
+	ActualQuantity float64                  `json:"actual_quantity"`
+	Comment        string                   `json:"comment"`
 }
 
 type UpdateInventoryItemRequest struct {
@@ -55,8 +55,9 @@ type UpdateInventoryStatusRequest struct {
 }
 
 type UpdateInventoryRequest struct {
-	ScheduledDate *string `json:"scheduled_date"`
-	Comment       string  `json:"comment"`
+	ScheduledDate *string                      `json:"scheduled_date"`
+	Comment       string                       `json:"comment"`
+	Items         []CreateInventoryItemRequest `json:"items,omitempty"`
 }
 
 // ——— Handlers ———
@@ -182,9 +183,46 @@ func (h *InventoryHandler) Update(c *gin.Context) {
 		scheduledDate = &t
 	}
 
+	// Преобразуем элементы если они указаны
+	var items []usecases.CreateInventoryItemRequest
+	if len(req.Items) > 0 {
+		items = make([]usecases.CreateInventoryItemRequest, 0, len(req.Items))
+		for _, item := range req.Items {
+			itemReq := usecases.CreateInventoryItemRequest{
+				Type:           item.Type,
+				ActualQuantity: item.ActualQuantity,
+				Comment:        item.Comment,
+			}
+
+			if item.IngredientID != nil && *item.IngredientID != "" {
+				if itemID, e := uuid.Parse(*item.IngredientID); e == nil {
+					itemReq.IngredientID = &itemID
+				}
+			}
+			if item.ProductID != nil && *item.ProductID != "" {
+				if itemID, e := uuid.Parse(*item.ProductID); e == nil {
+					itemReq.ProductID = &itemID
+				}
+			}
+			if item.TechCardID != nil && *item.TechCardID != "" {
+				if itemID, e := uuid.Parse(*item.TechCardID); e == nil {
+					itemReq.TechCardID = &itemID
+				}
+			}
+			if item.SemiFinishedID != nil && *item.SemiFinishedID != "" {
+				if itemID, e := uuid.Parse(*item.SemiFinishedID); e == nil {
+					itemReq.SemiFinishedID = &itemID
+				}
+			}
+
+			items = append(items, itemReq)
+		}
+	}
+
 	updateReq := &usecases.UpdateInventoryRequest{
 		ScheduledDate: scheduledDate,
 		Comment:       req.Comment,
+		Items:         items,
 	}
 
 	inventory, err := h.usecase.Update(c.Request.Context(), id, updateReq, estID)

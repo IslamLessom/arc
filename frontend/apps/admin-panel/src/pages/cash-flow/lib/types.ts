@@ -9,6 +9,7 @@ export interface CashFlowRow {
   level: 0 | 1 // 0 = main category, 1 = sub-item
   parentId?: string
   isExpanded?: boolean
+  category?: string // Original category (for lookups in monthlyData)
 }
 
 export interface MonthData {

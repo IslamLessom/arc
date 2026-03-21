@@ -3,10 +3,15 @@ import { FORM_LABELS, PLACEHOLDERS, MODIFICATION_TYPES } from '../../lib/constan
 import type { ProductFormProps } from '../../model/types'
 import { useProductForm } from '../../hooks/useProductForm'
 
-export const ProductForm = (props: ProductFormProps) => {
+interface ProductFormPropsExtended extends ProductFormProps {
+  onAddCategoryClick?: () => void
+  onAddWarehouseClick?: () => void
+  onAddWorkshopClick?: () => void
+}
+
+export const ProductForm = (props: ProductFormPropsExtended) => {
   const {
     handleNameChange,
-    handleCategoryChange,
     handleWarehouseChange,
     handleWorkshopChange,
     handleImageFileChange,
@@ -19,6 +24,17 @@ export const ProductForm = (props: ProductFormProps) => {
     handleMarkupChange,
     handlePriceChange,
   } = useProductForm(props)
+
+  const handleCategoryChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const value = e.target.value
+    if (value === '__add_new__') {
+      props.onAddCategoryClick?.()
+      // Сбрасываем значение селекта обратно к текущей категории
+      e.target.value = props.formData.category_id
+    } else {
+      props.handleFieldChange('category_id', value)
+    }
+  }
 
   const { formData, fieldErrors, isSubmitting, categories, workshops, warehouses, firstFocusableRef } = props
 
@@ -58,6 +74,9 @@ export const ProductForm = (props: ProductFormProps) => {
               {category.name}
             </option>
           ))}
+          <option value="__add_new__" style={{ fontWeight: 600, color: '#3b82f6' }}>
+            + Добавить категорию
+          </option>
         </Styled.Select>
         {fieldErrors?.category_id && <Styled.FieldError>{fieldErrors.category_id}</Styled.FieldError>}
       </Styled.RowContent>
@@ -80,6 +99,7 @@ export const ProductForm = (props: ProductFormProps) => {
               {warehouse.name}
             </option>
           ))}
+          <option value="__add_new__" style={{ fontWeight: 500, color: '#3b82f6' }}>+ Добавить склад</option>
         </Styled.Select>
         {fieldErrors?.warehouse_id && <Styled.FieldError>{fieldErrors.warehouse_id}</Styled.FieldError>}
       </Styled.RowContent>
@@ -99,6 +119,7 @@ export const ProductForm = (props: ProductFormProps) => {
               {workshop.name}
             </option>
           ))}
+          <option value="__add_new__" style={{ fontWeight: 500, color: '#3b82f6' }}>+ Добавить цех</option>
         </Styled.Select>
       </Styled.RowContent>
     </Styled.FormRow>

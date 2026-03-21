@@ -15,12 +15,12 @@ import (
 
 // MarketingUseCase содержит бизнес-логику для маркетинга
 type MarketingUseCase struct {
-	clientRepo        repositories.ClientRepository
-	clientGroupRepo  repositories.ClientGroupRepository
-	loyaltyRepo      repositories.LoyaltyProgramRepository
-	promotionRepo    repositories.PromotionRepository
-	exclusionRepo    repositories.ExclusionRepository
-	logger           *zap.Logger
+	clientRepo      repositories.ClientRepository
+	clientGroupRepo repositories.ClientGroupRepository
+	loyaltyRepo     repositories.LoyaltyProgramRepository
+	promotionRepo   repositories.PromotionRepository
+	exclusionRepo   repositories.ExclusionRepository
+	logger          *zap.Logger
 }
 
 func NewMarketingUseCase(
@@ -32,12 +32,12 @@ func NewMarketingUseCase(
 	logger *zap.Logger,
 ) *MarketingUseCase {
 	return &MarketingUseCase{
-		clientRepo:        clientRepo,
-		clientGroupRepo:  clientGroupRepo,
-		loyaltyRepo:      loyaltyRepo,
-		promotionRepo:    promotionRepo,
-		exclusionRepo:    exclusionRepo,
-		logger:           logger,
+		clientRepo:      clientRepo,
+		clientGroupRepo: clientGroupRepo,
+		loyaltyRepo:     loyaltyRepo,
+		promotionRepo:   promotionRepo,
+		exclusionRepo:   exclusionRepo,
+		logger:          logger,
 	}
 }
 
@@ -63,11 +63,11 @@ func (uc *MarketingUseCase) CreateClient(
 		Email:            email,
 		Phone:            phone,
 		GroupID:          groupID,
-		LoyaltyProgramID:  loyaltyProgramID,
-		EstablishmentID:   establishmentID,
-		LoyaltyPoints:     0,
-		TotalOrders:       0,
-		TotalSpent:        0,
+		LoyaltyProgramID: loyaltyProgramID,
+		EstablishmentID:  establishmentID,
+		LoyaltyPoints:    0,
+		TotalOrders:      0,
+		TotalSpent:       0,
 	}
 
 	if birthday != nil {
@@ -189,8 +189,8 @@ func (uc *MarketingUseCase) CreateClientGroup(
 
 	group := &models.ClientGroup{
 		Name:               name,
-		Description:         description,
-		DiscountPercentage:  discountPercentage,
+		Description:        description,
+		DiscountPercentage: discountPercentage,
 		MinOrders:          minOrders,
 		MinSpent:           minSpent,
 		EstablishmentID:    establishmentID,
@@ -284,14 +284,14 @@ func (uc *MarketingUseCase) CreateLoyaltyProgram(
 
 	program := &models.LoyaltyProgram{
 		Name:               name,
-		Description:         description,
+		Description:        description,
 		Type:               programType,
 		PointsPerCurrency:  pointsPerCurrency,
 		CashbackPercentage: cashbackPercentage,
 		MaxCashbackAmount:  maxCashbackAmount,
-		PointMultiplier:     pointMultiplier,
+		PointMultiplier:    pointMultiplier,
 		Active:             true,
-		MembersCount:        0,
+		MembersCount:       0,
 		EstablishmentID:    establishmentID,
 	}
 
@@ -372,6 +372,8 @@ func (uc *MarketingUseCase) CreatePromotion(
 	name string,
 	description *string,
 	promotionType string,
+	targetType string,
+	targetIDs []string,
 	discountPercentage *float64,
 	buyQuantity *int,
 	getQuantity *int,
@@ -386,6 +388,11 @@ func (uc *MarketingUseCase) CreatePromotion(
 		return nil, errors.New("promotion type is required")
 	}
 
+	resolvedTargetType, resolvedTargetIDs, err := resolvePromotionTargets(targetType, targetIDs)
+	if err != nil {
+		return nil, err
+	}
+
 	start, err := parseDate(startDate)
 	if err != nil {
 		return nil, fmt.Errorf("invalid start date: %w", err)
@@ -398,16 +405,18 @@ func (uc *MarketingUseCase) CreatePromotion(
 
 	promotion := &models.Promotion{
 		Name:               name,
-		Description:         description,
+		Description:        description,
 		Type:               promotionType,
-		DiscountPercentage:  discountPercentage,
+		TargetType:         resolvedTargetType,
+		TargetIDs:          resolvedTargetIDs,
+		DiscountPercentage: discountPercentage,
 		BuyQuantity:        buyQuantity,
-		GetQuantity:         getQuantity,
-		StartDate:           start,
-		EndDate:             end,
+		GetQuantity:        getQuantity,
+		StartDate:          start,
+		EndDate:            end,
 		Active:             true,
-		UsageCount:          0,
-		EstablishmentID:     establishmentID,
+		UsageCount:         0,
+		EstablishmentID:    establishmentID,
 	}
 
 	if err := uc.promotionRepo.Create(ctx, promotion); err != nil {
@@ -442,6 +451,8 @@ func (uc *MarketingUseCase) UpdatePromotion(
 	name string,
 	description *string,
 	promotionType string,
+	targetType string,
+	targetIDs *[]string,
 	discountPercentage *float64,
 	buyQuantity *int,
 	getQuantity *int,
@@ -458,7 +469,27 @@ func (uc *MarketingUseCase) UpdatePromotion(
 		promotion.Name = name
 	}
 	promotion.Description = description
-	promotion.Type = promotionType
+	if promotionType != "" {
+		promotion.Type = promotionType
+	}
+
+	if targetType != "" || targetIDs != nil {
+		incomingIDs := []string{}
+		if targetIDs != nil {
+			incomingIDs = *targetIDs
+		}
+		effectiveTargetType := targetType
+		if effectiveTargetType == "" {
+			effectiveTargetType = promotion.TargetType
+		}
+		resolvedTargetType, resolvedTargetIDs, targetErr := resolvePromotionTargets(effectiveTargetType, incomingIDs)
+		if targetErr != nil {
+			return nil, targetErr
+		}
+		promotion.TargetType = resolvedTargetType
+		promotion.TargetIDs = resolvedTargetIDs
+	}
+
 	promotion.DiscountPercentage = discountPercentage
 	promotion.BuyQuantity = buyQuantity
 	promotion.GetQuantity = getQuantity
@@ -514,13 +545,13 @@ func (uc *MarketingUseCase) CreateExclusion(
 	}
 
 	exclusion := &models.Exclusion{
-		Name:             name,
-		Description:       description,
-		Type:             exclusionType,
-		EntityID:          entityID,
-		EntityName:        entityName,
-		Active:            true,
-		EstablishmentID:    establishmentID,
+		Name:            name,
+		Description:     description,
+		Type:            exclusionType,
+		EntityID:        entityID,
+		EntityName:      entityName,
+		Active:          true,
+		EstablishmentID: establishmentID,
 	}
 
 	if err := uc.exclusionRepo.Create(ctx, exclusion); err != nil {
@@ -603,4 +634,41 @@ func parseDate(dateStr string) (time.Time, error) {
 		}
 	}
 	return time.Time{}, fmt.Errorf("unable to parse date: %s", dateStr)
+}
+
+func resolvePromotionTargets(targetType string, targetIDs []string) (string, []uuid.UUID, error) {
+	resolvedType := targetType
+	if resolvedType == "" {
+		resolvedType = "all"
+	}
+
+	switch resolvedType {
+	case "all", "product", "tech_card", "category":
+	default:
+		return "", nil, fmt.Errorf("unsupported target_type: %s", resolvedType)
+	}
+
+	if resolvedType == "all" {
+		return resolvedType, []uuid.UUID{}, nil
+	}
+
+	resolvedIDs := make([]uuid.UUID, 0, len(targetIDs))
+	seen := make(map[uuid.UUID]struct{}, len(targetIDs))
+	for _, rawID := range targetIDs {
+		id, err := uuid.Parse(rawID)
+		if err != nil {
+			return "", nil, fmt.Errorf("invalid target_id %q", rawID)
+		}
+		if _, exists := seen[id]; exists {
+			continue
+		}
+		seen[id] = struct{}{}
+		resolvedIDs = append(resolvedIDs, id)
+	}
+
+	if len(resolvedIDs) == 0 {
+		return "", nil, errors.New("target_ids are required when target_type is not 'all'")
+	}
+
+	return resolvedType, resolvedIDs, nil
 }

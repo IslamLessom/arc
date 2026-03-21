@@ -20,6 +20,7 @@ type ShiftFilter struct {
 type ShiftRepository interface {
 	GetByID(ctx context.Context, id uuid.UUID) (*models.Shift, error)
 	GetActiveShiftByEstablishmentID(ctx context.Context, establishmentID uuid.UUID) (*models.Shift, error)
+	GetActiveShiftByUserID(ctx context.Context, userID uuid.UUID) (*models.Shift, error)
 	ListByFilter(ctx context.Context, filter *ShiftFilter) ([]*models.Shift, error)
 	Create(ctx context.Context, shift *models.Shift) error
 	Update(ctx context.Context, shift *models.Shift) error
@@ -62,6 +63,22 @@ func (r *shiftRepository) GetActiveShiftByEstablishmentID(ctx context.Context, e
 	err := r.db.WithContext(ctx).
 		Preload("Sessions").
 		Where("establishment_id = ? AND end_time IS NULL", establishmentID).
+		First(&shift).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, ErrShiftNotFound
+		}
+		return nil, err
+	}
+	return &shift, nil
+}
+
+// GetActiveShiftByUserID находит активную смену пользователя (end_time IS NULL)
+func (r *shiftRepository) GetActiveShiftByUserID(ctx context.Context, userID uuid.UUID) (*models.Shift, error) {
+	var shift models.Shift
+	err := r.db.WithContext(ctx).
+		Preload("Sessions").
+		Where("user_id = ? AND end_time IS NULL", userID).
 		First(&shift).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {

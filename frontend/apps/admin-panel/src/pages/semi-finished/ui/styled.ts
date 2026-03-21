@@ -178,7 +178,7 @@ export const SemiFinishedList = styled.div(({ theme }) => ({
 
 export const ListHeader = styled.div(({ theme }) => ({
   display: 'grid',
-  gridTemplateColumns: '2fr 1fr 1fr 1fr 1fr 100px',
+  gridTemplateColumns: '2fr 1fr 1fr 1fr 100px',
   gap: theme.spacing.md,
   padding: theme.spacing.md,
   backgroundColor: theme.colors.backgroundHover,
@@ -192,7 +192,7 @@ export const ListHeader = styled.div(({ theme }) => ({
 
 export const SemiFinishedRow = styled.div(({ theme }) => ({
   display: 'grid',
-  gridTemplateColumns: '2fr 1fr 1fr 1fr 1fr 100px',
+  gridTemplateColumns: '2fr 1fr 1fr 1fr 100px',
   gap: theme.spacing.md,
   alignItems: 'center',
   padding: theme.spacing.md,

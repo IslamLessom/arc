@@ -1,0 +1,12 @@
+ALTER TABLE orders
+  ADD COLUMN IF NOT EXISTS discount_total NUMERIC(12,2) NOT NULL DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS promotion_discount_total NUMERIC(12,2) NOT NULL DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS loyalty_redeemed_points INTEGER NOT NULL DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS loyalty_redeemed_amount NUMERIC(12,2) NOT NULL DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS loyalty_earned_points INTEGER NOT NULL DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS final_amount NUMERIC(12,2) NOT NULL DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS applied_promotions_json JSONB NOT NULL DEFAULT '{}'::jsonb;
+
+UPDATE orders
+SET final_amount = total_amount
+WHERE final_amount = 0;

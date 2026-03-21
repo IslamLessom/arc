@@ -67,7 +67,7 @@ export const getCustomersTableColumns = ({ onEdit }: CustomersTableProps) => [
     dataIndex: 'total_spent',
     key: 'total_spent',
     width: 120,
-    render: (spent: number) => <span>{spent ? formatNumber(spent) + ' ₸' : '-'}</span>
+    render: (spent: number) => <span>{spent ? formatNumber(spent) + ' ₽' : '-'}</span>
   },
   {
     title: 'Ред.',

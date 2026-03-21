@@ -11,35 +11,35 @@ import (
 )
 
 type InventoryUseCase struct {
-	repo         repositories.InventoryRepository
+	repo          repositories.InventoryRepository
 	warehouseRepo repositories.WarehouseRepository
 }
 
 func NewInventoryUseCase(repo repositories.InventoryRepository, warehouseRepo repositories.WarehouseRepository) *InventoryUseCase {
 	return &InventoryUseCase{
-		repo:         repo,
+		repo:          repo,
 		warehouseRepo: warehouseRepo,
 	}
 }
 
 // CreateInventoryRequest запрос на создание инвентаризации
 type CreateInventoryRequest struct {
-	WarehouseID   uuid.UUID                       `json:"warehouse_id" binding:"required"`
-	Type          models.InventoryType            `json:"type" binding:"required"`
-	ScheduledDate *time.Time                      `json:"scheduled_date"`
-	Comment       string                          `json:"comment"`
-	Items         []CreateInventoryItemRequest    `json:"items"`
+	WarehouseID   uuid.UUID                    `json:"warehouse_id" binding:"required"`
+	Type          models.InventoryType         `json:"type" binding:"required"`
+	ScheduledDate *time.Time                   `json:"scheduled_date"`
+	Comment       string                       `json:"comment"`
+	Items         []CreateInventoryItemRequest `json:"items"`
 }
 
 // CreateInventoryItemRequest запрос на создание элемента инвентаризации
 type CreateInventoryItemRequest struct {
-	Type             models.InventoryItemType `json:"type" binding:"required"`
-	IngredientID     *uuid.UUID               `json:"ingredient_id,omitempty"`
-	ProductID        *uuid.UUID               `json:"product_id,omitempty"`
-	TechCardID       *uuid.UUID               `json:"tech_card_id,omitempty"`
-	SemiFinishedID   *uuid.UUID               `json:"semi_finished_id,omitempty"`
-	ActualQuantity   float64                  `json:"actual_quantity"`
-	Comment          string                   `json:"comment"`
+	Type           models.InventoryItemType `json:"type" binding:"required"`
+	IngredientID   *uuid.UUID               `json:"ingredient_id,omitempty"`
+	ProductID      *uuid.UUID               `json:"product_id,omitempty"`
+	TechCardID     *uuid.UUID               `json:"tech_card_id,omitempty"`
+	SemiFinishedID *uuid.UUID               `json:"semi_finished_id,omitempty"`
+	ActualQuantity float64                  `json:"actual_quantity"`
+	Comment        string                   `json:"comment"`
 }
 
 // UpdateInventoryItemRequest запрос на обновления элемента инвентаризации
@@ -50,8 +50,9 @@ type UpdateInventoryItemRequest struct {
 
 // UpdateInventoryRequest запрос на обновление инвентаризации
 type UpdateInventoryRequest struct {
-	ScheduledDate *time.Time `json:"scheduled_date"`
-	Comment       string     `json:"comment"`
+	ScheduledDate *time.Time                   `json:"scheduled_date"`
+	Comment       string                       `json:"comment"`
+	Items         []CreateInventoryItemRequest `json:"items"`
 }
 
 // List возвращает список инвентаризаций
@@ -281,20 +282,62 @@ func (uc *InventoryUseCase) UpdateStatus(ctx context.Context, id uuid.UUID, esta
 		return errors.New("invalid status transition")
 	}
 
-	// При завершении вычисляем финальную дату
+	// При завершении вычисляем финальную дату и обновляем остатки на складе
 	if status == models.InventoryStatusCompleted {
 		now := time.Now()
 		inventory.ActualDate = &now
 		inventory.CompletedBy = completedBy
+
+		// Обновляем остатки на складе на основе фактических количеств
+		if err := uc.updateStockFromInventory(ctx, inventory); err != nil {
+			return err
+		}
 	}
 
 	return uc.repo.UpdateStatus(ctx, id, status)
 }
 
+// updateStockFromInventory обновляет остатки на складе на основе результатов инвентаризации
+func (uc *InventoryUseCase) updateStockFromInventory(ctx context.Context, inventory *models.Inventory) error {
+	// Получаем все элементы инвентаризации
+	items, err := uc.repo.GetItemsByInventoryID(ctx, inventory.ID)
+	if err != nil {
+		return err
+	}
+
+	// Для каждого элемента обновляем остаток на складе
+	for _, item := range items {
+		var stock *models.Stock
+		var getErr error
+
+		// Находим соответствующий Stock в зависимости от типа элемента
+		if item.IngredientID != nil {
+			stock, getErr = uc.warehouseRepo.GetStockByIngredientAndWarehouse(ctx, *item.IngredientID, inventory.WarehouseID)
+		} else if item.ProductID != nil {
+			stock, getErr = uc.warehouseRepo.GetStockByProductAndWarehouse(ctx, *item.ProductID, inventory.WarehouseID)
+		}
+
+		// Если Stock не найден или произошла ошибка, пропускаем (техкарты и полуфабрикаты не хранятся в Stock)
+		if getErr != nil || stock == nil {
+			continue
+		}
+
+		// Обновляем количество на фактическое значение из инвентаризации
+		stock.Quantity = item.ActualQuantity
+
+		// Сохраняем обновленный остаток
+		if err := uc.warehouseRepo.UpdateStock(ctx, stock); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
 // isValidStatusTransition проверяет валидность перехода статусов
 func (uc *InventoryUseCase) isValidStatusTransition(current, new models.InventoryStatus) bool {
 	validTransitions := map[models.InventoryStatus][]models.InventoryStatus{
-		models.InventoryStatusDraft:     {models.InventoryStatusInProgress, models.InventoryStatusCancelled},
+		models.InventoryStatusDraft:      {models.InventoryStatusInProgress, models.InventoryStatusCancelled},
 		models.InventoryStatusInProgress: {models.InventoryStatusCompleted, models.InventoryStatusCancelled, models.InventoryStatusDraft},
 		models.InventoryStatusCompleted:  {}, // Финальный статус
 		models.InventoryStatusCancelled:  {}, // Финальный статус
@@ -374,6 +417,58 @@ func (uc *InventoryUseCase) Update(ctx context.Context, id uuid.UUID, req *Updat
 		inventory.ScheduledDate = req.ScheduledDate
 	}
 	inventory.Comment = req.Comment
+
+	// Обновляем items если они указаны
+	if len(req.Items) > 0 {
+		// Удаляем старые items
+		if err := uc.repo.DeleteAllItems(ctx, inventory.ID); err != nil {
+			return nil, err
+		}
+
+		// Создаём новые items
+		items := make([]models.InventoryItem, 0, len(req.Items))
+		for _, itemReq := range req.Items {
+			// Валидация элемента
+			if err := uc.validateInventoryItem(&itemReq); err != nil {
+				return nil, err
+			}
+
+			// Получаем ожидаемое количество из остатков
+			expectedQuantity, unit, pricePerUnit, err := uc.getStockData(ctx, inventory.WarehouseID, &itemReq)
+			if err != nil {
+				return nil, err
+			}
+
+			item := models.InventoryItem{
+				InventoryID:      inventory.ID,
+				Type:             itemReq.Type,
+				IngredientID:     itemReq.IngredientID,
+				ProductID:        itemReq.ProductID,
+				TechCardID:       itemReq.TechCardID,
+				SemiFinishedID:   itemReq.SemiFinishedID,
+				ExpectedQuantity: expectedQuantity,
+				ActualQuantity:   itemReq.ActualQuantity,
+				Unit:             unit,
+				PricePerUnit:     pricePerUnit,
+				Comment:          itemReq.Comment,
+			}
+
+			// Вычисляем разницу
+			item.Difference = item.ActualQuantity - item.ExpectedQuantity
+			item.DifferenceValue = item.Difference * item.PricePerUnit
+
+			items = append(items, item)
+		}
+
+		inventory.Items = items
+
+		// Сохраняем новые items
+		for _, item := range items {
+			if err := uc.repo.CreateItem(ctx, &item); err != nil {
+				return nil, err
+			}
+		}
+	}
 
 	if err := uc.repo.Update(ctx, inventory); err != nil {
 		return nil, err

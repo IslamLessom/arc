@@ -1,5 +1,5 @@
 import { usePromotions } from '../hooks/usePromotions'
-import { Table } from '@restaurant-pos/ui'
+import { ColumnManager, Table } from '@restaurant-pos/ui'
 import { getPromotionsTableColumns } from '../lib/constants'
 import type { PromotionTable } from '../model/types'
 import { AddPromotionModal } from '../../../features/add-promotion-modal'
@@ -22,11 +22,31 @@ export const Promotions = () => {
     handleSuccess,
     handleExport,
     handlePrint,
-    handleColumns
+    handleColumns,
+    handleDelete,
+    isColumnModalOpen,
+    handleCloseColumnModal,
+    visibleColumns,
+    columnInfo,
+    toggleColumn,
+    showAllColumns,
+    hideAllColumns,
+    resetColumnVisibility,
   } = usePromotions()
 
   const columns = getPromotionsTableColumns({
-    onEdit: handleEdit
+    onEdit: handleEdit,
+    onDelete: handleDelete,
+  })
+
+  const filteredColumns = columns.filter((col) => {
+    if (!col.dataIndex) return true
+    const key = Array.isArray(col.dataIndex) ? col.dataIndex.join('.') : col.dataIndex
+    const visibleCol = visibleColumns.find((vc) => {
+      const vcKey = Array.isArray(vc.dataIndex) ? vc.dataIndex.join('.') : vc.dataIndex
+      return vcKey === key
+    })
+    return visibleCol !== undefined
   })
 
   if (isLoading) {
@@ -85,10 +105,11 @@ export const Promotions = () => {
 
       <Styled.TableContainer>
         <Table
-          columns={columns}
+          columns={filteredColumns as any}
           dataSource={promotions}
-          onRowClick={(record: PromotionTable) => handleEdit(record.id)}
-          emptyMessage="Нет акций"
+          onRow={(record: PromotionTable) => ({
+            onClick: () => handleEdit(record.id)
+          })}
         />
       </Styled.TableContainer>
 
@@ -98,6 +119,17 @@ export const Promotions = () => {
         onSuccess={handleSuccess}
         onClose={handleCloseModal}
       />
+
+      {isColumnModalOpen && (
+        <ColumnManager
+          columns={columnInfo}
+          onToggle={toggleColumn}
+          onShowAll={showAllColumns}
+          onHideAll={hideAllColumns}
+          onReset={resetColumnVisibility}
+          onClose={handleCloseColumnModal}
+        />
+      )}
     </Styled.PageContainer>
   )
 }

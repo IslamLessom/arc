@@ -3,6 +3,7 @@ import { Routes, Route, useLocation } from 'react-router-dom'
 import { Home } from './pages/home'
 import { Auth } from './pages/auth'
 import { Balances } from './pages/balances'
+import { SubscriptionReadOnlyAlert } from './shared/components/SubscriptionReadOnlyAlert'
 import { ProductCategories } from './pages/product-categories'
 import { IngredientCategories } from './pages/ingredient-categories'
 import { SemiFinished } from './pages/semi-finished'
@@ -78,6 +79,7 @@ export function App() {
 
   return (
     <>
+        <SubscriptionReadOnlyAlert />
       <OnboardingModal
         isOpen={showOnboardingModal}
         onClose={() => setShowOnboardingModal(false)}
@@ -104,6 +106,7 @@ export function App() {
           <Route path="/menu/ingredient-categories" element={<IngredientCategories />} />
           <Route path="/menu/semi-finished" element={<SemiFinished />} />
           <Route path="/menu/semi-finished/add" element={<AddSemiFinished />} />
+          <Route path="/menu/semi-finished/:id/edit" element={<AddSemiFinished />} />
           <Route path="/menu/ingredients" element={<Ingredients />} />
           <Route path="/menu/tech-cards" element={<TechnicalCards />} />
           <Route path="/menu/workshops" element={<Workshops />} />

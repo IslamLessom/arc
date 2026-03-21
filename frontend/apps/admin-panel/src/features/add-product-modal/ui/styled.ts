@@ -446,3 +446,134 @@ export const SaveAndCreateButton = styled.button<{ $disabled?: boolean }>((props
 export const ErrorAlert = styled(Alert)({
   marginBottom: '16px',
 })
+
+export const DialogOverlay = styled.div<{ $isOpen: boolean }>((props) => ({
+  position: 'fixed',
+  top: 0,
+  left: 0,
+  right: 0,
+  bottom: 0,
+  backgroundColor: 'rgba(15, 23, 42, 0.35)',
+  display: props.$isOpen ? 'flex' : 'none',
+  alignItems: 'center',
+  justifyContent: 'center',
+  zIndex: 2000,
+  padding: '24px',
+}))
+
+export const DialogContainer = styled.div({
+  backgroundColor: '#ffffff',
+  borderRadius: '12px',
+  boxShadow: '0 12px 32px rgba(15, 23, 42, 0.18)',
+  maxWidth: '400px',
+  width: '100%',
+  padding: '24px',
+  position: 'relative',
+})
+
+export const DialogHeader = styled.div({
+  display: 'flex',
+  justifyContent: 'space-between',
+  alignItems: 'center',
+  marginBottom: '20px',
+})
+
+export const DialogTitle = styled.h3({
+  margin: 0,
+  fontSize: '18px',
+  fontWeight: 600,
+  color: '#1f2937',
+})
+
+export const DialogCloseButton = styled.button({
+  background: 'none',
+  border: 'none',
+  fontSize: '24px',
+  color: '#6b7280',
+  cursor: 'pointer',
+  padding: 0,
+  width: '32px',
+  height: '32px',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  transition: 'color 0.2s',
+  '&:hover': {
+    color: '#1f2937',
+  },
+})
+
+export const DialogForm = styled.form({
+  display: 'flex',
+  flexDirection: 'column',
+  gap: '16px',
+})
+
+export const DialogInputGroup = styled.div({
+  display: 'flex',
+  flexDirection: 'column',
+  gap: '8px',
+})
+
+export const DialogLabel = styled.label({
+  fontSize: '14px',
+  fontWeight: 500,
+  color: '#374151',
+})
+
+export const DialogInput = styled.input({
+  padding: '10px 12px',
+  fontSize: '14px',
+  border: '1px solid #d1d5db',
+  borderRadius: '6px',
+  backgroundColor: '#ffffff',
+  color: '#111827',
+  fontFamily: 'inherit',
+  transition: 'border-color 0.2s',
+  '&:focus': {
+    outline: 'none',
+    borderColor: '#3b82f6',
+    boxShadow: '0 0 0 2px rgba(59, 130, 246, 0.2)',
+  },
+  '&:hover': {
+    borderColor: '#94a3b8',
+  },
+})
+
+export const DialogButtonGroup = styled.div({
+  display: 'flex',
+  gap: '12px',
+  justifyContent: 'flex-end',
+  marginTop: '12px',
+})
+
+export const DialogCancelButton = styled.button({
+  padding: '10px 20px',
+  border: '1px solid #d1d5db',
+  backgroundColor: '#ffffff',
+  color: '#374151',
+  borderRadius: '8px',
+  cursor: 'pointer',
+  fontSize: '14px',
+  fontWeight: '500',
+  transition: 'all 0.2s ease',
+  '&:hover': {
+    backgroundColor: '#f9fafb',
+    borderColor: '#9ca3af',
+  },
+})
+
+export const DialogSubmitButton = styled.button<{ $disabled?: boolean }>((props) => ({
+  padding: '10px 20px',
+  border: 'none',
+  backgroundColor: props.$disabled ? '#9ca3af' : '#3b82f6',
+  color: '#ffffff',
+  borderRadius: '8px',
+  cursor: props.$disabled ? 'not-allowed' : 'pointer',
+  fontSize: '14px',
+  fontWeight: '500',
+  transition: 'all 0.2s ease',
+  '&:hover': {
+    backgroundColor: props.$disabled ? '#9ca3af' : '#2563eb',
+  },
+}))

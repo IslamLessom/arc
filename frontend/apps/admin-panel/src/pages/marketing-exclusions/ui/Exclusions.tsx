@@ -1,5 +1,5 @@
 import { useExclusions } from '../hooks/useExclusions'
-import { Table } from '@restaurant-pos/ui'
+import { ColumnManager, Table } from '@restaurant-pos/ui'
 import { getExclusionsTableColumns } from '../lib/constants'
 import type { ExclusionTable } from '../model/types'
 import { AddExclusionModal } from '../../../features/add-exclusion-modal'
@@ -23,12 +23,30 @@ export const Exclusions = () => {
     handleExport,
     handlePrint,
     handleColumns,
-    handleDelete
+    handleDelete,
+    isColumnModalOpen,
+    handleCloseColumnModal,
+    visibleColumns,
+    columnInfo,
+    toggleColumn,
+    showAllColumns,
+    hideAllColumns,
+    resetColumnVisibility,
   } = useExclusions()
 
   const columns = getExclusionsTableColumns({
     onEdit: handleEdit,
     onDelete: handleDelete
+  })
+
+  const filteredColumns = columns.filter((col) => {
+    if (!col.dataIndex) return true
+    const key = Array.isArray(col.dataIndex) ? col.dataIndex.join('.') : col.dataIndex
+    const visibleCol = visibleColumns.find((vc) => {
+      const vcKey = Array.isArray(vc.dataIndex) ? vc.dataIndex.join('.') : vc.dataIndex
+      return vcKey === key
+    })
+    return visibleCol !== undefined
   })
 
   if (isLoading) {
@@ -87,7 +105,7 @@ export const Exclusions = () => {
 
       <Styled.TableContainer>
         <Table
-          columns={columns}
+          columns={filteredColumns as any}
           dataSource={exclusions}
           rowKey="id"
           onRow={(record: ExclusionTable) => ({
@@ -102,6 +120,17 @@ export const Exclusions = () => {
         onSuccess={handleSuccess}
         onClose={handleCloseModal}
       />
+
+      {isColumnModalOpen && (
+        <ColumnManager
+          columns={columnInfo}
+          onToggle={toggleColumn}
+          onShowAll={showAllColumns}
+          onHideAll={hideAllColumns}
+          onReset={resetColumnVisibility}
+          onClose={handleCloseColumnModal}
+        />
+      )}
     </Styled.PageContainer>
   )
 }

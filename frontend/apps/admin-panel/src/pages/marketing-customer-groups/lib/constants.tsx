@@ -41,7 +41,7 @@ export const getCustomerGroupsTableColumns = ({ onEdit }: CustomerGroupsTablePro
     dataIndex: 'min_spent',
     key: 'min_spent',
     width: 130,
-    render: (minSpent: number | null) => <span>{minSpent ? `${minSpent.toLocaleString('ru-RU')} ₸` : '-'}</span>
+    render: (minSpent: number | null) => <span>{minSpent ? `${minSpent.toLocaleString('ru-RU')} ₽` : '-'}</span>
   },
   {
     title: 'Клиентов',

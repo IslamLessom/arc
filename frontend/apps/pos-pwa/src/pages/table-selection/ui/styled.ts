@@ -70,11 +70,30 @@ export const RoomSelect = styled.select({
   },
 })
 
-export const HallMapContainer = styled.div({
-  flex: 1,
-  position: 'relative',
-  overflow: 'auto',
-  backgroundColor: '#ffffff',
+export const HallMapContainer = styled.div<{
+  $backgroundType?: 'grid' | 'plain' | 'photo'
+  $backgroundImage?: string | null
+}>((props) => {
+  const isPhoto = props.$backgroundType === 'photo' && Boolean(props.$backgroundImage)
+  const isGrid = props.$backgroundType === 'grid' || !props.$backgroundType
+
+  return {
+    flex: 1,
+    position: 'relative' as const,
+    overflow: 'auto',
+    backgroundColor: props.$backgroundType === 'plain' ? '#f1f5f9' : '#f8fafc',
+    backgroundImage: isPhoto
+      ? `url(${props.$backgroundImage})`
+      : isGrid
+      ? `
+        linear-gradient(#e2e8f0 1px, transparent 1px),
+        linear-gradient(90deg, #e2e8f0 1px, transparent 1px)
+      `
+      : 'none',
+    backgroundSize: isPhoto ? 'cover' : isGrid ? '20px 20px' : 'auto',
+    backgroundPosition: isPhoto ? 'center' : '0 0',
+    backgroundRepeat: isPhoto ? 'no-repeat' : 'repeat',
+  }
 })
 
 export const HallMap = styled.div<{ $minWidth?: number; $minHeight?: number }>((props) => ({
@@ -292,3 +311,43 @@ export const DropdownItem = styled.div<{ $selected: boolean }>((props) => ({
   },
 }))
 
+export const TableOrderInfo = styled.div({
+  position: 'absolute',
+  bottom: '6px',
+  left: '50%',
+  transform: 'translateX(-50%)',
+  width: 'calc(100% - 8px)',
+  backgroundColor: 'rgba(0, 0, 0, 0.9)',
+  color: '#ffffff',
+  padding: '4px 6px',
+  borderRadius: '4px',
+  fontSize: '9px',
+  fontWeight: 600,
+  textAlign: 'center',
+  lineHeight: '1.3',
+  
+  '& div': {
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+  }
+})
+
+export const OrderStatusBadge = styled.span<{ $status: string }>((props) => {
+  let bgColor = '#6c757d'
+  
+  if (props.$status === 'draft') bgColor = '#ffd43b'
+  if (props.$status === 'confirmed') bgColor = '#69db7c'
+  if (props.$status === 'preparing') bgColor = '#ff922b'
+  if (props.$status === 'ready') bgColor = '#4c6ef5'
+  
+  return {
+    backgroundColor: bgColor,
+    color: props.$status === 'draft' ? '#212529' : '#ffffff',
+    padding: '2px 6px',
+    borderRadius: '3px',
+    fontSize: '8px',
+    fontWeight: 600,
+    display: 'inline-block',
+  }
+})

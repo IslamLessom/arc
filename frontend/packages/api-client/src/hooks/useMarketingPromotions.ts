@@ -9,6 +9,8 @@ export interface Promotion {
   name: string
   description?: string | null
   type: PromotionType
+  target_type?: 'all' | 'product' | 'tech_card' | 'category'
+  target_ids?: string[]
   discount_percentage?: number | null
   buy_quantity?: number | null
   get_quantity?: number | null
@@ -24,6 +26,8 @@ export interface CreatePromotionRequest {
   name: string
   description?: string
   type: PromotionType
+  target_type?: 'all' | 'product' | 'tech_card' | 'category'
+  target_ids?: string[]
   discount_percentage?: number
   buy_quantity?: number
   get_quantity?: number
@@ -35,6 +39,8 @@ export interface UpdatePromotionRequest {
   name?: string
   description?: string
   type?: PromotionType
+  target_type?: 'all' | 'product' | 'tech_card' | 'category'
+  target_ids?: string[]
   discount_percentage?: number
   buy_quantity?: number
   get_quantity?: number

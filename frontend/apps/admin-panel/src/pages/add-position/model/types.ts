@@ -10,6 +10,11 @@ export interface SalaryCategory {
   name: string
 }
 
+export interface SalaryPercentageRule {
+  categoryId?: string
+  percentage?: string
+}
+
 export interface AddPositionFormData {
   name: string
   cashAccess: {
@@ -27,14 +32,8 @@ export interface AddPositionFormData {
       perShift?: string
       perMonth?: string
     }
-    personalSalesPercentage: {
-      categoryId?: string
-      percentage?: string
-    }
-    shiftSalesPercentage: {
-      categoryId?: string
-      percentage?: string
-    }
+    personalSalesPercentages: SalaryPercentageRule[]
+    shiftSalesPercentages: SalaryPercentageRule[]
   }
   salaryCategories: SalaryCategory[]
 }

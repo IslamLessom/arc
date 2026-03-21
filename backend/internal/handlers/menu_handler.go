@@ -38,35 +38,35 @@ func NewMenuHandler(usecase *usecases.MenuUseCase, logger *zap.Logger) *MenuHand
 }
 
 type CreateProductRequest struct {
-	Name              string  `json:"name" binding:"required"`
-	CategoryID        string  `json:"category_id" binding:"required,uuid"`        // UUID как строка
-	WorkshopID        *string `json:"workshop_id,omitempty" binding:"omitempty,uuid"` // UUID как строка
-	Description       string  `json:"description"`
-	CoverImage        string  `json:"cover_image"`
-	IsWeighted        bool    `json:"is_weighted"`
-	ExcludeFromDiscounts bool `json:"exclude_from_discounts"`
-	HasModifications  bool    `json:"has_modifications"`
-	Barcode           string  `json:"barcode"`
-	CostPrice         float64 `json:"cost_price"`
-	Markup            float64 `json:"markup"`
-	Price             float64 `json:"price,omitempty"` // Можно задать напрямую, иначе вычисляется
-	WarehouseID       string  `json:"warehouse_id" binding:"required,uuid"` // UUID склада для создания остатков
+	Name                 string  `json:"name" binding:"required"`
+	CategoryID           string  `json:"category_id" binding:"required,uuid"`            // UUID как строка
+	WorkshopID           *string `json:"workshop_id,omitempty" binding:"omitempty,uuid"` // UUID как строка
+	Description          string  `json:"description"`
+	CoverImage           string  `json:"cover_image"`
+	IsWeighted           bool    `json:"is_weighted"`
+	ExcludeFromDiscounts bool    `json:"exclude_from_discounts"`
+	HasModifications     bool    `json:"has_modifications"`
+	Barcode              string  `json:"barcode"`
+	CostPrice            float64 `json:"cost_price"`
+	Markup               float64 `json:"markup"`
+	Price                float64 `json:"price,omitempty"`                      // Можно задать напрямую, иначе вычисляется
+	WarehouseID          string  `json:"warehouse_id" binding:"required,uuid"` // UUID склада для создания остатков
 }
 
 type UpdateProductRequest struct {
-	Name              string  `json:"name"`
-	CategoryID        *string `json:"category_id,omitempty" binding:"omitempty,uuid"`
-	WorkshopID        *string `json:"workshop_id,omitempty" binding:"omitempty,uuid"`
-	Description       string  `json:"description"`
-	CoverImage        *string `json:"cover_image,omitempty"`
-	IsWeighted        bool    `json:"is_weighted"`
-	ExcludeFromDiscounts bool `json:"exclude_from_discounts"`
-	HasModifications  bool    `json:"has_modifications"`
-	Barcode           string  `json:"barcode"`
-	CostPrice         float64 `json:"cost_price"`
-	Markup            float64 `json:"markup"`
-	Price             float64 `json:"price,omitempty"`
-	Active            *bool   `json:"active,omitempty"`
+	Name                 string  `json:"name"`
+	CategoryID           *string `json:"category_id,omitempty" binding:"omitempty,uuid"`
+	WorkshopID           *string `json:"workshop_id,omitempty" binding:"omitempty,uuid"`
+	Description          string  `json:"description"`
+	CoverImage           *string `json:"cover_image,omitempty"`
+	IsWeighted           bool    `json:"is_weighted"`
+	ExcludeFromDiscounts bool    `json:"exclude_from_discounts"`
+	HasModifications     bool    `json:"has_modifications"`
+	Barcode              string  `json:"barcode"`
+	CostPrice            float64 `json:"cost_price"`
+	Markup               float64 `json:"markup"`
+	Price                float64 `json:"price,omitempty"`
+	Active               *bool   `json:"active,omitempty"`
 }
 
 // GetProducts возвращает список товаров с фильтрацией
@@ -239,18 +239,18 @@ func (h *MenuHandler) CreateProduct(c *gin.Context) {
 	}
 
 	product := &models.Product{
-		Name:                req.Name,
-		CategoryID:          categoryID,
-		WorkshopID:          workshopID,
-		Description:         req.Description,
-		CoverImage:          req.CoverImage,
-		IsWeighted:          req.IsWeighted,
+		Name:                 req.Name,
+		CategoryID:           categoryID,
+		WorkshopID:           workshopID,
+		Description:          req.Description,
+		CoverImage:           req.CoverImage,
+		IsWeighted:           req.IsWeighted,
 		ExcludeFromDiscounts: req.ExcludeFromDiscounts,
-		HasModifications:    req.HasModifications,
-		Barcode:             req.Barcode,
-		CostPrice:           req.CostPrice,
-		Markup:              req.Markup,
-		Active:              true,
+		HasModifications:     req.HasModifications,
+		Barcode:              req.Barcode,
+		CostPrice:            req.CostPrice,
+		Markup:               req.Markup,
+		Active:               true,
 	}
 
 	// Если цена задана напрямую, используем её, иначе будет вычислена в use case
@@ -388,20 +388,20 @@ func (h *MenuHandler) DeleteProduct(c *gin.Context) {
 }
 
 type CreateTechCardRequest struct {
-	Name              string                        `json:"name" binding:"required"`
-	CategoryID        string                        `json:"category_id" binding:"required,uuid"`
-	WorkshopID        *string                       `json:"workshop_id,omitempty" binding:"omitempty,uuid"`
-	Description       string                        `json:"description"`
-	CoverImage        string                        `json:"cover_image"`
-	IsWeighted        bool                          `json:"is_weighted"`
-	ExcludeFromDiscounts bool                       `json:"exclude_from_discounts"`
-	CostPrice         float64                       `json:"cost_price"`
-	Markup            float64                       `json:"markup"`
-	Price             float64                       `json:"price,omitempty"`
-	WarehouseID       *string                       `json:"warehouse_id,omitempty" binding:"omitempty,uuid"` // Для расчета себестоимости
-	RecalculateCost   bool                          `json:"recalculate_cost"` // Если true - пересчитать cost_price из ингредиентов
-	Ingredients       []TechCardIngredientRequest   `json:"ingredients,omitempty"`
-	ModifierSets      []ModifierSetRequest          `json:"modifier_sets,omitempty"`
+	Name                 string                      `json:"name" binding:"required"`
+	CategoryID           string                      `json:"category_id" binding:"required,uuid"`
+	WorkshopID           *string                     `json:"workshop_id,omitempty" binding:"omitempty,uuid"`
+	Description          string                      `json:"description"`
+	CoverImage           string                      `json:"cover_image"`
+	IsWeighted           bool                        `json:"is_weighted"`
+	ExcludeFromDiscounts bool                        `json:"exclude_from_discounts"`
+	CostPrice            float64                     `json:"cost_price"`
+	Markup               float64                     `json:"markup"`
+	Price                float64                     `json:"price,omitempty"`
+	WarehouseID          *string                     `json:"warehouse_id,omitempty" binding:"omitempty,uuid"` // Для расчета себестоимости
+	RecalculateCost      bool                        `json:"recalculate_cost"`                                // Если true - пересчитать cost_price из ингредиентов
+	Ingredients          []TechCardIngredientRequest `json:"ingredients,omitempty"`
+	ModifierSets         []ModifierSetRequest        `json:"modifier_sets,omitempty"`
 }
 
 type TechCardIngredientRequest struct {
@@ -411,10 +411,10 @@ type TechCardIngredientRequest struct {
 }
 
 type ModifierSetRequest struct {
-	Name          string                 `json:"name" binding:"required"`
-	SelectionType string                 `json:"selection_type" binding:"required,oneof=single multiple"` // "single" или "multiple"
-	MinSelection  int                    `json:"min_selection"` // Минимальное количество выбора (для multiple)
-	MaxSelection  int                    `json:"max_selection"` // Максимальное количество выбора (для multiple, 0 = без ограничений)
+	Name          string                  `json:"name" binding:"required"`
+	SelectionType string                  `json:"selection_type" binding:"required,oneof=single multiple"` // "single" или "multiple"
+	MinSelection  int                     `json:"min_selection"`                                           // Минимальное количество выбора (для multiple)
+	MaxSelection  int                     `json:"max_selection"`                                           // Максимальное количество выбора (для multiple, 0 = без ограничений)
 	Options       []ModifierOptionRequest `json:"options,omitempty"`
 }
 
@@ -424,21 +424,21 @@ type ModifierOptionRequest struct {
 }
 
 type UpdateTechCardRequest struct {
-	Name              string                        `json:"name"`
-	CategoryID        *string                       `json:"category_id,omitempty" binding:"omitempty,uuid"`
-	WorkshopID        *string                       `json:"workshop_id,omitempty" binding:"omitempty,uuid"`
-	Description       string                        `json:"description"`
-	CoverImage        *string                       `json:"cover_image,omitempty"`
-	IsWeighted        bool                          `json:"is_weighted"`
-	ExcludeFromDiscounts bool                       `json:"exclude_from_discounts"`
-	CostPrice         float64                       `json:"cost_price"`
-	Markup            float64                       `json:"markup"`
-	Price             float64                       `json:"price,omitempty"`
-	Active            *bool                         `json:"active,omitempty"`
-	WarehouseID       *string                       `json:"warehouse_id,omitempty" binding:"omitempty,uuid"` // Для расчета себестоимости
-	RecalculateCost   bool                          `json:"recalculate_cost"` // Если true - пересчитать cost_price из ингредиентов
-	Ingredients       []TechCardIngredientRequest   `json:"ingredients,omitempty"`
-	ModifierSets      []ModifierSetRequest          `json:"modifier_sets,omitempty"`
+	Name                 string                      `json:"name"`
+	CategoryID           *string                     `json:"category_id,omitempty" binding:"omitempty,uuid"`
+	WorkshopID           *string                     `json:"workshop_id,omitempty" binding:"omitempty,uuid"`
+	Description          string                      `json:"description"`
+	CoverImage           *string                     `json:"cover_image,omitempty"`
+	IsWeighted           bool                        `json:"is_weighted"`
+	ExcludeFromDiscounts bool                        `json:"exclude_from_discounts"`
+	CostPrice            float64                     `json:"cost_price"`
+	Markup               float64                     `json:"markup"`
+	Price                float64                     `json:"price,omitempty"`
+	Active               *bool                       `json:"active,omitempty"`
+	WarehouseID          *string                     `json:"warehouse_id,omitempty" binding:"omitempty,uuid"` // Для расчета себестоимости
+	RecalculateCost      bool                        `json:"recalculate_cost"`                                // Если true - пересчитать cost_price из ингредиентов
+	Ingredients          []TechCardIngredientRequest `json:"ingredients,omitempty"`
+	ModifierSets         []ModifierSetRequest        `json:"modifier_sets,omitempty"`
 }
 
 // GetTechCards возвращает список тех-карт
@@ -603,16 +603,16 @@ func (h *MenuHandler) CreateTechCard(c *gin.Context) {
 	}
 
 	techCard := &models.TechCard{
-		Name:                req.Name,
-		CategoryID:          categoryID,
-		WorkshopID:          workshopID,
-		Description:         req.Description,
-		CoverImage:          req.CoverImage,
-		IsWeighted:          req.IsWeighted,
+		Name:                 req.Name,
+		CategoryID:           categoryID,
+		WorkshopID:           workshopID,
+		Description:          req.Description,
+		CoverImage:           req.CoverImage,
+		IsWeighted:           req.IsWeighted,
 		ExcludeFromDiscounts: req.ExcludeFromDiscounts,
-		CostPrice:           req.CostPrice,
-		Markup:              req.Markup,
-		Active:              true,
+		CostPrice:            req.CostPrice,
+		Markup:               req.Markup,
+		Active:               true,
 	}
 
 	// Если цена задана напрямую, используем её, иначе будет вычислена в use case
@@ -838,33 +838,33 @@ func (h *MenuHandler) DeleteTechCard(c *gin.Context) {
 }
 
 type CreateIngredientRequest struct {
-	Name          string  `json:"name" binding:"required"`
-	CategoryID    string  `json:"category_id" binding:"required,uuid"`
-	Unit          string  `json:"unit" binding:"required,oneof=шт л кг"`
-	Barcode       string  `json:"barcode"`
-	LossCleaning  float64 `json:"loss_cleaning"`
-	LossBoiling   float64 `json:"loss_boiling"`
-	LossFrying    float64 `json:"loss_frying"`
-	LossStewing   float64 `json:"loss_stewing"`
-	LossBaking    float64 `json:"loss_baking"`
+	Name         string  `json:"name" binding:"required"`
+	CategoryID   string  `json:"category_id" binding:"required,uuid"`
+	Unit         string  `json:"unit" binding:"required,oneof=шт л кг"`
+	Barcode      string  `json:"barcode"`
+	LossCleaning float64 `json:"loss_cleaning"`
+	LossBoiling  float64 `json:"loss_boiling"`
+	LossFrying   float64 `json:"loss_frying"`
+	LossStewing  float64 `json:"loss_stewing"`
+	LossBaking   float64 `json:"loss_baking"`
 	// Складской учет (опционально)
-	WarehouseID   *string `json:"warehouse_id,omitempty" binding:"omitempty,uuid"`
-	SupplierID    *string `json:"supplier_id,omitempty" binding:"omitempty,uuid"` // Поставщик для автоматического создания поставки
-	Quantity      float64 `json:"quantity"` // Количество в наличии
-	PricePerUnit  float64 `json:"price_per_unit"` // Цена за единицу измерения
+	WarehouseID  *string `json:"warehouse_id,omitempty" binding:"omitempty,uuid"`
+	SupplierID   *string `json:"supplier_id,omitempty" binding:"omitempty,uuid"` // Поставщик для автоматического создания поставки
+	Quantity     float64 `json:"quantity"`                                       // Количество в наличии
+	PricePerUnit float64 `json:"price_per_unit"`                                 // Цена за единицу измерения
 }
 
 type UpdateIngredientRequest struct {
-	Name          string  `json:"name"`
-	CategoryID    *string `json:"category_id,omitempty" binding:"omitempty,uuid"`
-	Unit          string  `json:"unit" binding:"omitempty,oneof=шт л кг"`
-	Barcode       string  `json:"barcode"`
-	LossCleaning  float64 `json:"loss_cleaning"`
-	LossBoiling   float64 `json:"loss_boiling"`
-	LossFrying    float64 `json:"loss_frying"`
-	LossStewing   float64 `json:"loss_stewing"`
-	LossBaking    float64 `json:"loss_baking"`
-	Active        *bool   `json:"active,omitempty"`
+	Name         string  `json:"name"`
+	CategoryID   *string `json:"category_id,omitempty" binding:"omitempty,uuid"`
+	Unit         string  `json:"unit" binding:"omitempty,oneof=шт л кг"`
+	Barcode      string  `json:"barcode"`
+	LossCleaning float64 `json:"loss_cleaning"`
+	LossBoiling  float64 `json:"loss_boiling"`
+	LossFrying   float64 `json:"loss_frying"`
+	LossStewing  float64 `json:"loss_stewing"`
+	LossBaking   float64 `json:"loss_baking"`
+	Active       *bool   `json:"active,omitempty"`
 }
 
 func (h *MenuHandler) GetIngredients(c *gin.Context) {
@@ -1526,14 +1526,14 @@ func (h *MenuHandler) GetSemiFinished(c *gin.Context) {
 }
 
 type CreateSemiFinishedRequest struct {
-	Name            string                         `json:"name" binding:"required"`
-	WorkshopID      *string                        `json:"workshop_id,omitempty" binding:"omitempty,uuid"`
-	Description     string                         `json:"description"`
-	CookingProcess  string                         `json:"cooking_process"`
-	CoverImage      string                         `json:"cover_image"`
-	Unit            string                         `json:"unit" binding:"required"` // kg, gram, liter, ml, piece
-	Quantity        float64                        `json:"quantity"`
-	Ingredients     []CreateSemiFinishedIngredient `json:"ingredients"`
+	Name           string                         `json:"name" binding:"required"`
+	WorkshopID     *string                        `json:"workshop_id,omitempty" binding:"omitempty,uuid"`
+	Description    string                         `json:"description"`
+	CookingProcess string                         `json:"cooking_process"`
+	CoverImage     string                         `json:"cover_image"`
+	Unit           string                         `json:"unit" binding:"required"` // kg, gram, liter, ml, piece
+	Quantity       float64                        `json:"quantity"`
+	Ingredients    []CreateSemiFinishedIngredient `json:"ingredients"`
 }
 
 type CreateSemiFinishedIngredient struct {
@@ -1542,6 +1542,41 @@ type CreateSemiFinishedIngredient struct {
 	Gross             float64 `json:"gross" binding:"required"`
 	Net               float64 `json:"net" binding:"required"`
 	Unit              string  `json:"unit" binding:"required"` // г, мл, шт
+}
+
+type UpdateSemiFinishedRequest struct {
+	Name           *string                        `json:"name,omitempty"`
+	WorkshopID     *string                        `json:"workshop_id,omitempty" binding:"omitempty,uuid"`
+	Description    *string                        `json:"description,omitempty"`
+	CookingProcess *string                        `json:"cooking_process,omitempty"`
+	CoverImage     *string                        `json:"cover_image,omitempty"`
+	Unit           *string                        `json:"unit,omitempty"` // kg, gram, liter, ml, piece | кг, г, л, мл, шт
+	Quantity       *float64                       `json:"quantity,omitempty"`
+	Active         *bool                          `json:"active,omitempty"`
+	Ingredients    []CreateSemiFinishedIngredient `json:"ingredients,omitempty"`
+}
+
+// GetSemiFinishedByID возвращает полуфабрикат по ID
+func (h *MenuHandler) GetSemiFinishedByID(c *gin.Context) {
+	estID, err := getEstablishmentID(c)
+	if err != nil {
+		c.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
+		return
+	}
+
+	id, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id"})
+		return
+	}
+
+	semiFinished, err := h.usecase.GetSemiFinishedByID(c.Request.Context(), id, estID)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "semi-finished not found"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"data": semiFinished})
 }
 
 // CreateSemiFinished создает полуфабрикат
@@ -1622,11 +1657,135 @@ func (h *MenuHandler) CreateSemiFinished(c *gin.Context) {
 	}
 	warehouseID := warehouses[0].ID
 
-
 	if err := h.usecase.CreateSemiFinished(c.Request.Context(), semiFinished, warehouseID, estID); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
 	c.JSON(http.StatusCreated, gin.H{"data": semiFinished})
+}
+
+// UpdateSemiFinished обновляет полуфабрикат
+func (h *MenuHandler) UpdateSemiFinished(c *gin.Context) {
+	estID, err := getEstablishmentID(c)
+	if err != nil {
+		c.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
+		return
+	}
+
+	id, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id"})
+		return
+	}
+
+	var req UpdateSemiFinishedRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	semiFinished, err := h.usecase.GetSemiFinishedByID(c.Request.Context(), id, estID)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "semi-finished not found"})
+		return
+	}
+
+	if req.Name != nil {
+		semiFinished.Name = *req.Name
+	}
+	if req.WorkshopID != nil {
+		parsed, err := uuid.Parse(*req.WorkshopID)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid workshop_id"})
+			return
+		}
+		semiFinished.WorkshopID = &parsed
+	}
+	if req.Description != nil {
+		semiFinished.Description = *req.Description
+	}
+	if req.CookingProcess != nil {
+		semiFinished.CookingProcess = *req.CookingProcess
+	}
+	if req.CoverImage != nil {
+		semiFinished.CoverImage = *req.CoverImage
+	}
+	if req.Unit != nil {
+		switch *req.Unit {
+		case "кг":
+			semiFinished.Unit = "kg"
+		case "г":
+			semiFinished.Unit = "gram"
+		case "л":
+			semiFinished.Unit = "liter"
+		case "мл":
+			semiFinished.Unit = "ml"
+		case "шт":
+			semiFinished.Unit = "piece"
+		default:
+			semiFinished.Unit = *req.Unit
+		}
+	}
+	if req.Quantity != nil {
+		semiFinished.Quantity = *req.Quantity
+	}
+	if req.Active != nil {
+		semiFinished.Active = *req.Active
+	}
+
+	if req.Ingredients != nil {
+		semiFinished.Ingredients = make([]models.SemiFinishedIngredient, 0, len(req.Ingredients))
+		for _, ingReq := range req.Ingredients {
+			ingredientID, err := uuid.Parse(ingReq.IngredientID)
+			if err != nil {
+				c.JSON(http.StatusBadRequest, gin.H{"error": "invalid ingredient_id"})
+				return
+			}
+
+			semiFinished.Ingredients = append(semiFinished.Ingredients, models.SemiFinishedIngredient{
+				IngredientID:      ingredientID,
+				PreparationMethod: ingReq.PreparationMethod,
+				Gross:             ingReq.Gross,
+				Net:               ingReq.Net,
+				Unit:              ingReq.Unit,
+			})
+		}
+	}
+
+	warehouses, err := h.usecase.GetWarehouses(c.Request.Context(), estID)
+	if err != nil || len(warehouses) == 0 {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to get warehouse"})
+		return
+	}
+	warehouseID := warehouses[0].ID
+
+	if err := h.usecase.UpdateSemiFinished(c.Request.Context(), semiFinished, warehouseID, estID); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"data": semiFinished})
+}
+
+// DeleteSemiFinished удаляет полуфабрикат
+func (h *MenuHandler) DeleteSemiFinished(c *gin.Context) {
+	estID, err := getEstablishmentID(c)
+	if err != nil {
+		c.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
+		return
+	}
+
+	id, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id"})
+		return
+	}
+
+	if err := h.usecase.DeleteSemiFinished(c.Request.Context(), id, estID); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "semi-finished product deleted"})
 }

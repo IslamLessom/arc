@@ -12,10 +12,13 @@ import (
 
 type TableRepository interface {
 	GetByID(ctx context.Context, id uuid.UUID, roomID uuid.UUID) (*models.Table, error)
+	GetByQRToken(ctx context.Context, qrToken uuid.UUID) (*models.Table, error)
 	ListByRoomID(ctx context.Context, roomID uuid.UUID) ([]*models.Table, error)
 	Create(ctx context.Context, table *models.Table) error
 	CreateBatch(ctx context.Context, tables []*models.Table) error
 	Update(ctx context.Context, table *models.Table, roomID uuid.UUID) error
+	UpdateStatus(ctx context.Context, id uuid.UUID, status string) error
+	UpdateQRToken(ctx context.Context, id uuid.UUID, qrToken uuid.UUID) error
 	Delete(ctx context.Context, id uuid.UUID, roomID uuid.UUID) error
 }
 
@@ -59,4 +62,33 @@ func (r *tableRepository) Update(ctx context.Context, table *models.Table, roomI
 
 func (r *tableRepository) Delete(ctx context.Context, id uuid.UUID, roomID uuid.UUID) error {
 	return r.db.WithContext(ctx).Where("room_id = ?", roomID).Delete(&models.Table{}, "id = ?", id).Error
+}
+
+func (r *tableRepository) GetByQRToken(ctx context.Context, qrToken uuid.UUID) (*models.Table, error) {
+	var table models.Table
+	err := r.db.WithContext(ctx).
+		Preload("Room").
+		Where("qr_token = ?", qrToken).
+		First(&table).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, ErrTableNotFound
+		}
+		return nil, err
+	}
+	return &table, nil
+}
+
+func (r *tableRepository) UpdateStatus(ctx context.Context, id uuid.UUID, status string) error {
+	return r.db.WithContext(ctx).
+		Model(&models.Table{}).
+		Where("id = ?", id).
+		Update("status", status).Error
+}
+
+func (r *tableRepository) UpdateQRToken(ctx context.Context, id uuid.UUID, qrToken uuid.UUID) error {
+	return r.db.WithContext(ctx).
+		Model(&models.Table{}).
+		Where("id = ?", id).
+		Update("qr_token", qrToken).Error
 }

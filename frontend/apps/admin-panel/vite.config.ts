@@ -14,6 +14,7 @@ export default defineConfig({
       '@restaurant-pos/ui': path.resolve(__dirname, '../../packages/ui/src'),
       '@restaurant-pos/api-client': path.resolve(__dirname, '../../packages/api-client/src'),
       '@restaurant-pos/assets': path.resolve(__dirname, '../../packages/assets/src'),
+      '@restaurant-pos/features': path.resolve(__dirname, '../../packages/features/src'),
     }
   }
 })

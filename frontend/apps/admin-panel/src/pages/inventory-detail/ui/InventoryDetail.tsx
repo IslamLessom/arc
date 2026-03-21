@@ -10,7 +10,6 @@ export const InventoryDetail = () => {
     isLoading,
     isSaving,
     error,
-    activeTab,
     searchQuery,
     filteredItems,
     stats,
@@ -21,7 +20,6 @@ export const InventoryDetail = () => {
     statusColor,
     completionAttempted,
     validationErrors,
-    setActiveTab,
     setSearchQuery,
     handleQuantityChange,
     handleBlurQuantity,
@@ -178,21 +176,6 @@ export const InventoryDetail = () => {
           />
         </Styled.CommentSection>
 
-        <Styled.TabsContainer>
-          <Styled.TabButton
-            $active={activeTab === 'ingredients'}
-            onClick={() => setActiveTab('ingredients')}
-          >
-            Ингредиенты и товары
-          </Styled.TabButton>
-          <Styled.TabButton
-            $active={activeTab === 'tech_cards'}
-            onClick={() => setActiveTab('tech_cards')}
-          >
-            Техкарты и полуфабрикаты
-          </Styled.TabButton>
-        </Styled.TabsContainer>
-
         <Styled.TableContainer>
           <Styled.Table>
             <Styled.TableHead>
@@ -263,11 +246,7 @@ export const InventoryDetail = () => {
           {filteredItems.length === 0 && (
             <Styled.EmptyState>
               <Styled.EmptyStateTitle>Нет позиций</Styled.EmptyStateTitle>
-              <Styled.EmptyStateText>
-                {activeTab === 'ingredients'
-                  ? 'Нет ингредиентов или товаров для отображения'
-                  : 'Нет техкарт или полуфабрикатов для отображения'}
-              </Styled.EmptyStateText>
+              <Styled.EmptyStateText>Нет позиций для отображения</Styled.EmptyStateText>
             </Styled.EmptyState>
           )}
         </Styled.TableContainer>
@@ -296,9 +275,9 @@ export const InventoryDetail = () => {
           </Styled.StatBlock>
           <Styled.StatBlock>
             <Styled.StatLabel>Сумма разницы</Styled.StatLabel>
-            <Styled.StatValue $color={getDifferenceColor(stats.totalDifference)}>
+            <Styled.StatValue $color={getDifferenceColor(stats.totalDifferenceValue)}>
               {stats.totalDifferenceValue > 0 ? '+' : ''}
-              {formatCurrency(Math.abs(stats.totalDifferenceValue))}
+              {formatCurrency(stats.totalDifferenceValue)}
             </Styled.StatValue>
           </Styled.StatBlock>
         </Styled.FooterStats>

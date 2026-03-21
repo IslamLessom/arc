@@ -26,7 +26,8 @@
       "@restaurant-pos/types": ["./packages/types/src"],
       "@restaurant-pos/real-time": ["./packages/real-time/src"],
       "@restaurant-pos/print-service": ["./packages/print-service/src"],
-      "@restaurant-pos/assets": ["./packages/assets/src"]
+      "@restaurant-pos/assets": ["./packages/assets/src"],
+      "@restaurant-pos/features": ["./packages/features/src"]
     }
   },
   "include": ["**/*.ts", "**/*.tsx"],

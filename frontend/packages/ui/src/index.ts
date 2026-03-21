@@ -11,3 +11,14 @@ export type { TableProps, TableColumn, TablePagination } from './table'
 export { TableSize, TableAlign, TableSortOrder } from './table'
 export { EditButton, type EditButtonProps } from './edit-button'
 export { DeleteButton, type DeleteButtonProps } from './delete-button'
+export { 
+  exportToCSV, 
+  exportToExcel, 
+  printTable, 
+  useColumnVisibility,
+  ColumnManager,
+  type ColumnInfo,
+  type ColumnManagerProps,
+  type ColumnVisibility,
+  type UseColumnVisibilityOptions
+} from './table-utils'

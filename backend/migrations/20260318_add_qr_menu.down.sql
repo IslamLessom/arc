@@ -1,0 +1,7 @@
+ALTER TABLE orders DROP COLUMN IF EXISTS guest_session_id;
+ALTER TABLE orders DROP COLUMN IF EXISTS guest_name;
+ALTER TABLE orders DROP COLUMN IF EXISTS source;
+
+DROP TABLE IF EXISTS guest_sessions;
+
+ALTER TABLE tables DROP COLUMN IF EXISTS qr_token;

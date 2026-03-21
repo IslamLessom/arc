@@ -30,13 +30,14 @@ export const useTable = <T extends Record<string, unknown>>(
     pagination,
     rowSelection
   } = props;
+  const tablePagination = pagination === false ? undefined : pagination;
 
   const [sortState, setSortState] = useState<SortState | null>(null);
   const [currentPage, setCurrentPage] = useState(
-    pagination?.current ?? 1
+    tablePagination?.current ?? 1
   );
   const [pageSize, setPageSize] = useState(
-    pagination?.pageSize ?? 10
+    tablePagination?.pageSize ?? 10
   );
   const [selectedRowKeys, setSelectedRowKeys] = useState<string[]>(
     rowSelection?.selectedRowKeys ?? []
@@ -127,7 +128,7 @@ export const useTable = <T extends Record<string, unknown>>(
   useEffect(() => {
     if (pagination === false) return;
 
-    const totalPages = Math.ceil((pagination?.total ?? sortedData.length ?? 0) / pageSize);
+    const totalPages = Math.ceil((tablePagination?.total ?? sortedData.length ?? 0) / pageSize);
     if (currentPage > totalPages && totalPages > 0) {
       setCurrentPage(totalPages);
     } else if (currentPage < 1 && sortedData.length > 0) {
@@ -144,9 +145,9 @@ export const useTable = <T extends Record<string, unknown>>(
       } else {
         setCurrentPage(page);
       }
-      pagination?.onChange?.(page, newPageSize);
+      tablePagination?.onChange?.(page, newPageSize);
     },
-    [pageSize, pagination]
+    [pageSize, tablePagination]
   );
 
   const handleRowSelection = useCallback(

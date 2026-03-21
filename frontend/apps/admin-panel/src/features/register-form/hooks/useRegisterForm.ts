@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useRegister } from '@restaurant-pos/api-client';
+import { getApiErrorMessage, useRegister } from '@restaurant-pos/api-client';
 import { saveUserData } from '../../../shared/hooks/useOnboardingStatus';
 import type { UseRegisterFormResult, RegisterFormProps } from '../model/types';
 
@@ -83,19 +83,7 @@ export function useRegisterForm(props: RegisterFormProps): UseRegisterFormResult
         navigate('/');
       } catch (err: unknown) {
         setIsSubmitting(false);
-        let errorMessage = 'Ошибка при регистрации';
-        
-        if (err && typeof err === 'object' && 'response' in err) {
-          const axiosError = err as { response?: { data?: { error?: string } } };
-          if (axiosError.response?.data?.error) {
-            errorMessage = axiosError.response.data.error;
-          } else if (axiosError.response?.data && typeof axiosError.response.data === 'string') {
-            errorMessage = axiosError.response.data;
-          }
-        } else if (err instanceof Error) {
-          errorMessage = err.message;
-        }
-        
+        const errorMessage = getApiErrorMessage(err, 'Ошибка при регистрации');
         setError(errorMessage);
       }
     },

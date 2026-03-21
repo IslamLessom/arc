@@ -6,6 +6,9 @@ import { Checkbox, Alert, Spin } from 'antd'
 import { useGetCategories, useUploadImage } from '@restaurant-pos/api-client'
 import { translateUnit } from '../../../pages/technical-cards/lib/unitTranslator'
 import { handleImageUpload } from '../lib/fileUpload'
+import { AddCategoryDialog } from '../../add-product-modal/ui/components/AddCategoryDialog'
+import { AddWarehouseDialog } from '../../add-product-modal/ui/components/AddWarehouseDialog'
+import { AddWorkshopDialog } from '../../add-product-modal/ui/components/AddWorkshopDialog'
 import * as Styled from './styled'
 
 export const AddTechnicalCardModal = (props: AddTechnicalCardModalProps) => {
@@ -13,6 +16,9 @@ export const AddTechnicalCardModal = (props: AddTechnicalCardModalProps) => {
     const firstFocusableRef = useRef<HTMLInputElement>(null)
     const uploadImage = useUploadImage()
     const [isUploadingImage, setIsUploadingImage] = useState(false)
+    const [isAddCategoryDialogOpen, setIsAddCategoryDialogOpen] = useState(false)
+    const [isAddWarehouseDialogOpen, setIsAddWarehouseDialogOpen] = useState(false)
+    const [isAddWorkshopDialogOpen, setIsAddWorkshopDialogOpen] = useState(false)
 
     const { data: categories, isLoading: categoriesLoading } = useGetCategories()
 
@@ -199,7 +205,15 @@ export const AddTechnicalCardModal = (props: AddTechnicalCardModalProps) => {
                                     ) : (
                                         <Styled.Select
                                             value={formData.category_id}
-                                            onChange={(e) => handleFieldChange('category_id', e.target.value)}
+                                            onChange={(e) => {
+                                                const value = e.target.value
+                                                if (value === '__add_new__') {
+                                                    setIsAddCategoryDialogOpen(true)
+                                                    e.target.value = formData.category_id || ''
+                                                } else {
+                                                    handleFieldChange('category_id', value)
+                                                }
+                                            }}
                                             disabled={isSubmitting || categoriesLoading}
                                             $hasError={!!fieldErrors?.category_id}
                                         >
@@ -209,6 +223,7 @@ export const AddTechnicalCardModal = (props: AddTechnicalCardModalProps) => {
                                                     {category.name}
                                                 </option>
                                             ))}
+                                            <option value="__add_new__" style={{ fontWeight: 500, color: '#3b82f6' }}>+ Добавить категорию</option>
                                         </Styled.Select>
                                     )}
                                     {fieldErrors?.category_id && (
@@ -222,7 +237,15 @@ export const AddTechnicalCardModal = (props: AddTechnicalCardModalProps) => {
                                 <Styled.RowContent>
                                     <Styled.Select
                                         value={formData.workshop_id}
-                                        onChange={(e) => handleFieldChange('workshop_id', e.target.value)}
+                                        onChange={(e) => {
+                                            const value = e.target.value
+                                            if (value === '__add_new__') {
+                                                setIsAddWorkshopDialogOpen(true)
+                                                e.target.value = formData.workshop_id || ''
+                                            } else {
+                                                handleFieldChange('workshop_id', value)
+                                            }
+                                        }}
                                         disabled={isSubmitting}
                                     >
                                         <option value="">Без цеха</option>
@@ -231,6 +254,7 @@ export const AddTechnicalCardModal = (props: AddTechnicalCardModalProps) => {
                                                 {workshop.name}
                                             </option>
                                         ))}
+                                        <option value="__add_new__" style={{ fontWeight: 500, color: '#3b82f6' }}>+ Добавить цех</option>
                                     </Styled.Select>
                                     <Styled.RowHint>
                                         Выберите цех, чтобы печатать на него бегунки и правильно{' '}
@@ -487,6 +511,33 @@ export const AddTechnicalCardModal = (props: AddTechnicalCardModalProps) => {
                     </Styled.FooterActions>
                 </Styled.ModalFooter>
             </Styled.ModalContainer>
+
+            <AddCategoryDialog 
+              isOpen={isAddCategoryDialogOpen}
+              onClose={() => setIsAddCategoryDialogOpen(false)}
+              onCategoryAdded={(categoryId) => {
+                handleFieldChange('category_id', categoryId)
+                setIsAddCategoryDialogOpen(false)
+              }}
+            />
+
+            <AddWarehouseDialog 
+              isOpen={isAddWarehouseDialogOpen}
+              onClose={() => setIsAddWarehouseDialogOpen(false)}
+              onWarehouseAdded={(warehouseId) => {
+                handleFieldChange('warehouse_id', warehouseId)
+                setIsAddWarehouseDialogOpen(false)
+              }}
+            />
+
+            <AddWorkshopDialog 
+              isOpen={isAddWorkshopDialogOpen}
+              onClose={() => setIsAddWorkshopDialogOpen(false)}
+              onWorkshopAdded={(workshopId) => {
+                handleFieldChange('workshop_id', workshopId)
+                setIsAddWorkshopDialogOpen(false)
+              }}
+            />
         </Styled.Overlay>
     )
 }

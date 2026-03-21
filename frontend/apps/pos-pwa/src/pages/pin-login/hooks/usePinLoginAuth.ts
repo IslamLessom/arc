@@ -1,7 +1,7 @@
 import { useCallback, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
-import { usePinLogin as usePinLoginMutation, useCurrentUser } from '@restaurant-pos/api-client';
+import { getApiErrorMessage, usePinLogin as usePinLoginMutation, useCurrentUser } from '@restaurant-pos/api-client';
 
 export interface UsePinLoginAuthOptions {
   onNoActiveShift?: () => void;
@@ -56,7 +56,8 @@ export function usePinLoginAuth(options?: UsePinLoginAuthOptions) {
           });
 
           if (shiftResponse.status === 404) {
-            // Активной смены нет - показываем модалку
+            // Активной смены действительно нет (404) - показываем модалку
+            console.log('Активная смена не найдена, показываем модалку открытия смены');
             if (onNoActiveShift) {
               onNoActiveShift();
             }
@@ -65,30 +66,22 @@ export function usePinLoginAuth(options?: UsePinLoginAuthOptions) {
 
           if (shiftResponse.ok) {
             // Активная смена есть - перенаправляем на главную
+            console.log('Найдена активная смена, перенаправляем на главную');
             navigate('/');
           } else {
-            // Ошибка при проверке смены - всё равно перенаправляем
+            // Другая ошибка (401, 500, и т.д.) - перенаправляем на главную
+            // Там HomePage уже корректно обработает проверку смены
+            console.warn(`Неожиданный статус при проверке смены: ${shiftResponse.status}, перенаправляем на главную`);
             navigate('/');
           }
         } catch (shiftError) {
-          // При ошибке проверки смены - перенаправляем на главную
-          console.error('Ошибка при проверке активной смены:', shiftError);
+          // Сетевая ошибка - перенаправляем на главную
+          // HomePage не будет показывать модалку при сетевых ошибках
+          console.error('Сетевая ошибка при проверке активной смены:', shiftError);
           navigate('/');
         }
       } catch (err: unknown) {
-        let errorMessage = 'Неверный PIN-код';
-
-        if (err && typeof err === 'object' && 'response' in err) {
-          const axiosError = err as { response?: { data?: { error?: string; message?: string } } };
-          if (axiosError.response?.data?.error) {
-            errorMessage = axiosError.response.data.error;
-          } else if (axiosError.response?.data?.message) {
-            errorMessage = axiosError.response.data.message;
-          }
-        } else if (err instanceof Error) {
-          errorMessage = err.message;
-        }
-
+        const errorMessage = getApiErrorMessage(err, 'Неверный PIN-код');
         setError(errorMessage);
         throw err;
       }

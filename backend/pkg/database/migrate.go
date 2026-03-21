@@ -125,6 +125,12 @@ func RunMigrations(db *gorm.DB, logger *zap.Logger) error {
 	if err := migrateDB.AutoMigrate(&models.ShiftSession{}); err != nil {
 		return fmt.Errorf("failed to migrate ShiftSession: %w", err)
 	}
+	if err := migrateDB.AutoMigrate(&models.Advance{}); err != nil {
+		return fmt.Errorf("failed to migrate Advance: %w", err)
+	}
+	if err := migrateDB.AutoMigrate(&models.SalaryPayment{}); err != nil {
+		return fmt.Errorf("failed to migrate SalaryPayment: %w", err)
+	}
 
 	// 6. Модели для меню и склада
 	if err := migrateDB.AutoMigrate(&models.Category{}); err != nil {
@@ -174,6 +180,9 @@ func RunMigrations(db *gorm.DB, logger *zap.Logger) error {
 	if err := migrateDB.AutoMigrate(&models.Supply{}); err != nil {
 		return fmt.Errorf("failed to migrate Supply: %w", err)
 	}
+	if err := migrateDB.AutoMigrate(&models.SupplyPayment{}); err != nil {
+		return fmt.Errorf("failed to migrate SupplyPayment: %w", err)
+	}
 	if err := migrateDB.AutoMigrate(&models.SupplyItem{}); err != nil {
 		return fmt.Errorf("failed to migrate SupplyItem: %w", err)
 	}
@@ -194,6 +203,9 @@ func RunMigrations(db *gorm.DB, logger *zap.Logger) error {
 	}
 
 	// 8. Модели для заказов
+	if err := migrateDB.AutoMigrate(&models.GuestSession{}); err != nil {
+		return fmt.Errorf("failed to migrate GuestSession: %w", err)
+	}
 	if err := migrateDB.AutoMigrate(&models.Order{}); err != nil {
 		return fmt.Errorf("failed to migrate Order: %w", err)
 	}

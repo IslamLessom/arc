@@ -1,0 +1,11 @@
+.ant-layout-header {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.ant-menu-item-selected {
+  background-color: #9333ea !important;
+}
+
+.ant-menu-item:hover {
+  background-color: rgba(147, 51, 234, 0.2) !important;
+}

@@ -6,6 +6,8 @@ import * as Styled from './styled'
 export const AddSemiFinished = () => {
   const {
     formData,
+    isEditMode,
+    isInitialLoading,
     isSubmitting,
     error,
     fieldErrors,
@@ -21,12 +23,25 @@ export const AddSemiFinished = () => {
     handleBack
   } = useAddSemiFinished()
 
+  if (isInitialLoading) {
+    return (
+      <Styled.PageContainer>
+        <Styled.Header>
+          <Styled.HeaderLeft>
+            <Styled.BackButton onClick={handleBack}>←</Styled.BackButton>
+            <Styled.Title>Загрузка полуфабриката...</Styled.Title>
+          </Styled.HeaderLeft>
+        </Styled.Header>
+      </Styled.PageContainer>
+    )
+  }
+
   return (
     <Styled.PageContainer>
       <Styled.Header>
         <Styled.HeaderLeft>
           <Styled.BackButton onClick={handleBack}>←</Styled.BackButton>
-          <Styled.Title>Добавление полуфабриката</Styled.Title>
+          <Styled.Title>{isEditMode ? 'Редактирование полуфабриката' : 'Добавление полуфабриката'}</Styled.Title>
         </Styled.HeaderLeft>
         <Styled.PrintButton>
           <span>🖨️</span>
@@ -197,7 +212,7 @@ export const AddSemiFinished = () => {
           onClick={handleSubmit}
           disabled={!isFormValid || isSubmitting}
         >
-          {isSubmitting ? 'Сохранение...' : 'Сохранить'}
+          {isSubmitting ? 'Сохранение...' : isEditMode ? 'Сохранить изменения' : 'Сохранить'}
         </Styled.SaveButton>
       </Styled.Footer>
     </Styled.PageContainer>

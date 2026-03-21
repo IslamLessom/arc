@@ -430,11 +430,26 @@ export interface Role {
   updatedAt: string
 }
 
+export interface SubscriptionPlan {
+  id: string
+  name: string // "Free Trial", "Basic", "Pro", "Business"
+  duration: number // Длительность в днях
+  price: number // Цена (0 для бесплатного)
+  features?: string // JSON строка со списком функций
+  active: boolean
+  createdAt: string
+  updatedAt: string
+}
+
 export interface Subscription {
   id: string
-  name: string
-  features?: string[]
-  active: boolean
+  user_id: string
+  plan_id: string
+  plan?: SubscriptionPlan
+  start_date: string
+  end_date: string
+  is_active: boolean
+  auto_renew: boolean
   createdAt: string
   updatedAt: string
 }

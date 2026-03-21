@@ -1,6 +1,6 @@
 import { useState, useCallback, useMemo, useEffect } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { useCreateSupply, useUpdateSupply, useGetSupply, useGetWarehouses, useGetSuppliers, useGetIngredients, useGetStock } from '@restaurant-pos/api-client'
+import { useCreateSupply, useUpdateSupply, useGetSupply, useGetWarehouses, useGetSuppliers, useGetIngredients, useGetStock, useGetAccounts } from '@restaurant-pos/api-client'
 import type { AddSupplyFormData, SupplyItemFormData, PaymentFormData, FieldErrors } from '../model/types'
 
 export const useAddSupply = () => {
@@ -15,6 +15,7 @@ export const useAddSupply = () => {
   const { data: suppliers = [] } = useGetSuppliers()
   const { data: ingredients = [] } = useGetIngredients()
   const { data: stock = [] } = useGetStock()
+  const { data: accounts = [] } = useGetAccounts()
 
   const [formData, setFormData] = useState<AddSupplyFormData>({
     delivery_date: new Date().toISOString().split('T')[0],
@@ -26,6 +27,9 @@ export const useAddSupply = () => {
     items: [],
     payments: []
   })
+
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({})
+  const [showInsufficientFundsModal, setShowInsufficientFundsModal] = useState(false)
 
   // Load existing supply data when editing
   useEffect(() => {
@@ -54,10 +58,17 @@ export const useAddSupply = () => {
     }
   }, [isEditMode, existingSupply])
 
-  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({})
-
   const isSubmitting = createSupplyMutation.isPending || updateSupplyMutation.isPending
   const error = (createSupplyMutation.error || updateSupplyMutation.error) ? (createSupplyMutation.error as Error)?.message || (updateSupplyMutation.error as Error)?.message : null
+
+  // Расчет сумм ПЕРЕД использованием в callbacks
+  const totalAmount = useMemo(() => {
+    return formData.items.reduce((sum, item) => sum + item.total_amount, 0)
+  }, [formData.items])
+
+  const totalPayments = useMemo(() => {
+    return formData.payments.reduce((sum, payment) => sum + (payment.amount || 0), 0)
+  }, [formData.payments])
 
   const isFormValid = useMemo(() => {
     return (
@@ -149,16 +160,23 @@ export const useAddSupply = () => {
   const addPayment = useCallback(() => {
     const newPayment: PaymentFormData = {
       id: `${Date.now()}-${Math.random()}`,
-      account_type: '',
+      account_id: '',
       payment_date: new Date().toISOString().split('T')[0],
       payment_time_hours: new Date().getHours().toString().padStart(2, '0'),
       payment_time_minutes: new Date().getMinutes().toString().padStart(2, '0'),
       amount: 0
     }
-    setFormData(prev => ({
-      ...prev,
-      payments: [...prev.payments, newPayment]
-    }))
+    setFormData(prev => {
+      // Если это первый платеж, автоматически заполняем сумму из totalAmount
+      if (prev.payments.length === 0) {
+        const calculatedTotalAmount = prev.items.reduce((sum, item) => sum + item.total_amount, 0)
+        newPayment.amount = calculatedTotalAmount
+      }
+      return {
+        ...prev,
+        payments: [...prev.payments, newPayment]
+      }
+    })
   }, [])
 
   const removePayment = useCallback((paymentId: string) => {
@@ -183,6 +201,82 @@ export const useAddSupply = () => {
   const handleSubmit = useCallback(async () => {
     if (!isFormValid) return
 
+    // Проверяем баланс перед отправкой
+    const insufficientFunds: { accountName: string; amount: number; balance: number }[] = []
+    
+    for (const payment of formData.payments) {
+      if (payment.account_id && payment.amount > 0) {
+        const account = accounts.find(acc => acc.id === payment.account_id)
+        if (account && account.balance < payment.amount) {
+          insufficientFunds.push({
+            accountName: account.name,
+            amount: payment.amount,
+            balance: account.balance
+          })
+        }
+      }
+    }
+
+    // Если недостаточно средств, показываем модалку
+    if (insufficientFunds.length > 0) {
+      setShowInsufficientFundsModal(true)
+      return
+    }
+
+    // Формируем дату и время в формате RFC3339
+    const deliveryDateTime = new Date(
+      `${formData.delivery_date}T${formData.delivery_time_hours.padStart(2, '0')}:${formData.delivery_time_minutes.padStart(2, '0')}:00`
+    ).toISOString()
+
+    try {
+      // Формируем массив платежей
+      const payments = formData.payments
+        .filter(payment => payment.account_id && payment.amount > 0)
+        .map(payment => {
+          const paymentDateTime = new Date(
+            `${payment.payment_date}T${payment.payment_time_hours.padStart(2, '0')}:${payment.payment_time_minutes.padStart(2, '0')}:00`
+          ).toISOString()
+
+          return {
+            account_id: payment.account_id,
+            amount: payment.amount,
+            payment_date_time: paymentDateTime
+          }
+        })
+
+      const supplyData = {
+        warehouse_id: formData.warehouse_id,
+        supplier_id: formData.supplier_id,
+        delivery_date_time: deliveryDateTime,
+        status: 'completed' as const,
+        comment: formData.comment,
+        items: formData.items.map(item => ({
+          ingredient_id: item.ingredient_id,
+          product_id: item.product_id,
+          quantity: item.quantity,
+          unit: item.unit,
+          price_per_unit: item.price_per_unit,
+          total_amount: item.total_amount
+        })),
+        payments: payments.length > 0 ? payments : undefined,
+        total_amount: totalAmount,
+        payment_status: payments.length === 0 ? 'none' : undefined // Автоматически определится на бэкенде
+      }
+
+      if (isEditMode && id) {
+        await updateSupplyMutation.mutateAsync({ id, data: supplyData })
+      } else {
+        await createSupplyMutation.mutateAsync(supplyData)
+      }
+      navigate('/warehouse/deliveries')
+    } catch (err) {
+      console.error('Failed to save supply:', err)
+    }
+  }, [formData, isFormValid, accounts, totalAmount, createSupplyMutation, updateSupplyMutation, navigate, isEditMode, id])
+
+  const handleDebtSubmit = useCallback(async () => {
+    if (!isFormValid) return
+
     // Формируем дату и время в формате RFC3339
     const deliveryDateTime = new Date(
       `${formData.delivery_date}T${formData.delivery_time_hours.padStart(2, '0')}:${formData.delivery_time_minutes.padStart(2, '0')}:00`
@@ -202,7 +296,10 @@ export const useAddSupply = () => {
           unit: item.unit,
           price_per_unit: item.price_per_unit,
           total_amount: item.total_amount
-        }))
+        })),
+        payments: [], // Платежей нет
+        total_amount: totalAmount,
+        payment_status: 'debt' // Поставка в долг
       }
 
       if (isEditMode && id) {
@@ -212,21 +309,13 @@ export const useAddSupply = () => {
       }
       navigate('/warehouse/deliveries')
     } catch (err) {
-      console.error('Failed to save supply:', err)
+      console.error('Failed to save supply as debt:', err)
     }
-  }, [formData, isFormValid, createSupplyMutation, updateSupplyMutation, navigate, isEditMode, id])
+  }, [formData, isFormValid, totalAmount, createSupplyMutation, updateSupplyMutation, navigate, isEditMode, id])
 
   const handleBack = useCallback(() => {
     navigate('/warehouse/deliveries')
   }, [navigate])
-
-  const totalAmount = useMemo(() => {
-    return formData.items.reduce((sum, item) => sum + item.total_amount, 0)
-  }, [formData.items])
-
-  const totalPayments = useMemo(() => {
-    return formData.payments.reduce((sum, payment) => sum + (payment.amount || 0), 0)
-  }, [formData.payments])
 
   const remainingAmount = totalAmount - totalPayments
 
@@ -259,6 +348,7 @@ export const useAddSupply = () => {
     warehouses,
     suppliers,
     ingredients,
+    accounts,
     availableItems,
     totalAmount,
     totalPayments,
@@ -271,9 +361,12 @@ export const useAddSupply = () => {
     removePayment,
     updatePayment,
     handleSubmit,
+    handleDebtSubmit,
     handleBack,
     isEditMode,
-    isLoadingSupply
+    isLoadingSupply,
+    showInsufficientFundsModal,
+    setShowInsufficientFundsModal
   }
 }
 

@@ -1,0 +1,73 @@
+FROM node:20-alpine AS builder
+
+# Accept build arguments
+ARG NEXT_PUBLIC_API_URL
+ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
+
+WORKDIR /app
+
+# Install pnpm
+RUN npm install -g pnpm
+
+# Copy package files
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY tsconfig.json ./
+COPY apps/qr-menu-pwa/package.json ./apps/qr-menu-pwa/
+COPY packages/api-client/package.json ./packages/api-client/
+COPY packages/pwa-core/package.json ./packages/pwa-core/
+COPY packages/types/package.json ./packages/types/
+COPY packages/ui/package.json ./packages/ui/
+
+# Install dependencies
+RUN pnpm install --frozen-lockfile
+
+# Copy source files
+COPY apps/qr-menu-pwa ./apps/qr-menu-pwa
+COPY packages ./packages
+
+# Build workspace packages required by qr-menu-pwa
+RUN pnpm --filter @restaurant-pos/types build
+RUN pnpm --filter @restaurant-pos/pwa-core build
+RUN pnpm --filter @restaurant-pos/api-client build
+RUN pnpm --filter @restaurant-pos/ui build
+
+# Build the application
+RUN pnpm --filter @restaurant-pos/qr-menu-pwa build
+
+# Runtime stage
+FROM node:20-alpine
+
+ARG NEXT_PUBLIC_API_URL
+ENV NODE_ENV=production
+ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
+
+WORKDIR /app
+
+# Install pnpm
+RUN npm install -g pnpm
+
+# Copy package files
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY tsconfig.json ./
+COPY apps/qr-menu-pwa/package.json ./apps/qr-menu-pwa/
+COPY packages/api-client/package.json ./packages/api-client/
+COPY packages/pwa-core/package.json ./packages/pwa-core/
+COPY packages/types/package.json ./packages/types/
+COPY packages/ui/package.json ./packages/ui/
+
+# Install production dependencies
+RUN pnpm install --frozen-lockfile --prod=false
+
+# Copy built app and source required by next start
+COPY --from=builder /app/apps/qr-menu-pwa/.next ./apps/qr-menu-pwa/.next
+COPY --from=builder /app/apps/qr-menu-pwa/public ./apps/qr-menu-pwa/public
+COPY --from=builder /app/apps/qr-menu-pwa/next.config.js ./apps/qr-menu-pwa/next.config.js
+COPY --from=builder /app/apps/qr-menu-pwa/package.json ./apps/qr-menu-pwa/package.json
+COPY --from=builder /app/apps/qr-menu-pwa/app ./apps/qr-menu-pwa/app
+COPY --from=builder /app/apps/qr-menu-pwa/tsconfig.json ./apps/qr-menu-pwa/tsconfig.json
+COPY --from=builder /app/packages ./packages
+
+WORKDIR /app/apps/qr-menu-pwa
+EXPOSE 3000
+
+CMD ["pnpm", "start", "-p", "3000"]

@@ -8,6 +8,8 @@ import {
 } from '@restaurant-pos/api-client'
 import type { ProductTable, ProductsSort, UseProductsResult } from '../model/types'
 import { SortDirection } from '../model/enums'
+import { exportToExcel, printTable, useColumnVisibility } from '@restaurant-pos/ui'
+import { getProductsTableColumns } from '../lib/constants'
 
 export const useProducts = (): UseProductsResult => {
   const navigate = useNavigate()
@@ -15,6 +17,7 @@ export const useProducts = (): UseProductsResult => {
   const [sort, setSort] = useState<ProductsSort>({ field: 'name', direction: SortDirection.ASC })
   const [filters, setFilters] = useState<ProductFilter>({})
   const [isModalOpen, setIsModalOpen] = useState(false)
+  const [isColumnModalOpen, setIsColumnModalOpen] = useState(false)
   const [editingProductId, setEditingProductId] = useState<string | undefined>(undefined)
 
   const { data: apiProducts = [], isLoading, error } = useGetProducts({
@@ -121,17 +124,21 @@ export const useProducts = (): UseProductsResult => {
     setEditingProductId(undefined)
   }, [])
 
+  const allColumns = useMemo(() => getProductsTableColumns({ onEdit: () => {}, onDelete: () => {} }), [])
+
+  const { visibleColumns, columnInfo, toggleColumn, showAllColumns, hideAllColumns, resetColumnVisibility } = 
+    useColumnVisibility(allColumns, { storageKey: 'admin-panel-products-columns' })
+
   const handleExport = () => {
-    console.log('Export products')
+    exportToExcel(filteredAndSortedProducts, visibleColumns, 'products.xlsx')
   }
 
   const handlePrint = () => {
-    console.log('Print products')
+    printTable(filteredAndSortedProducts, visibleColumns, 'Блюда', { showDate: true, orientation: 'landscape' })
   }
 
-  const handleColumns = () => {
-    console.log('Manage columns')
-  }
+  const handleColumns = () => { setIsColumnModalOpen(true) }
+  const handleCloseColumnModal = () => { setIsColumnModalOpen(false) }
 
   const handleCart = () => {
     console.log('Open cart')
@@ -157,6 +164,14 @@ export const useProducts = (): UseProductsResult => {
     handleColumns,
     handleCart,
     sort,
+    isColumnModalOpen,
+    handleCloseColumnModal,
+    visibleColumns,
+    columnInfo,
+    toggleColumn,
+    showAllColumns,
+    hideAllColumns,
+    resetColumnVisibility,
     isModalOpen,
     editingProductId,
     handleCloseModal,

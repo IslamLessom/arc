@@ -23,6 +23,8 @@ export interface FieldErrors {
 
 export interface UseAddSemiFinishedResult {
   formData: AddSemiFinishedFormData
+  isEditMode: boolean
+  isInitialLoading: boolean
   isSubmitting: boolean
   error: string | null
   fieldErrors: FieldErrors

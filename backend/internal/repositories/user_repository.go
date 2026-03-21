@@ -30,7 +30,11 @@ func NewUserRepository(db *gorm.DB) UserRepository {
 
 func (r *userRepository) GetByID(ctx context.Context, id uuid.UUID) (*models.User, error) {
 	var user models.User
-	err := r.db.WithContext(ctx).Preload("Role").First(&user, "id = ?", id).Error
+	err := r.db.WithContext(ctx).
+		Preload("Role").
+		Preload("Subscription").
+		Preload("Subscription.Plan").
+		First(&user, "id = ?", id).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, ErrUserNotFound
@@ -77,6 +81,7 @@ func (r *userRepository) GetByPIN(ctx context.Context, pin string, establishment
 	var user models.User
 	// Сначала ищем пользователя с указанным establishment_id
 	err := r.db.WithContext(ctx).
+		Preload("Role").
 		Where("establishment_id = ? AND pin = ?", establishmentID, pin).
 		First(&user).Error
 
@@ -85,6 +90,7 @@ func (r *userRepository) GetByPIN(ctx context.Context, pin string, establishment
 		// Это позволит автоматически привязать сотрудника к заведению при первом логине
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			err = r.db.WithContext(ctx).
+				Preload("Role").
 				Where("pin = ? AND (establishment_id IS NULL OR establishment_id = ?)", pin, establishmentID).
 				First(&user).Error
 			if err != nil {

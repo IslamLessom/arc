@@ -2,7 +2,10 @@ package handlers
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
+	"path/filepath"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -10,16 +13,19 @@ import (
 
 	"github.com/yourusername/arc/backend/internal/models"
 	"github.com/yourusername/arc/backend/internal/usecases"
+	"github.com/yourusername/arc/backend/pkg/storage"
 )
 
 type RoomHandler struct {
 	usecase *usecases.RoomUseCase
+	storage *storage.MinIOClient
 	logger  *zap.Logger
 }
 
-func NewRoomHandler(usecase *usecases.RoomUseCase, logger *zap.Logger) *RoomHandler {
+func NewRoomHandler(usecase *usecases.RoomUseCase, storageClient *storage.MinIOClient, logger *zap.Logger) *RoomHandler {
 	return &RoomHandler{
 		usecase: usecase,
+		storage: storageClient,
 		logger:  logger,
 	}
 }
@@ -31,10 +37,11 @@ type CreateRoomRequest struct {
 }
 
 type UpdateRoomRequest struct {
-	Name        *string `json:"name" binding:"omitempty,min=1"`
-	Description *string `json:"description"`
-	Floor       *int    `json:"floor" binding:"omitempty,min=1"`
-	Active      *bool   `json:"active"`
+	Name               *string `json:"name" binding:"omitempty,min=1"`
+	Description        *string `json:"description"`
+	Floor              *int    `json:"floor" binding:"omitempty,min=1"`
+	Active             *bool   `json:"active"`
+	BackgroundImageURL *string `json:"background_image_url"`
 }
 
 // ListRooms возвращает список залов для заведения
@@ -215,6 +222,9 @@ func (h *RoomHandler) UpdateRoom(c *gin.Context) {
 	if req.Active != nil {
 		room.Active = *req.Active
 	}
+	if req.BackgroundImageURL != nil {
+		room.BackgroundImageURL = *req.BackgroundImageURL
+	}
 
 	if err := h.usecase.UpdateRoom(c.Request.Context(), room, establishmentID); err != nil {
 		h.logger.Error("Failed to update room", zap.Error(err))
@@ -263,4 +273,118 @@ func (h *RoomHandler) DeleteRoom(c *gin.Context) {
 	}
 
 	c.Status(http.StatusNoContent)
+}
+
+// UploadRoomBackground загружает фоновое изображение для зала
+// @Summary Загрузить фон зала
+// @Description Загружает фоновое изображение для зала в хранилище и обновляет запись в БД
+// @Tags rooms
+// @Accept multipart/form-data
+// @Produce json
+// @Security Bearer
+// @Param id path string true "ID заведения"
+// @Param room_id path string true "ID зала"
+// @Param file formData file true "Файл фонового изображения"
+// @Success 200 {object} models.Room
+// @Failure 400 {object} map[string]string
+// @Failure 404 {object} map[string]string
+// @Failure 500 {object} map[string]string
+// @Router /establishments/{id}/rooms/{room_id}/background [post]
+func (h *RoomHandler) UploadRoomBackground(c *gin.Context) {
+	establishmentIDStr := c.Param("id")
+	establishmentID, err := uuid.Parse(establishmentIDStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Неверный ID заведения"})
+		return
+	}
+	roomIDStr := c.Param("room_id")
+	roomID, err := uuid.Parse(roomIDStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Неверный ID зала"})
+		return
+	}
+
+	// Получаем файл из формы
+	file, err := c.FormFile("file")
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "file is required"})
+		return
+	}
+
+	// Проверяем тип файла
+	ext := strings.ToLower(filepath.Ext(file.Filename))
+	allowedExts := []string{".jpg", ".jpeg", ".png", ".gif", ".webp"}
+	allowed := false
+	for _, allowedExt := range allowedExts {
+		if ext == allowedExt {
+			allowed = true
+			break
+		}
+	}
+
+	if !allowed {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": fmt.Sprintf("file type not allowed. Allowed types: %v", allowedExts),
+		})
+		return
+	}
+
+	// Проверяем размер файла (максимум 10MB)
+	if file.Size > 10*1024*1024 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "file size exceeds 10MB limit"})
+		return
+	}
+
+	// Получаем комнату
+	room, err := h.usecase.GetRoomByID(c.Request.Context(), roomID, establishmentID)
+	if err != nil {
+		h.logger.Error("Failed to get room", zap.Error(err))
+		if errors.Is(err, errors.New("room not found")) {
+			c.JSON(http.StatusNotFound, gin.H{"error": "Зал не найден"})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Не удалось получить зал"})
+		return
+	}
+
+	// Открываем файл
+	src, err := file.Open()
+	if err != nil {
+		h.logger.Error("Failed to open uploaded file", zap.Error(err))
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to open file"})
+		return
+	}
+	defer src.Close()
+
+	// Определяем Content-Type
+	contentType := "image/jpeg"
+	switch ext {
+	case ".png":
+		contentType = "image/png"
+	case ".gif":
+		contentType = "image/gif"
+	case ".webp":
+		contentType = "image/webp"
+	}
+
+	// Загружаем в MinIO
+	url, err := h.storage.UploadImage(c.Request.Context(), src, file.Filename, contentType)
+	if err != nil {
+		h.logger.Error("Failed to upload background image",
+			zap.Error(err),
+			zap.String("filename", file.Filename),
+			zap.String("room_id", roomID.String()))
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to upload image"})
+		return
+	}
+
+	// Обновляем URL фона в комнате
+	room.BackgroundImageURL = url
+	if err := h.usecase.UpdateRoom(c.Request.Context(), room, establishmentID); err != nil {
+		h.logger.Error("Failed to update room with background URL", zap.Error(err))
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Не удалось обновить фон зала"})
+		return
+	}
+
+	c.JSON(http.StatusOK, room)
 }

@@ -9,8 +9,8 @@ import (
 
 	_ "github.com/yourusername/arc/backend/docs" // импорт сгенерированной документации
 	"github.com/yourusername/arc/backend/internal/config"
-	"github.com/yourusername/arc/backend/internal/usecases"
 	"github.com/yourusername/arc/backend/internal/middleware"
+	"github.com/yourusername/arc/backend/internal/usecases"
 )
 
 // NewRouter создает и настраивает HTTP router
@@ -46,19 +46,40 @@ func NewRouter(usecases *usecases.UseCases, cfg *config.Config, logger *zap.Logg
 		onboardingHandler := NewOnboardingHandler(usecases.Onboarding, logger)
 		auth := v1.Group("/auth")
 		{
-			auth.POST("/register", authHandler.Register) // Публичный endpoint
-			auth.POST("/login", authHandler.Login)      // Публичный endpoint
+			auth.POST("/register", authHandler.Register)            // Публичный endpoint
+			auth.POST("/login", authHandler.Login)                  // Публичный endpoint
 			auth.POST("/employee/login", authHandler.EmployeeLogin) // Публичный endpoint
-			auth.POST("/refresh", authHandler.Refresh)  // Публичный endpoint
+			auth.POST("/refresh", authHandler.Refresh)              // Публичный endpoint
 			auth.GET("/me", middleware.Auth(cfg.JWT.Secret, usecases.Auth.GetTokenRepo()), authHandler.GetCurrentUser)
 			auth.POST("/logout", middleware.Auth(cfg.JWT.Secret, usecases.Auth.GetTokenRepo()), authHandler.Logout)
-			
+
 			// Onboarding routes
 			onboarding := auth.Group("/onboarding")
 			{
 				onboarding.GET("/questions", onboardingHandler.GetQuestions) // Публичный endpoint
 				onboarding.POST("/submit", middleware.Auth(cfg.JWT.Secret, usecases.Auth.GetTokenRepo()), onboardingHandler.SubmitAnswers)
 				onboarding.GET("/response", middleware.Auth(cfg.JWT.Secret, usecases.Auth.GetTokenRepo()), onboardingHandler.GetUserResponse)
+			}
+		}
+
+		// QR Menu — публичные эндпоинты (без аутентификации)
+		qrMenuHandler := NewQRMenuHandler(usecases.QRMenu, logger)
+		qr := v1.Group("/qr")
+		{
+			qr.GET("/:qr_token", qrMenuHandler.GetTableInfo)
+			qr.GET("/:qr_token/menu", qrMenuHandler.GetMenu)
+			// Анонимная сессия
+			qr.POST("/:qr_token/session", qrMenuHandler.CreateSession)
+			// Регистрация гостя (телефон + пароль)
+			qr.POST("/:qr_token/register", qrMenuHandler.RegisterGuest)
+			// Вход зарегистрированного гостя
+			qr.POST("/:qr_token/login", qrMenuHandler.LoginGuest)
+			// Заказы — требуют гостевой JWT
+			qrAuth := qr.Group("/:qr_token")
+			qrAuth.Use(middleware.GuestAuth(cfg.JWT.Secret))
+			{
+				qrAuth.POST("/orders", qrMenuHandler.CreateOrder)
+				qrAuth.GET("/orders", qrMenuHandler.GetMyOrders)
 			}
 		}
 
@@ -73,14 +94,16 @@ func NewRouter(usecases *usecases.UseCases, cfg *config.Config, logger *zap.Logg
 			roleHandler := NewRoleHandler(usecases.Role, logger)
 			statisticsHandler := NewStatisticsHandler(usecases.Statistics, logger)
 			upload := protected.Group("/upload")
+			upload.Use(middleware.SubscriptionReadOnlyCheck(usecases.Auth, logger))
 			{
 				upload.POST("/image", uploadHandler.UploadImage)
 				upload.POST("/image/base64", uploadHandler.UploadImageFromBase64)
 			}
 
-			// Shift routes
+			// Shift routes (POS) - требует активную подписку (блокирует полностью при истекшей)
 			shifts := protected.Group("/shifts")
 			shifts.Use(middleware.RequireEstablishment(usecases.Auth))
+			shifts.Use(middleware.SubscriptionCheck(usecases.Auth, logger)) // Блокируем доступ при истекшей подписке
 			{
 				shifts.GET("/me/active", shiftHandler.GetCurrentActiveShift)
 				shifts.POST("/start", shiftHandler.StartShift)
@@ -107,6 +130,7 @@ func NewRouter(usecases *usecases.UseCases, cfg *config.Config, logger *zap.Logg
 			// User routes (для управления сотрудниками)
 			users := protected.Group("/users")
 			users.Use(middleware.RequireEstablishment(usecases.Auth))
+			users.Use(middleware.SubscriptionReadOnlyCheck(usecases.Auth, logger)) // Read-only при истекшей подписке
 			{
 				users.POST("", userHandler.CreateEmployee)
 				users.GET("", userHandler.ListEmployees)
@@ -120,6 +144,7 @@ func NewRouter(usecases *usecases.UseCases, cfg *config.Config, logger *zap.Logg
 			// Access routes (алиас для users, для фронтенда)
 			access := protected.Group("/access")
 			access.Use(middleware.RequireEstablishment(usecases.Auth))
+			access.Use(middleware.SubscriptionReadOnlyCheck(usecases.Auth, logger)) // Read-only при истекшей подписке
 			{
 				employees := access.Group("/employees")
 				{
@@ -146,6 +171,7 @@ func NewRouter(usecases *usecases.UseCases, cfg *config.Config, logger *zap.Logg
 			// Role routes (для управления ролями)
 			roles := protected.Group("/roles")
 			roles.Use(middleware.RequireEstablishment(usecases.Auth))
+			roles.Use(middleware.SubscriptionReadOnlyCheck(usecases.Auth, logger)) // Read-only при истекшей подписке
 			{
 				roles.POST("", roleHandler.CreateRole)
 				roles.GET("", roleHandler.ListRoles)
@@ -156,10 +182,11 @@ func NewRouter(usecases *usecases.UseCases, cfg *config.Config, logger *zap.Logg
 
 			// Establishments (заведение создаётся при onboarding; здесь — просмотр/редактирование)
 			establishmentHandler := NewEstablishmentHandler(usecases.Establishment, logger)
-			roomHandler := NewRoomHandler(usecases.Room, logger)
+			roomHandler := NewRoomHandler(usecases.Room, usecases.Storage, logger)
 			tableHandler := NewTableHandler(usecases.Table, logger)
 			establishments := protected.Group("/establishments")
 			establishments.Use(middleware.RequireEstablishment(usecases.Auth))
+			establishments.Use(middleware.SubscriptionReadOnlyCheck(usecases.Auth, logger)) // Read-only при истекшей подписке
 			{
 				establishments.GET("", establishmentHandler.List)
 				establishments.GET("/:id", establishmentHandler.Get)
@@ -170,12 +197,16 @@ func NewRouter(usecases *usecases.UseCases, cfg *config.Config, logger *zap.Logg
 
 				// Tables через rooms
 				rooms := protected.Group("/rooms")
+				rooms.Use(middleware.RequireEstablishment(usecases.Auth))
+				rooms.Use(middleware.SubscriptionReadOnlyCheck(usecases.Auth, logger))
 				{
 					rooms.GET("/:id/tables", tableHandler.ListTables)
 					rooms.POST("/:id/tables", tableHandler.CreateTable)
 					rooms.GET("/:id/tables/:table_id", tableHandler.GetTable)
 					rooms.PUT("/:id/tables/:table_id", tableHandler.UpdateTable)
 					rooms.DELETE("/:id/tables/:table_id", tableHandler.DeleteTable)
+					// QR token generation (admin)
+					rooms.POST("/:id/tables/:table_id/qr/generate", qrMenuHandler.GenerateQRToken)
 				}
 
 				// Rooms внутри establishments
@@ -186,13 +217,15 @@ func NewRouter(usecases *usecases.UseCases, cfg *config.Config, logger *zap.Logg
 					estRooms.GET("/:room_id", roomHandler.GetRoom)
 					estRooms.PUT("/:room_id", roomHandler.UpdateRoom)
 					estRooms.DELETE("/:room_id", roomHandler.DeleteRoom)
+					estRooms.POST("/:room_id/background", roomHandler.UploadRoomBackground)
 				}
 			}
 
-			// Menu / Products (требуется заведение — onboarding завершён)
+			// Menu / Products (требуется заведение и активная подписка для изменений)
 			menuHandler := NewMenuHandler(usecases.Menu, logger)
 			menu := protected.Group("/menu")
 			menu.Use(middleware.RequireEstablishment(usecases.Auth))
+			menu.Use(middleware.SubscriptionReadOnlyCheck(usecases.Auth, logger)) // Read-only при истекшей подписке
 			{
 				// Products
 				products := menu.Group("/products")
@@ -206,20 +239,20 @@ func NewRouter(usecases *usecases.UseCases, cfg *config.Config, logger *zap.Logg
 				// Categories (для товаров и тех-карт)
 				categories := menu.Group("/categories")
 				{
-				categories.GET("", menuHandler.GetCategories) // Маршрут для получения всех категорий
-				categories.POST("", menuHandler.CreateCategory) // Маршрут для создания категории
+					categories.GET("", menuHandler.GetCategories)   // Маршрут для получения всех категорий
+					categories.POST("", menuHandler.CreateCategory) // Маршрут для создания категории
 
-				// Группа маршрутов для операций с конкретной категорией по ID
-				categoryByID := categories.Group("/:id")
-				{
-					categoryByID.GET("", menuHandler.GetCategory)       // GET /api/v1/menu/categories/:id
-					categoryByID.PUT("", menuHandler.UpdateCategory)    // PUT /api/v1/menu/categories/:id
-					categoryByID.DELETE("", menuHandler.DeleteCategory) // DELETE /api/v1/menu/categories/:id
+					// Группа маршрутов для операций с конкретной категорией по ID
+					categoryByID := categories.Group("/:id")
+					{
+						categoryByID.GET("", menuHandler.GetCategory)       // GET /api/v1/menu/categories/:id
+						categoryByID.PUT("", menuHandler.UpdateCategory)    // PUT /api/v1/menu/categories/:id
+						categoryByID.DELETE("", menuHandler.DeleteCategory) // DELETE /api/v1/menu/categories/:id
 
-					// Продукты по категории
-					categoryByID.GET("/products", menuHandler.ListProductsByCategory)    // GET /api/v1/menu/categories/:id/products
-					categoryByID.GET("/tech-cards", menuHandler.ListTechCardsByCategory) // GET /api/v1/menu/categories/:id/tech-cards
-				}
+						// Продукты по категории
+						categoryByID.GET("/products", menuHandler.ListProductsByCategory)    // GET /api/v1/menu/categories/:id/products
+						categoryByID.GET("/tech-cards", menuHandler.ListTechCardsByCategory) // GET /api/v1/menu/categories/:id/tech-cards
+					}
 				}
 
 				// Tech Cards
@@ -251,7 +284,10 @@ func NewRouter(usecases *usecases.UseCases, cfg *config.Config, logger *zap.Logg
 				}
 				// Semi-finished (полуфабрикаты)
 				menu.GET("/semi-finished", menuHandler.GetSemiFinished)
+				menu.GET("/semi-finished/:id", menuHandler.GetSemiFinishedByID)
 				menu.POST("/semi-finished", menuHandler.CreateSemiFinished)
+				menu.PUT("/semi-finished/:id", menuHandler.UpdateSemiFinished)
+				menu.DELETE("/semi-finished/:id", menuHandler.DeleteSemiFinished)
 			}
 
 			// Warehouses (склады) + Stock, Supply, WriteOff, Suppliers
@@ -270,6 +306,7 @@ func NewRouter(usecases *usecases.UseCases, cfg *config.Config, logger *zap.Logg
 			workshopHandler := NewWorkshopHandler(usecases.Workshop, logger)
 			workshops := protected.Group("/workshops")
 			workshops.Use(middleware.RequireEstablishment(usecases.Auth))
+			workshops.Use(middleware.SubscriptionReadOnlyCheck(usecases.Auth, logger)) // Read-only при истекшей подписке
 			{
 				workshops.GET("", workshopHandler.ListWorkshops)
 				workshops.GET("/:id", workshopHandler.GetWorkshop)
@@ -279,11 +316,12 @@ func NewRouter(usecases *usecases.UseCases, cfg *config.Config, logger *zap.Logg
 			}
 			warehouse := protected.Group("/warehouse")
 			warehouse.Use(middleware.RequireEstablishment(usecases.Auth))
+			warehouse.Use(middleware.SubscriptionReadOnlyCheck(usecases.Auth, logger)) // Read-only при истекшей подписке
 			{
 				warehouse.GET("/stock", warehouseHandler.GetStock)
 				warehouse.PUT("/stock/:id/limit", warehouseHandler.UpdateStockLimit)
-				warehouse.GET("/supplies", warehouseHandler.ListSupplies) // Список всех поставок, опционально ?warehouse_id=xxx
-				warehouse.GET("/supplies/:id", warehouseHandler.GetSupply) // Получить поставку по ID
+				warehouse.GET("/supplies", warehouseHandler.ListSupplies)              // Список всех поставок, опционально ?warehouse_id=xxx
+				warehouse.GET("/supplies/:id", warehouseHandler.GetSupply)             // Получить поставку по ID
 				warehouse.GET("/supplies/by-item", warehouseHandler.GetSuppliesByItem) // ?ingredient_id=xxx или ?product_id=xxx
 				warehouse.POST("/supplies", warehouseHandler.CreateSupply)
 				warehouse.PUT("/supplies/:id", warehouseHandler.UpdateSupply) // Обновить поставку
@@ -296,6 +334,7 @@ func NewRouter(usecases *usecases.UseCases, cfg *config.Config, logger *zap.Logg
 				warehouse.PUT("/write-off-reasons/:id", warehouseHandler.UpdateWriteOffReason)
 				warehouse.DELETE("/write-off-reasons/:id", warehouseHandler.DeleteWriteOffReason)
 				warehouse.GET("/movements", warehouseHandler.GetMovements)
+				warehouse.POST("/transfers", warehouseHandler.CreateTransfer)
 				warehouse.GET("/suppliers", warehouseHandler.ListSuppliers)
 				warehouse.POST("/suppliers", warehouseHandler.CreateSupplier)
 				warehouse.GET("/suppliers/:id", warehouseHandler.GetSupplier)
@@ -307,6 +346,7 @@ func NewRouter(usecases *usecases.UseCases, cfg *config.Config, logger *zap.Logg
 			inventoryHandler := NewInventoryHandler(usecases.Inventory, logger)
 			inventory := protected.Group("/inventory")
 			inventory.Use(middleware.RequireEstablishment(usecases.Auth))
+			inventory.Use(middleware.SubscriptionReadOnlyCheck(usecases.Auth, logger)) // Read-only при истекшей подписке
 			{
 				inventory.GET("", inventoryHandler.List)
 				inventory.GET("/:id", inventoryHandler.GetByID)
@@ -323,8 +363,10 @@ func NewRouter(usecases *usecases.UseCases, cfg *config.Config, logger *zap.Logg
 			financeHandler := NewFinanceHandler(usecases.Finance, logger)
 			accountHandler := NewAccountHandler(usecases.Account, logger)
 			salaryHandler := NewSalaryHandler(usecases.Salary, logger)
+			advanceHandler := NewAdvanceHandler(usecases.Advance, logger)
 			finance := protected.Group("/finance")
 			finance.Use(middleware.RequireEstablishment(usecases.Auth))
+			finance.Use(middleware.SubscriptionReadOnlyCheck(usecases.Auth, logger)) // Read-only при истекшей подписке
 			{
 				// Transactions
 				transactions := finance.Group("/transactions")
@@ -354,15 +396,28 @@ func NewRouter(usecases *usecases.UseCases, cfg *config.Config, logger *zap.Logg
 				finance.GET("/reports/shift", financeHandler.GenerateShiftReport)
 				// Salary
 				finance.GET("/salary", salaryHandler.GetSalaryReport)
+				finance.POST("/salary/pay", salaryHandler.PaySalary)
+				// Advances
+				advances := finance.Group("/advances")
+				{
+					advances.POST("", advanceHandler.CreateAdvance)
+					advances.GET("", advanceHandler.ListAdvances)
+					advances.GET("/pending", advanceHandler.ListPendingAdvances)
+					advances.GET("/:id", advanceHandler.GetAdvanceByID)
+					advances.DELETE("/:id", advanceHandler.DeleteAdvance)
+				}
 			}
 
 			// Orders
 			orderHandler := NewOrderHandler(usecases.Order, logger)
 			orders := protected.Group("/orders")
 			orders.Use(middleware.RequireEstablishment(usecases.Auth))
+			orders.Use(middleware.SubscriptionReadOnlyCheck(usecases.Auth, logger)) // Read-only при истекшей подписке
 			{
 				orders.GET("", orderHandler.List)
 				orders.GET("/active", orderHandler.ListActiveOrdersByEstablishment)
+				orders.POST("/calculate", orderHandler.Calculate)
+				orders.POST("/promotions/preview", orderHandler.PreviewPromotions)
 				orders.GET("/:order_id", orderHandler.Get)
 				orders.POST("", orderHandler.Create)
 				orders.POST("/:order_id/items", orderHandler.AddOrderItem)
@@ -376,56 +431,83 @@ func NewRouter(usecases *usecases.UseCases, cfg *config.Config, logger *zap.Logg
 			marketingHandler := NewMarketingHandler(usecases.Marketing, logger)
 			marketing := protected.Group("/marketing")
 			marketing.Use(middleware.RequireEstablishment(usecases.Auth))
+			marketing.Use(middleware.SubscriptionReadOnlyCheck(usecases.Auth, logger)) // Read-only при истекшей подписке
 			{
-			// Clients
-			clients := marketing.Group("/clients")
-			{
-				clients.GET("", marketingHandler.ListClients)
-				clients.POST("", marketingHandler.CreateClient)
-				clients.GET("/:id", marketingHandler.GetClient)
-				clients.PUT("/:id", marketingHandler.UpdateClient)
-				clients.DELETE("/:id", marketingHandler.DeleteClient)
-				clients.POST("/:id/loyalty/add", marketingHandler.AddClientLoyaltyPoints)
-				clients.POST("/:id/loyalty/redeem", marketingHandler.RedeemClientLoyaltyPoints)
+				// Clients
+				clients := marketing.Group("/clients")
+				{
+					clients.GET("", marketingHandler.ListClients)
+					clients.POST("", marketingHandler.CreateClient)
+					clients.GET("/:id", marketingHandler.GetClient)
+					clients.PUT("/:id", marketingHandler.UpdateClient)
+					clients.DELETE("/:id", marketingHandler.DeleteClient)
+					clients.POST("/:id/loyalty/add", marketingHandler.AddClientLoyaltyPoints)
+					clients.POST("/:id/loyalty/redeem", marketingHandler.RedeemClientLoyaltyPoints)
+				}
+				// Client Groups
+				clientGroups := marketing.Group("/customer-groups")
+				{
+					clientGroups.GET("", marketingHandler.ListClientGroups)
+					clientGroups.POST("", marketingHandler.CreateClientGroup)
+					clientGroups.GET("/:id", marketingHandler.GetClientGroup)
+					clientGroups.PUT("/:id", marketingHandler.UpdateClientGroup)
+					clientGroups.DELETE("/:id", marketingHandler.DeleteClientGroup)
+				}
+				// Loyalty Programs
+				loyaltyPrograms := marketing.Group("/loyalty-programs")
+				{
+					loyaltyPrograms.GET("", marketingHandler.ListLoyaltyPrograms)
+					loyaltyPrograms.POST("", marketingHandler.CreateLoyaltyProgram)
+					loyaltyPrograms.GET("/:id", marketingHandler.GetLoyaltyProgram)
+					loyaltyPrograms.PUT("/:id", marketingHandler.UpdateLoyaltyProgram)
+					loyaltyPrograms.DELETE("/:id", marketingHandler.DeleteLoyaltyProgram)
+				}
+				// Promotions
+				promotions := marketing.Group("/promotions")
+				{
+					promotions.GET("", marketingHandler.ListPromotions)
+					promotions.POST("", marketingHandler.CreatePromotion)
+					promotions.GET("/:id", marketingHandler.GetPromotion)
+					promotions.PUT("/:id", marketingHandler.UpdatePromotion)
+					promotions.DELETE("/:id", marketingHandler.DeletePromotion)
+				}
+				// Exclusions
+				exclusions := marketing.Group("/exclusions")
+				{
+					exclusions.GET("", marketingHandler.ListExclusions)
+					exclusions.POST("", marketingHandler.CreateExclusion)
+					exclusions.GET("/:id", marketingHandler.GetExclusion)
+					exclusions.PUT("/:id", marketingHandler.UpdateExclusion)
+					exclusions.DELETE("/:id", marketingHandler.DeleteExclusion)
+				}
 			}
-			// Client Groups
-			clientGroups := marketing.Group("/customer-groups")
+
+			// Super Admin routes (требуется роль супер-админа)
+			superAdminHandler := NewSuperAdminHandler(usecases.Subscription, usecases.User, logger)
+			superAdmin := protected.Group("/super-admin")
+			superAdmin.Use(middleware.RequireSuperAdmin(usecases.Auth, logger))
 			{
-				clientGroups.GET("", marketingHandler.ListClientGroups)
-				clientGroups.POST("", marketingHandler.CreateClientGroup)
-				clientGroups.GET("/:id", marketingHandler.GetClientGroup)
-				clientGroups.PUT("/:id", marketingHandler.UpdateClientGroup)
-				clientGroups.DELETE("/:id", marketingHandler.DeleteClientGroup)
-			}
-			// Loyalty Programs
-			loyaltyPrograms := marketing.Group("/loyalty-programs")
-			{
-				loyaltyPrograms.GET("", marketingHandler.ListLoyaltyPrograms)
-				loyaltyPrograms.POST("", marketingHandler.CreateLoyaltyProgram)
-				loyaltyPrograms.GET("/:id", marketingHandler.GetLoyaltyProgram)
-				loyaltyPrograms.PUT("/:id", marketingHandler.UpdateLoyaltyProgram)
-				loyaltyPrograms.DELETE("/:id", marketingHandler.DeleteLoyaltyProgram)
-			}
-			// Promotions
-			promotions := marketing.Group("/promotions")
-			{
-				promotions.GET("", marketingHandler.ListPromotions)
-				promotions.POST("", marketingHandler.CreatePromotion)
-				promotions.GET("/:id", marketingHandler.GetPromotion)
-				promotions.PUT("/:id", marketingHandler.UpdatePromotion)
-				promotions.DELETE("/:id", marketingHandler.DeletePromotion)
-			}
-			// Exclusions
-			exclusions := marketing.Group("/exclusions")
-			{
-				exclusions.GET("", marketingHandler.ListExclusions)
-				exclusions.POST("", marketingHandler.CreateExclusion)
-				exclusions.GET("/:id", marketingHandler.GetExclusion)
-				exclusions.PUT("/:id", marketingHandler.UpdateExclusion)
-				exclusions.DELETE("/:id", marketingHandler.DeleteExclusion)
+				// Управление подписками
+				subscriptions := superAdmin.Group("/subscriptions")
+				{
+					subscriptions.GET("", superAdminHandler.ListSubscriptions)
+					subscriptions.GET("/:id", superAdminHandler.GetSubscription)
+					subscriptions.POST("/:id/extend", superAdminHandler.ExtendSubscription)
+					subscriptions.POST("/:id/change-plan", superAdminHandler.ChangeSubscriptionPlan)
+					subscriptions.POST("/:id/deactivate", superAdminHandler.DeactivateSubscription)
+					subscriptions.POST("/:id/activate", superAdminHandler.ActivateSubscription)
+				}
+
+				// Управление тарифными планами
+				plans := superAdmin.Group("/plans")
+				{
+					plans.GET("", superAdminHandler.ListPlans)
+					plans.POST("", superAdminHandler.CreatePlan)
+					plans.PUT("/:id", superAdminHandler.UpdatePlan)
+					plans.DELETE("/:id", superAdminHandler.DeletePlan)
+				}
 			}
 		}
-	}
 	}
 
 	return router

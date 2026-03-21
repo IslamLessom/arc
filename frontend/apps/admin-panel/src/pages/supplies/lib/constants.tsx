@@ -48,7 +48,19 @@ export const getSuppliesTableColumns = ({ onEdit, onDetails }: SuppliesTableProp
     title: 'Счет',
     dataIndex: 'id',
     key: 'invoice',
-    render: () => <span>-</span>
+    render: (_: unknown, record: SupplyTable) => {
+      const paymentAccounts = (record.payments || [])
+        .map(payment => payment.account?.name)
+        .filter((name): name is string => Boolean(name))
+
+      const uniqueAccounts = Array.from(new Set(paymentAccounts))
+
+      if (uniqueAccounts.length > 0) {
+        return <span>{uniqueAccounts.join(', ')}</span>
+      }
+
+      return <span>{record.account?.name || '-'}</span>
+    }
   },
   {
     title: 'Товары',
@@ -70,8 +82,24 @@ export const getSuppliesTableColumns = ({ onEdit, onDetails }: SuppliesTableProp
     title: 'Статус',
     dataIndex: 'status',
     key: 'status',
-    render: (status: string) => {
-      const isPaid = status === SupplyStatus.COMPLETED
+    render: (status: string, record: SupplyTable) => {
+      const paymentStatus = record.payment_status
+      
+      // Определяем текст и цвет статуса на основе payment_status
+      let statusText = 'Неоплаченная'
+      let backgroundColor = '#dbeafe'
+      let color = '#1e40af'
+      
+      if (paymentStatus === 'debt') {
+        statusText = 'В долг'
+        backgroundColor = '#fde2e4'
+        color = '#9f1239'
+      } else if (paymentStatus === 'paid' || status === SupplyStatus.COMPLETED) {
+        statusText = 'Оплаченная'
+        backgroundColor = '#d1fae5'
+        color = '#065f46'
+      }
+      
       return (
         <span
           style={{
@@ -79,11 +107,11 @@ export const getSuppliesTableColumns = ({ onEdit, onDetails }: SuppliesTableProp
             borderRadius: '12px',
             fontSize: '12px',
             fontWeight: '500',
-            backgroundColor: isPaid ? '#d1fae5' : '#dbeafe',
-            color: isPaid ? '#065f46' : '#1e40af'
+            backgroundColor,
+            color
           }}
         >
-          {isPaid ? 'Оплаченная' : 'Неоплаченная'}
+          {statusText}
         </span>
       )
     }

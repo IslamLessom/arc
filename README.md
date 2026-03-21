@@ -82,16 +82,13 @@ git clone <repository-url>
 cd arc
 ```
 
-2. **Настройте переменные окружения (опционально)**
+2. **Настройте переменные окружения**
 
 ```bash
-# Создайте .env файл или установите переменные окружения
-export DB_HOST=localhost
-export DB_PORT=15432
-export DB_USER=arc_user
-export DB_PASSWORD=arc_password
-export DB_NAME=arc_db
-export JWT_SECRET=your-secret-key-change-in-production
+# Скопируйте шаблон и заполните своими данными
+cp .env.example .env
+# Отредактируйте .env файл
+nano .env
 ```
 
 3. **Запустите с Docker Compose**
@@ -225,10 +222,10 @@ cd backend && go run ./cmd/api
 
 После запуска доступны следующие сервисы:
 
-- **Grafana**: http://localhost:3000 (admin/admin)
+- **Grafana**: http://localhost:3000 (credentials в .env)
 - **Prometheus**: http://localhost:9090
 - **Loki**: http://localhost:3100
-- **MinIO Console**: http://localhost:9001 (minioadmin/minioadmin)
+- **MinIO Console**: http://localhost:9001 (credentials в .env)
 - **Swagger UI**: http://localhost:8080/swagger/index.html
 
 ## 🧪 Тестирование
@@ -305,19 +302,21 @@ make migrate-up
 
 Основные настройки задаются через переменные окружения:
 
-- `DB_HOST` - хост БД (по умолчанию: localhost)
-- `DB_PORT` - порт БД (по умолчанию: 15432 для локальных скриптов)
-- `DB_USER` - пользователь БД (по умолчанию: arc_user)
-- `DB_PASSWORD` - пароль БД (по умолчанию: arc_password)
-- `DB_NAME` - имя БД (по умолчанию: arc_db)
+- `DB_HOST` - хост БД
+- `DB_PORT` - порт БД
+- `DB_USER` - пользователь БД
+- `DB_PASSWORD` - пароль БД
+- `DB_NAME` - имя БД
 - `JWT_SECRET` - секретный ключ для JWT
 - `APP_ENV` - окружение (development, production)
 - `LOG_LEVEL` - уровень логирования
-- `MINIO_ENDPOINT` - адрес MinIO (по умолчанию: localhost:9000)
-- `MINIO_ACCESS_KEY` - ключ доступа MinIO (по умолчанию: minioadmin)
-- `MINIO_SECRET_KEY` - секретный ключ MinIO (по умолчанию: minioadmin)
-- `MINIO_BUCKET_NAME` - имя bucket для изображений (по умолчанию: arc-images)
-- `MINIO_PUBLIC_URL` - публичный URL MinIO (по умолчанию: http://localhost:9000)
+- `MINIO_ENDPOINT` - адрес MinIO
+- `MINIO_ACCESS_KEY` - ключ доступа MinIO
+- `MINIO_SECRET_KEY` - секретный ключ MinIO
+- `MINIO_BUCKET_NAME` - имя bucket для изображений
+- `MINIO_PUBLIC_URL` - публичный URL MinIO
+
+См. `.env.example` для полного списка переменных с описаниями.
 
 ## 🌟 Преимущества
 

@@ -1,4 +1,4 @@
-import type { Table, Room } from '@restaurant-pos/api-client'
+import type { Table, Room, ApiOrder } from '@restaurant-pos/api-client'
 
 export interface TableSelectionProps {
   // Пропсы для TableSelection
@@ -7,6 +7,10 @@ export interface TableSelectionProps {
 export interface RoomWithTables {
   room: Room
   tables: Table[]
+}
+
+export interface TableWithOrder extends Table {
+  draftOrder?: ApiOrder
 }
 
 export interface UseTableSelectionResult {
@@ -24,5 +28,7 @@ export interface UseTableSelectionResult {
   handleGuestsSelect: (count: number) => void
   handleGuestsDropdownClose: () => void
   getDropdownPosition: () => { x: number; y: number }
+  getOrderForTable: (tableId: string) => ApiOrder | undefined
+  activeOrders: ApiOrder[]
 }
 

@@ -1,7 +1,19 @@
 import { useMemo, useState } from 'react'
 import { useMarketingPromotions, type MarketingPromotion } from '@restaurant-pos/api-client'
+import { exportToExcel, printTable, useColumnVisibility } from '@restaurant-pos/ui'
 import { PromotionTable, PromotionsSort } from '../model/types'
 import { SortDirection } from '../model/enums'
+import { getPromotionsTableColumns } from '../lib/constants'
+
+const confirmDelete = (id: string): Promise<boolean> => {
+  return new Promise((resolve) => {
+    if (window.confirm(`Вы уверены, что хотите удалить акцию с ID: ${id}?`)) {
+      resolve(true)
+    } else {
+      resolve(false)
+    }
+  })
+}
 
 const normalizePromotion = (promotion: MarketingPromotion, number: number): PromotionTable => ({
   id: promotion.id,
@@ -18,14 +30,23 @@ const normalizePromotion = (promotion: MarketingPromotion, number: number): Prom
   created_at: promotion.created_at,
   updated_at: promotion.updated_at,
   number,
+  impact_preview:
+    promotion.type === 'discount'
+      ? `Скидка ${promotion.discount_percentage ?? 0}% на участвующие позиции`
+      : promotion.type === 'buy_x_get_y'
+        ? `Купи ${promotion.buy_quantity ?? 0} - получи ${promotion.get_quantity ?? 0}`
+        : promotion.type === 'happy_hour'
+          ? `Скидка ${promotion.discount_percentage ?? 0}% в период акции`
+          : 'Фиксированное комбо-предложение',
 })
 
 export const usePromotions = () => {
-  const { promotions: apiPromotions, isLoading, error, refetch } = useMarketingPromotions()
+  const { promotions: apiPromotions, isLoading, error, refetch, deletePromotion } = useMarketingPromotions()
 
   const [searchQuery, setSearchQuery] = useState('')
   const [sort, setSort] = useState<PromotionsSort>({ field: 'name', direction: SortDirection.ASC })
   const [isModalOpen, setIsModalOpen] = useState(false)
+  const [isColumnModalOpen, setIsColumnModalOpen] = useState(false)
   const [editingPromotionId, setEditingPromotionId] = useState<string | null>(null)
 
   const promotions = useMemo(
@@ -99,16 +120,51 @@ export const usePromotions = () => {
     handleCloseModal()
   }
 
+  const allColumns = useMemo(
+    () => getPromotionsTableColumns({ onEdit: () => {}, onDelete: () => {} }),
+    []
+  )
+
+  const {
+    visibleColumns,
+    columnInfo,
+    toggleColumn,
+    showAllColumns,
+    hideAllColumns,
+    resetColumnVisibility,
+  } = useColumnVisibility(allColumns, {
+    storageKey: 'admin-panel-marketing-promotions-columns'
+  })
+
   const handleExport = () => {
-    console.log('Export promotions')
+    exportToExcel(filteredAndSortedPromotions, visibleColumns, 'marketing-promotions.xlsx')
   }
 
   const handlePrint = () => {
-    console.log('Print promotions')
+    printTable(filteredAndSortedPromotions, visibleColumns, 'Акции', {
+      showDate: true,
+      orientation: 'landscape'
+    })
   }
 
   const handleColumns = () => {
-    console.log('Manage columns')
+    setIsColumnModalOpen(true)
+  }
+
+  const handleCloseColumnModal = () => {
+    setIsColumnModalOpen(false)
+  }
+
+  const handleDelete = async (id: string) => {
+    const confirmed = await confirmDelete(id)
+    if (confirmed) {
+      try {
+        await deletePromotion(id)
+        await refetch()
+      } catch (err) {
+        console.error('Failed to delete promotion:', err)
+      }
+    }
   }
 
   return {
@@ -130,5 +186,14 @@ export const usePromotions = () => {
     handleExport,
     handlePrint,
     handleColumns,
+    handleDelete,
+    isColumnModalOpen,
+    handleCloseColumnModal,
+    visibleColumns,
+    columnInfo,
+    toggleColumn,
+    showAllColumns,
+    hideAllColumns,
+    resetColumnVisibility,
   }
 }

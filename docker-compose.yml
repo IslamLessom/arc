@@ -166,6 +166,42 @@ services:
       - arc_network
     restart: unless-stopped
 
+  super-admin-frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.super-admin
+      args:
+        - VITE_API_URL=${VITE_API_URL}
+    container_name: arc_super_admin_frontend_new
+    ports:
+      - "${SUPER_ADMIN_FRONTEND_PORT:-3006}:80"
+    environment:
+      - NODE_ENV=${APP_ENV}
+      - VITE_API_URL=${VITE_API_URL}
+    depends_on:
+      - app
+    networks:
+      - arc_network
+    restart: unless-stopped
+
+  qr-menu-frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.qr-menu
+      args:
+        - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
+    container_name: arc_qr_menu_frontend_new
+    ports:
+      - "${QR_MENU_FRONTEND_PORT:-3003}:3000"
+    environment:
+      - NODE_ENV=${APP_ENV}
+      - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
+    depends_on:
+      - app
+    networks:
+      - arc_network
+    restart: unless-stopped
+
 volumes:
   arc_postgres_data_new:
   arc_minio_data_new:
